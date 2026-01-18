@@ -1,0 +1,32 @@
+export const heroData = [
+  {
+    id: 1,
+    title: "Summer Collection",
+    subtitle: "Elevate Your Style",
+    description: "Discover timeless elegance with our curated selection of premium fashion",
+    ctaText: "Shop Now",
+    ctaLink: "/shop",
+    image: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1920&q=80",
+    backgroundColor: "#f5f5f5",
+  },
+  {
+    id: 2,
+    title: "New Arrivals",
+    subtitle: "Fresh Styles for You",
+    description: "Be the first to explore our latest designs and exclusive pieces",
+    ctaText: "Explore Collection",
+    ctaLink: "/new-arrivals",
+    image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1920&q=80",
+    backgroundColor: "#e8e8e8",
+  },
+  {
+    id: 3,
+    title: "Limited Edition",
+    subtitle: "Exclusive Premium",
+    description: "Rare finds and exclusive collections crafted with precision",
+    ctaText: "View Collection",
+    ctaLink: "/limited-edition",
+    image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1920&q=80",
+    backgroundColor: "#f0f0f0",
+  },
+];
