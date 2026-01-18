@@ -2,6 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Light Theme */
+  --color-primary: #004122;
+  --color-secondary: #00A651;
+  --color-tertiary: #D4AF37;
+  
+  /* Background colors */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F5F8F6;
+  --bg-tertiary: #E8F5ED;
+  
+  /* Text colors */
+  --text-primary: #004122;
+  --text-secondary: #1A4D3A;
+  --text-tertiary: #6B7280;
+  
+  /* Border colors */
+  --border-primary: #C8E6D5;
+  --border-secondary: #A3D4BA;
+  
+  /* Hover/Active states */
+  --hover-bg: #E8F5ED;
+  --active-color: #003319;
+  
+  /* Accent colors */
+  --accent-light: #E8F5ED;
+  --accent-medium: #A3D4BA;
+}
+
+[data-theme="dark"] {
+  /* Dark Theme */
+  --color-primary: #00D96F;
+  --color-secondary: #004122;
+  --color-tertiary: #FFC107;
+  
+  /* Background colors */
+  --bg-primary: #0A1F14;
+  --bg-secondary: #132B1E;
+  --bg-tertiary: #1A3728;
+  
+  /* Text colors */
+  --text-primary: #E8F5ED;
+  --text-secondary: #B8DCC8;
+  --text-tertiary: #8FB8A5;
+  
+  /* Border colors */
+  --border-primary: #1A3728;
+  --border-secondary: #264532;
+  
+  /* Hover/Active states */
+  --hover-bg: #132B1E;
+  --active-color: #00D96F;
+  
+  /* Accent colors */
+  --accent-light: #1A3728;
+  --accent-medium: #264532;
+}
+
 @layer base {
   * {
     @apply scroll-smooth;
@@ -9,5 +67,84 @@
   
   body {
     @apply antialiased;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+@layer utilities {
+  /* Background utilities */
+  .bg-theme-primary {
+    background-color: var(--bg-primary);
+  }
+  
+  .bg-theme-secondary {
+    background-color: var(--bg-secondary);
+  }
+  
+  .bg-theme-tertiary {
+    background-color: var(--bg-tertiary);
+  }
+  
+  /* Color utilities */
+  .color-primary {
+    color: var(--color-primary);
+  }
+  
+  .color-secondary {
+    color: var(--color-secondary);
+  }
+  
+  .color-tertiary {
+    color: var(--color-tertiary);
+  }
+  
+  .bg-color-primary {
+    background-color: var(--color-primary);
+  }
+  
+  .bg-color-secondary {
+    background-color: var(--color-secondary);
+  }
+  
+  .bg-color-tertiary {
+    background-color: var(--color-tertiary);
+  }
+  
+  /* Text utilities */
+  .text-theme-primary {
+    color: var(--text-primary);
+  }
+  
+  .text-theme-secondary {
+    color: var(--text-secondary);
+  }
+  
+  .text-theme-tertiary {
+    color: var(--text-tertiary);
+  }
+  
+  /* Border utilities */
+  .border-theme-primary {
+    border-color: var(--border-primary);
+  }
+  
+  .border-theme-secondary {
+    border-color: var(--border-secondary);
+  }
+  
+  /* Hover utilities */
+  .hover-bg-theme {
+    background-color: var(--hover-bg);
+  }
+  
+  /* Accent utilities */
+  .bg-accent-light {
+    background-color: var(--accent-light);
+  }
+  
+  .bg-accent-medium {
+    background-color: var(--accent-medium);
   }
 }

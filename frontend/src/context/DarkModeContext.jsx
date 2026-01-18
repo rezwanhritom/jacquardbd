@@ -17,10 +17,23 @@ export const DarkModeProvider = ({ children }) => {
   });
 
   useEffect(() => {
-    localStorage.setItem("darkMode", JSON.stringify(isDark));
+    // Set initial theme on mount
+    const initialTheme = isDark ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", initialTheme);
     if (isDark) {
       document.documentElement.classList.add("dark");
     } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("darkMode", JSON.stringify(isDark));
+    if (isDark) {
+      document.documentElement.setAttribute("data-theme", "dark");
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.setAttribute("data-theme", "light");
       document.documentElement.classList.remove("dark");
     }
   }, [isDark]);

@@ -4,7 +4,7 @@ import { DarkModeProvider } from "../context/DarkModeContext";
 const Root = () => {
   return (
     <DarkModeProvider>
-      <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
+      <div className="min-h-screen bg-theme-primary transition-colors duration-300">
         <Outlet />
       </div>
     </DarkModeProvider>
