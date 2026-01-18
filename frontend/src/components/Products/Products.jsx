@@ -25,7 +25,7 @@ const Products = () => {
   };
 
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
+    <section className="py-20 px-4 sm:px-6 lg:px-8 transition-colors duration-300" style={{ backgroundColor: "var(--bg-secondary)" }}>
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial="initial"
@@ -36,13 +36,15 @@ const Products = () => {
         >
           <motion.h2
             variants={fadeInUp}
-            className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4"
+            className="text-4xl md:text-5xl font-bold mb-4"
+            style={{ color: "var(--color-primary)" }}
           >
             Featured Products
           </motion.h2>
           <motion.p
             variants={fadeInUp}
-            className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto"
+            className="max-w-2xl mx-auto"
+            style={{ color: "var(--text-secondary)" }}
           >
             Discover our handpicked selection of premium fashion pieces
           </motion.p>
@@ -63,11 +65,12 @@ const Products = () => {
               <motion.div
                 key={product.id}
                 variants={fadeInUp}
-                className="bg-white dark:bg-gray-900 group cursor-pointer"
+                className="group cursor-pointer"
+                style={{ backgroundColor: "var(--bg-primary)" }}
                 onMouseEnter={() => setHoveredProduct(product.id)}
                 onMouseLeave={() => setHoveredProduct(null)}
               >
-                <div className="relative overflow-hidden aspect-[3/4] bg-gray-100 dark:bg-gray-800">
+                <div className="relative overflow-hidden aspect-[3/4]" style={{ backgroundColor: "var(--bg-tertiary)" }}>
                   <AnimatePresence mode="wait">
                     <motion.img
                       key={currentImageIndex}
@@ -87,19 +90,25 @@ const Products = () => {
                       onClick={(e) => handlePrevImage(product.id, product.images.length, e)}
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      className="bg-white/80 dark:bg-gray-900/80 hover:bg-white dark:hover:bg-gray-900 p-2 rounded-full shadow-lg backdrop-blur-sm transition-colors z-10"
+                      className="p-2 rounded-full shadow-lg backdrop-blur-sm transition-colors z-10"
+                      style={{ backgroundColor: "var(--bg-primary)", opacity: 0.8 }}
+                      onMouseEnter={(e) => e.target.style.opacity = "1"}
+                      onMouseLeave={(e) => e.target.style.opacity = "0.8"}
                       aria-label="Previous image"
                     >
-                      <FiChevronLeft size={20} className="text-gray-900 dark:text-white" />
+                      <FiChevronLeft size={20} style={{ color: "var(--text-primary)" }} />
                     </motion.button>
                     <motion.button
                       onClick={(e) => handleNextImage(product.id, product.images.length, e)}
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      className="bg-white/80 dark:bg-gray-900/80 hover:bg-white dark:hover:bg-gray-900 p-2 rounded-full shadow-lg backdrop-blur-sm transition-colors z-10"
+                      className="p-2 rounded-full shadow-lg backdrop-blur-sm transition-colors z-10"
+                      style={{ backgroundColor: "var(--bg-primary)", opacity: 0.8 }}
+                      onMouseEnter={(e) => e.target.style.opacity = "1"}
+                      onMouseLeave={(e) => e.target.style.opacity = "0.8"}
                       aria-label="Next image"
                     >
-                      <FiChevronRight size={20} className="text-gray-900 dark:text-white" />
+                      <FiChevronRight size={20} style={{ color: "var(--text-primary)" }} />
                     </motion.button>
                   </div>
 
@@ -109,10 +118,13 @@ const Products = () => {
                       <div
                         key={idx}
                         className={`h-1.5 rounded-full transition-all ${
-                          idx === currentImageIndex
-                            ? "w-4 bg-white"
-                            : "w-1.5 bg-white/50"
+                          idx === currentImageIndex ? "w-4" : "w-1.5"
                         }`}
+                        style={{
+                          backgroundColor: idx === currentImageIndex 
+                            ? "var(--color-primary)" 
+                            : "rgba(255, 255, 255, 0.5)"
+                        }}
                       />
                     ))}
                   </div>
@@ -124,7 +136,8 @@ const Products = () => {
                         opacity: 1,
                         x: 0,
                       }}
-                      className="absolute top-4 left-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-3 py-1 text-xs font-semibold uppercase tracking-wider z-10"
+                      className="absolute top-4 left-4 px-3 py-1 text-xs font-semibold uppercase tracking-wider z-10 text-white"
+                      style={{ backgroundColor: "var(--color-primary)" }}
                     >
                       {product.badge}
                     </motion.span>
@@ -137,7 +150,8 @@ const Products = () => {
                         opacity: 1,
                         scale: 1,
                       }}
-                      className="absolute top-4 right-4 bg-red-600 text-white px-2 py-1 text-xs font-bold rounded-full z-10"
+                      className="absolute top-4 right-4 text-white px-2 py-1 text-xs font-bold rounded-full z-10"
+                      style={{ backgroundColor: "var(--color-tertiary)" }}
                     >
                       -{product.discount}%
                     </motion.span>
@@ -156,15 +170,21 @@ const Products = () => {
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
-                      className="bg-white dark:bg-gray-900 p-3 rounded-full shadow-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="p-3 rounded-full shadow-lg transition-colors"
+                      style={{ backgroundColor: "var(--bg-primary)" }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = "var(--hover-bg)"}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = "var(--bg-primary)"}
                       aria-label="Add to wishlist"
                     >
-                      <FiHeart size={18} className="text-gray-900 dark:text-white" />
+                      <FiHeart size={18} style={{ color: "var(--color-primary)" }} />
                     </motion.button>
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
-                      className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 p-3 rounded-full shadow-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
+                      className="p-3 rounded-full shadow-lg transition-colors text-white"
+                      style={{ backgroundColor: "var(--color-primary)" }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = "var(--active-color)"}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = "var(--color-primary)"}
                       aria-label="Quick add to cart"
                     >
                       <FiShoppingBag size={18} />
@@ -173,16 +193,16 @@ const Products = () => {
                 </div>
 
                 <div className="p-4 space-y-2">
-                  <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <p className="text-xs uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
                     {product.category}
                   </p>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">{product.name}</h3>
+                  <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>{product.name}</h3>
                   <div className="flex items-center space-x-2">
-                    <span className="text-lg font-bold text-gray-900 dark:text-white">
+                    <span className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
                       ${product.price.toFixed(2)}
                     </span>
                     {product.originalPrice && (
-                      <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
+                      <span className="text-sm line-through" style={{ color: "var(--text-tertiary)" }}>
                         ${product.originalPrice.toFixed(2)}
                       </span>
                     )}

@@ -51,7 +51,8 @@ const Hero = () => {
                 <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
                   <motion.div
                     {...fadeInUp}
-                    className="max-w-2xl space-y-6 text-gray-900 dark:text-white"
+                    className="max-w-2xl space-y-6"
+                    style={{ color: "var(--text-primary)" }}
                   >
                     <motion.p
                       initial={{ opacity: 0, y: 20 }}
@@ -73,7 +74,8 @@ const Hero = () => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4, duration: 0.5 }}
-                      className="text-lg md:text-xl text-gray-700 dark:text-gray-300 max-w-lg"
+                      className="text-lg md:text-xl max-w-lg"
+                      style={{ color: "var(--text-secondary)" }}
                     >
                       {slide.description}
                     </motion.p>
@@ -86,7 +88,16 @@ const Hero = () => {
                         href={slide.ctaLink}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="inline-block bg-gray-900 text-white px-8 py-3 uppercase tracking-wider text-sm font-medium hover:bg-gray-800 transition-colors"
+                        className="inline-block px-8 py-3 uppercase tracking-wider text-sm font-medium transition-colors text-white"
+                        style={{
+                          backgroundColor: "var(--color-primary)",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.backgroundColor = "var(--active-color)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.backgroundColor = "var(--color-primary)";
+                        }}
                       >
                         {slide.ctaText}
                       </motion.a>
@@ -101,11 +112,22 @@ const Hero = () => {
       {/* Navigation Arrows */}
       <button
         onClick={prevSlide}
-        className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 dark:bg-gray-900/80 hover:bg-white dark:hover:bg-gray-900 p-3 rounded-full shadow-lg transition-all z-10"
+        className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full shadow-lg transition-all z-10"
+        style={{
+          backgroundColor: "var(--bg-primary)",
+          opacity: 0.8,
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.opacity = "1";
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.opacity = "0.8";
+        }}
         aria-label="Previous slide"
       >
         <svg
-          className="w-6 h-6 text-gray-900 dark:text-white"
+          className="w-6 h-6"
+          style={{ color: "var(--text-primary)" }}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -120,11 +142,22 @@ const Hero = () => {
       </button>
       <button
         onClick={nextSlide}
-        className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 dark:bg-gray-900/80 hover:bg-white dark:hover:bg-gray-900 p-3 rounded-full shadow-lg transition-all z-10"
+        className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full shadow-lg transition-all z-10"
+        style={{
+          backgroundColor: "var(--bg-primary)",
+          opacity: 0.8,
+        }}
+        onMouseEnter={(e) => {
+          e.target.style.opacity = "1";
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.opacity = "0.8";
+        }}
         aria-label="Next slide"
       >
         <svg
-          className="w-6 h-6 text-gray-900 dark:text-white"
+          className="w-6 h-6"
+          style={{ color: "var(--text-primary)" }}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -145,10 +178,24 @@ const Hero = () => {
             key={index}
             onClick={() => goToSlide(index)}
             className={`h-2 rounded-full transition-all ${
-              index === currentSlide
-                ? "w-8 bg-gray-900 dark:bg-white"
-                : "w-2 bg-gray-400 dark:bg-gray-600 hover:bg-gray-600 dark:hover:bg-gray-400"
+              index === currentSlide ? "w-8" : "w-2"
             }`}
+            style={{
+              backgroundColor:
+                index === currentSlide
+                  ? "var(--color-primary)"
+                  : "var(--text-tertiary)",
+            }}
+            onMouseEnter={(e) => {
+              if (index !== currentSlide) {
+                e.target.style.backgroundColor = "var(--color-secondary)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (index !== currentSlide) {
+                e.target.style.backgroundColor = "var(--text-tertiary)";
+              }
+            }}
             aria-label={`Go to slide ${index + 1}`}
           />
         ))}

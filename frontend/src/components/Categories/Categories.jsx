@@ -4,7 +4,7 @@ import { fadeInUp, staggerContainer, scaleOnHover } from "../../utils/animations
 
 const Categories = () => {
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-900 transition-colors duration-300">
+    <section className="py-20 px-4 sm:px-6 lg:px-8 transition-colors duration-300" style={{ backgroundColor: "var(--bg-primary)" }}>
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial="initial"
@@ -15,13 +15,15 @@ const Categories = () => {
         >
           <motion.h2
             variants={fadeInUp}
-            className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4"
+            className="text-4xl md:text-5xl font-bold mb-4"
+            style={{ color: "var(--color-primary)" }}
           >
             Shop by Category
           </motion.h2>
           <motion.p
             variants={fadeInUp}
-            className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto"
+            className="max-w-2xl mx-auto"
+            style={{ color: "var(--text-secondary)" }}
           >
             Discover our curated collections designed for every occasion
           </motion.p>
@@ -41,7 +43,7 @@ const Categories = () => {
               whileHover={scaleOnHover}
               className="relative group cursor-pointer overflow-hidden rounded-lg"
             >
-              <div className="relative h-80 bg-gray-200 dark:bg-gray-800 overflow-hidden">
+              <div className="relative h-80 overflow-hidden" style={{ backgroundColor: "var(--bg-tertiary)" }}>
                 <motion.img
                   src={category.image}
                   alt={category.name}
@@ -55,7 +57,8 @@ const Categories = () => {
                   <motion.span
                     initial={{ opacity: 0, scale: 0 }}
                     whileHover={{ opacity: 1, scale: 1 }}
-                    className="absolute top-4 right-4 bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-3 py-1 text-xs font-semibold uppercase tracking-wider"
+                    className="absolute top-4 right-4 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white"
+                    style={{ backgroundColor: "var(--color-tertiary)" }}
                   >
                     {category.badge}
                   </motion.span>
@@ -75,6 +78,7 @@ const Categories = () => {
                     href={category.link}
                     className="inline-block text-sm font-medium uppercase tracking-wider underline hover:no-underline"
                     whileHover={{ x: 5 }}
+                    style={{ color: "var(--color-tertiary)" }}
                   >
                     Explore
                   </motion.a>

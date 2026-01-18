@@ -14,7 +14,7 @@ const Newsletter = () => {
   };
 
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
+    <section className="py-20 px-4 sm:px-6 lg:px-8 transition-colors duration-300" style={{ backgroundColor: "var(--bg-secondary)" }}>
       <div className="max-w-4xl mx-auto text-center">
         <motion.div
           initial="initial"
@@ -22,10 +22,10 @@ const Newsletter = () => {
           viewport={{ once: true, amount: 0.3 }}
           variants={fadeInUp}
         >
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: "var(--color-primary)" }}>
             Stay in the Loop
           </h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
+          <p className="mb-8 max-w-2xl mx-auto" style={{ color: "var(--text-secondary)" }}>
             Subscribe to our newsletter and be the first to know about new
             collections, exclusive offers, and style inspiration.
           </p>
@@ -49,10 +49,21 @@ const Newsletter = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
                 placeholder="Enter your email address"
-                className="w-full px-6 py-4 border-2 border-gray-300 dark:border-gray-600 focus:border-gray-900 dark:focus:border-white outline-none transition-colors bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                className="w-full px-6 py-4 border-2 outline-none transition-colors placeholder:opacity-60"
+                style={{
+                  borderColor: focused ? "var(--color-primary)" : "var(--border-primary)",
+                  backgroundColor: "var(--bg-primary)",
+                  color: "var(--text-primary)",
+                }}
+                onFocus={(e) => {
+                  setFocused(true);
+                  e.target.style.borderColor = "var(--color-primary)";
+                }}
+                onBlur={(e) => {
+                  setFocused(false);
+                  e.target.style.borderColor = "var(--border-primary)";
+                }}
                 required
               />
             </motion.div>
@@ -60,7 +71,14 @@ const Newsletter = () => {
               type="submit"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-gray-900 text-white px-8 py-4 uppercase tracking-wider text-sm font-semibold hover:bg-gray-800 transition-colors whitespace-nowrap"
+              className="px-8 py-4 uppercase tracking-wider text-sm font-semibold transition-colors whitespace-nowrap text-white"
+              style={{ backgroundColor: "var(--color-primary)" }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = "var(--active-color)";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = "var(--color-primary)";
+              }}
             >
               Subscribe
             </motion.button>

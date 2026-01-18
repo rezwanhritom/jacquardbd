@@ -20,7 +20,13 @@ const Trust = () => {
   };
 
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white dark:bg-gray-900 border-y border-gray-200 dark:border-gray-700 transition-colors duration-300">
+    <section 
+      className="py-20 px-4 sm:px-6 lg:px-8 border-y transition-colors duration-300"
+      style={{ 
+        backgroundColor: "var(--bg-primary)",
+        borderColor: "var(--border-primary)"
+      }}
+    >
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial="initial"
@@ -39,17 +45,25 @@ const Trust = () => {
               >
                 <motion.div
                   whileHover={{ scale: 1.1, rotate: 5 }}
-                  className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full mb-4 group-hover:bg-gray-900 dark:group-hover:bg-white transition-colors"
+                  className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 transition-colors"
+                  style={{ backgroundColor: "var(--bg-tertiary)" }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = "var(--color-primary)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = "var(--bg-tertiary)";
+                  }}
                 >
                   <Icon
                     size={28}
-                    className="text-gray-900 dark:text-white group-hover:text-white dark:group-hover:text-gray-900 transition-colors"
+                    style={{ color: "var(--color-primary)" }}
+                    className="transition-colors"
                   />
                 </motion.div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                <h3 className="text-lg font-semibold mb-2" style={{ color: "var(--color-primary)" }}>
                   {item.title}
                 </h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">{item.description}</p>
+                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{item.description}</p>
               </motion.div>
             );
           })}
