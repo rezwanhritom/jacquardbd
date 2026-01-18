@@ -20,7 +20,7 @@ const Footer = () => {
   };
 
   return (
-    <footer style={{ backgroundColor: "var(--color-primary)", color: "var(--text-secondary)" }}>
+    <footer style={{ backgroundColor: "var(--color-primary)" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <motion.div
           initial="initial"
@@ -31,13 +31,13 @@ const Footer = () => {
         >
           {/* Brand Column */}
           <motion.div variants={fadeInUp} className="lg:col-span-2">
-            <h3 className="text-2xl font-bold mb-4 tracking-wider" style={{ color: "var(--text-primary)" }}>
+            <h3 className="text-2xl font-bold mb-4 tracking-wider text-white">
               {footerData.brand.name}
             </h3>
-            <p className="text-sm mb-2 uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
+            <p className="text-sm mb-2 uppercase tracking-wider text-white/80">
               {footerData.brand.tagline}
             </p>
-            <p className="text-sm mb-6 max-w-sm" style={{ color: "var(--text-secondary)" }}>
+            <p className="text-sm mb-6 max-w-sm text-white/70">
               {footerData.brand.description}
             </p>
             <div className="flex space-x-4">
@@ -50,15 +50,15 @@ const Footer = () => {
                     href={social.url}
                     whileHover={{ scale: 1.1, y: -2 }}
                     whileTap={{ scale: 0.95 }}
-                    className="w-10 h-10 flex items-center justify-center border transition-colors"
-                    style={{ borderColor: "var(--border-secondary)" }}
+                    className="w-10 h-10 flex items-center justify-center border transition-colors text-white/70"
+                    style={{ borderColor: "rgba(255, 255, 255, 0.3)" }}
                     onMouseEnter={(e) => {
                       e.target.style.borderColor = "var(--color-tertiary)";
                       e.target.style.color = "var(--color-tertiary)";
                     }}
                     onMouseLeave={(e) => {
-                      e.target.style.borderColor = "var(--border-secondary)";
-                      e.target.style.color = "var(--text-secondary)";
+                      e.target.style.borderColor = "rgba(255, 255, 255, 0.3)";
+                      e.target.style.color = "rgba(255, 255, 255, 0.7)";
                     }}
                     aria-label={social.label}
                   >
@@ -72,7 +72,7 @@ const Footer = () => {
           {/* Footer Columns */}
           {footerData.columns.map((column, index) => (
             <motion.div key={index} variants={fadeInUp}>
-              <h4 className="font-semibold mb-4 uppercase tracking-wider text-sm" style={{ color: "var(--text-primary)" }}>
+              <h4 className="font-semibold mb-4 uppercase tracking-wider text-sm text-white">
                 {column.title}
               </h4>
               <ul className="space-y-3">
@@ -80,13 +80,12 @@ const Footer = () => {
                   <li key={link.id}>
                     <motion.a
                       href={link.path}
-                      className="text-sm transition-colors block"
-                      style={{ color: "var(--text-secondary)" }}
+                      className="text-sm transition-colors block text-white/70"
                       onMouseEnter={(e) => {
                         e.target.style.color = "var(--color-tertiary)";
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.color = "var(--text-secondary)";
+                        e.target.style.color = "rgba(255, 255, 255, 0.7)";
                       }}
                       whileHover={{ x: 5 }}
                     >
@@ -106,22 +105,21 @@ const Footer = () => {
           viewport={{ once: true }}
           transition={{ delay: 0.3 }}
           className="pt-8 border-t"
-          style={{ borderColor: "var(--border-secondary)" }}
+          style={{ borderColor: "rgba(255, 255, 255, 0.2)" }}
         >
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{footerData.copyright}</p>
+            <p className="text-sm text-white/70">{footerData.copyright}</p>
             <div className="flex space-x-6">
               {footerData.legal.map((link) => (
                 <motion.a
                   key={link.id}
                   href={link.path}
-                  className="text-sm transition-colors"
-                  style={{ color: "var(--text-secondary)" }}
+                  className="text-sm transition-colors text-white/70"
                   onMouseEnter={(e) => {
                     e.target.style.color = "var(--color-tertiary)";
                   }}
                   onMouseLeave={(e) => {
-                    e.target.style.color = "var(--text-secondary)";
+                    e.target.style.color = "rgba(255, 255, 255, 0.7)";
                   }}
                   whileHover={{ y: -2 }}
                 >
