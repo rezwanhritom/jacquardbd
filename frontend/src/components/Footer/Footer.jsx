@@ -20,7 +20,7 @@ const Footer = () => {
   };
 
   return (
-    <footer style={{ backgroundColor: "var(--color-primary)" }}>
+    <footer style={{ backgroundColor: "#004122", color: "white" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <motion.div
           initial="initial"
@@ -34,7 +34,8 @@ const Footer = () => {
             <img
               src="/images/logo.png"
               alt={footerData.brand.name}
-              className="h-10 w-auto object-contain mb-4 filter brightness-0 invert"
+              className="h-10 w-auto object-contain mb-4"
+              style={{ filter: "brightness(0) invert(1)" }}
             />
             <p className="text-sm mb-2 uppercase tracking-wider text-white/80">
               {footerData.brand.tagline}
