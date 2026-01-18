@@ -31,9 +31,11 @@ const Footer = () => {
         >
           {/* Brand Column */}
           <motion.div variants={fadeInUp} className="lg:col-span-2">
-            <h3 className="text-2xl font-bold mb-4 tracking-wider text-white">
-              {footerData.brand.name}
-            </h3>
+            <img
+              src="/images/logo.png"
+              alt={footerData.brand.name}
+              className="h-10 w-auto object-contain mb-4 filter brightness-0 invert"
+            />
             <p className="text-sm mb-2 uppercase tracking-wider text-white/80">
               {footerData.brand.tagline}
             </p>

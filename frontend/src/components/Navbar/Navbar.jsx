@@ -64,13 +64,23 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <motion.div
+          <motion.a
+            href="/"
             whileHover={{ scale: 1.05 }}
-            className="text-2xl font-bold tracking-wider cursor-pointer"
-            style={{ color: "var(--color-primary)" }}
+            className="cursor-pointer flex items-center gap-3"
           >
-            {navigationData.logo}
-          </motion.div>
+            <img
+              src="/images/logo.png"
+              alt={navigationData.logo}
+              className="h-10 w-auto object-contain"
+            />
+            <span
+              className="text-2xl font-bold tracking-wider"
+              style={{ color: "var(--color-primary)" }}
+            >
+              {navigationData.logo}
+            </span>
+          </motion.a>
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-8">
@@ -225,12 +235,19 @@ const Navbar = () => {
           >
             <div className="flex flex-col h-full p-6">
               <div className="flex justify-between items-center mb-8">
-                <span
-                  className="text-xl font-bold tracking-wider"
-                  style={{ color: "var(--color-primary)" }}
-                >
-                  {navigationData.logo}
-                </span>
+                <div className="flex items-center gap-2">
+                  <img
+                    src="/images/logo.png"
+                    alt={navigationData.logo}
+                    className="h-8 w-auto object-contain"
+                  />
+                  <span
+                    className="text-xl font-bold tracking-wider"
+                    style={{ color: "var(--color-primary)" }}
+                  >
+                    {navigationData.logo}
+                  </span>
+                </div>
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setMobileMenuOpen(false)}
