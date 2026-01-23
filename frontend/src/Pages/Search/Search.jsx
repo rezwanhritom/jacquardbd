@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router";
-import { Container, ProductGrid, ProductFilters, ProductSort, Pagination } from "../../components";
+import { Container, ProductGrid, ProductFilters, ProductSort, Pagination, QuickView } from "../../components";
 import { productsData } from "../../data/products";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
@@ -17,6 +17,7 @@ const Search = () => {
   });
   const [sortOption, setSortOption] = useState("default");
   const [currentPage, setCurrentPage] = useState(1);
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
   const itemsPerPage = 12;
 
   const filteredByQuery = useMemo(() => {
@@ -153,7 +154,10 @@ const Search = () => {
                   </div>
 
                   {/* Product Grid */}
-                  <ProductGrid products={paginatedProducts} />
+                  <ProductGrid
+                    products={paginatedProducts}
+                    onQuickView={setQuickViewProduct}
+                  />
 
                   {/* Pagination */}
                   {totalPages > 1 && (
@@ -177,6 +181,20 @@ const Search = () => {
           )}
         </motion.div>
       </Container>
+
+      {/* Quick View Modal */}
+      <QuickView
+        product={quickViewProduct}
+        isOpen={!!quickViewProduct}
+        onClose={() => setQuickViewProduct(null)}
+        onAddToCart={(item) => {
+          console.log("Add to cart:", item);
+          setQuickViewProduct(null);
+        }}
+        onAddToWishlist={(product) => {
+          console.log("Add to wishlist:", product);
+        }}
+      />
     </div>
   );
 };

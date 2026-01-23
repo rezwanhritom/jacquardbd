@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiHeart, FiShoppingBag, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiHeart, FiShoppingBag, FiChevronLeft, FiChevronRight, FiEye } from "react-icons/fi";
 
-const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
+const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -17,6 +17,14 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
     e.preventDefault();
     e.stopPropagation();
     setCurrentImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
+  };
+
+  const handleQuickView = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onQuickView) {
+      onQuickView(product);
+    }
   };
 
   if (viewMode === "list") {
@@ -231,6 +239,18 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
                   transition={{ delay: 0.1 }}
                   className="absolute bottom-12 left-0 right-0 flex justify-center gap-3 px-4"
                 >
+                  {onQuickView && (
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleQuickView}
+                      className="p-3 rounded-full shadow-lg backdrop-blur-sm"
+                      style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
+                      title="Quick View"
+                    >
+                      <FiEye size={18} style={{ color: "var(--color-primary)" }} />
+                    </motion.button>
+                  )}
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}

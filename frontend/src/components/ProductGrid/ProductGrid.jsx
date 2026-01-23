@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ProductCard from "../ProductCard";
 import { FiGrid, FiList } from "react-icons/fi";
 
-const ProductGrid = ({ products, viewMode: externalViewMode, onViewModeChange }) => {
+const ProductGrid = ({ products, viewMode: externalViewMode, onViewModeChange, onQuickView }) => {
   const [internalViewMode, setInternalViewMode] = useState("grid");
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
   const setViewMode = onViewModeChange || setInternalViewMode;
@@ -74,6 +74,7 @@ const ProductGrid = ({ products, viewMode: externalViewMode, onViewModeChange })
                 product={product}
                 index={index}
                 viewMode={viewMode}
+                onQuickView={onQuickView}
               />
             </div>
           ))}
