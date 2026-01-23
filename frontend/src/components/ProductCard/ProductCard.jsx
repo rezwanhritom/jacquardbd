@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiHeart, FiShoppingBag, FiChevronLeft, FiChevronRight, FiEye } from "react-icons/fi";
+import toast from "react-hot-toast";
 
 const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -27,6 +28,18 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
     }
   };
 
+  const handleWishlist = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toast.success("Added to wishlist!");
+  };
+
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toast.success("Added to cart!");
+  };
+
   if (viewMode === "list") {
     return (
       <motion.div
@@ -37,7 +50,11 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <Link to={`/product/${product.id}`}>
+        <Link
+          to={`/product/${product.id}`}
+          className="block"
+          aria-label={`View ${product.name} details`}
+        >
           <div className="flex gap-6 p-6 rounded-lg" style={{ backgroundColor: "var(--bg-secondary)" }}>
             <div className="relative overflow-hidden w-48 h-64 flex-shrink-0 rounded-lg" style={{ backgroundColor: "var(--bg-tertiary)" }}>
               <AnimatePresence mode="wait">
@@ -91,15 +108,20 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  className="px-6 py-2.5 border rounded-lg text-sm font-semibold uppercase tracking-wider"
+                  onClick={handleWishlist}
+                  className="px-6 py-2.5 border-2 rounded-lg text-sm font-semibold uppercase tracking-wider transition-colors"
                   style={{
                     borderColor: "var(--border-primary)",
                     color: "var(--text-primary)",
                   }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.outline = "2px solid var(--color-primary)";
+                    e.currentTarget.style.outlineOffset = "2px";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.outline = "none";
+                  }}
+                  aria-label={`Add ${product.name} to wishlist`}
                 >
                   <FiHeart size={16} className="inline mr-2" />
                   Wishlist
@@ -107,12 +129,17 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  className="px-6 py-2.5 rounded-lg text-sm font-semibold uppercase tracking-wider text-white"
+                  onClick={handleAddToCart}
+                  className="px-6 py-2.5 rounded-lg text-sm font-semibold uppercase tracking-wider text-white transition-colors"
                   style={{ backgroundColor: "var(--color-primary)" }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.outline = "2px solid var(--color-primary)";
+                    e.currentTarget.style.outlineOffset = "2px";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.outline = "none";
+                  }}
+                  aria-label={`Add ${product.name} to cart`}
                 >
                   <FiShoppingBag size={16} className="inline mr-2" />
                   Add to Cart
@@ -134,7 +161,11 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Link to={`/product/${product.id}`}>
+      <Link
+        to={`/product/${product.id}`}
+        className="block"
+        aria-label={`View ${product.name} details`}
+      >
         <div className="space-y-4">
           {/* Image Container */}
           <div className="relative overflow-hidden aspect-[3/4] rounded-lg" style={{ backgroundColor: "var(--bg-tertiary)" }}>
@@ -185,10 +216,18 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -10 }}
                       onClick={prevImage}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full backdrop-blur-sm z-10"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full backdrop-blur-sm z-10 transition-all"
                       style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.outline = "2px solid var(--color-primary)";
+                        e.currentTarget.style.outlineOffset = "2px";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.outline = "none";
+                      }}
+                      aria-label="Previous image"
                     >
                       <FiChevronLeft size={18} style={{ color: "var(--text-primary)" }} />
                     </motion.button>
@@ -197,10 +236,18 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 10 }}
                       onClick={nextImage}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full backdrop-blur-sm z-10"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full backdrop-blur-sm z-10 transition-all"
                       style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.outline = "2px solid var(--color-primary)";
+                        e.currentTarget.style.outlineOffset = "2px";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.outline = "none";
+                      }}
+                      aria-label="Next image"
                     >
                       <FiChevronRight size={18} style={{ color: "var(--text-primary)" }} />
                     </motion.button>
@@ -224,6 +271,7 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
                           ? "var(--color-primary)"
                           : "rgba(255, 255, 255, 0.5)",
                     }}
+                    aria-hidden="true"
                   />
                 ))}
               </div>
@@ -244,8 +292,16 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={handleQuickView}
-                      className="p-3 rounded-full shadow-lg backdrop-blur-sm"
+                      className="p-3 rounded-full shadow-lg backdrop-blur-sm transition-all"
                       style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.outline = "2px solid var(--color-primary)";
+                        e.currentTarget.style.outlineOffset = "2px";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.outline = "none";
+                      }}
+                      aria-label={`Quick view ${product.name}`}
                       title="Quick View"
                     >
                       <FiEye size={18} style={{ color: "var(--color-primary)" }} />
@@ -254,24 +310,36 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                    className="p-3 rounded-full shadow-lg backdrop-blur-sm"
+                    onClick={handleWishlist}
+                    className="p-3 rounded-full shadow-lg backdrop-blur-sm transition-all"
                     style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.outline = "2px solid var(--color-primary)";
+                      e.currentTarget.style.outlineOffset = "2px";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.outline = "none";
+                    }}
+                    aria-label={`Add ${product.name} to wishlist`}
+                    title="Add to Wishlist"
                   >
                     <FiHeart size={18} style={{ color: "var(--color-primary)" }} />
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                    className="p-3 rounded-full shadow-lg text-white"
+                    onClick={handleAddToCart}
+                    className="p-3 rounded-full shadow-lg text-white transition-all"
                     style={{ backgroundColor: "var(--color-primary)" }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.outline = "2px solid white";
+                      e.currentTarget.style.outlineOffset = "2px";
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.outline = "none";
+                    }}
+                    aria-label={`Add ${product.name} to cart`}
+                    title="Add to Cart"
                   >
                     <FiShoppingBag size={18} />
                   </motion.button>

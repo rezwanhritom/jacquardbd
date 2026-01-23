@@ -14,6 +14,7 @@ import {
   FiChevronLeft,
   FiEdit2,
 } from "react-icons/fi";
+import toast from "react-hot-toast";
 
 // Fake cart items for checkout
 const checkoutItems = [
@@ -83,8 +84,12 @@ const Checkout = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const orderId = `ORD-${Date.now()}`;
-    navigate(`/order-success/${orderId}`);
+    toast.loading("Processing your order...", { id: "order-processing" });
+    setTimeout(() => {
+      const orderId = `ORD-${Date.now()}`;
+      toast.success("Order placed successfully!", { id: "order-processing" });
+      navigate(`/order-success/${orderId}`);
+    }, 1500);
   };
 
   const subtotal = checkoutItems.reduce((sum, item) => {

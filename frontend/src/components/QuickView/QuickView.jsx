@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiX, FiHeart, FiShoppingBag } from "react-icons/fi";
 import ImageGallery from "../ImageGallery";
 import ProductVariants from "../ProductVariants";
+import toast from "react-hot-toast";
 
 const QuickView = ({ product, isOpen, onClose, onAddToCart, onAddToWishlist }) => {
   const [selectedSize, setSelectedSize] = useState(null);
@@ -11,17 +12,29 @@ const QuickView = ({ product, isOpen, onClose, onAddToCart, onAddToWishlist }) =
 
   if (!product) return null;
 
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === "Escape" && isOpen) {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, onClose]);
+
   const handleAddToCart = () => {
     if (!selectedSize) {
-      alert("Please select a size");
+      toast.error("Please select a size");
       return;
     }
     onAddToCart({ product, size: selectedSize, color: selectedColor, quantity });
+    toast.success(`${quantity} ${product.name} added to cart!`);
     onClose();
   };
 
   const handleAddToWishlist = () => {
     onAddToWishlist(product);
+    toast.success("Added to wishlist!");
   };
 
   return (

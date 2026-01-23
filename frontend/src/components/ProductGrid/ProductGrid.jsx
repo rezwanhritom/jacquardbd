@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ProductCard from "../ProductCard";
-import { FiGrid, FiList } from "react-icons/fi";
+import { ProductCardSkeleton, EmptyState } from "../";
+import { FiGrid, FiList, FiPackage } from "react-icons/fi";
 
 const ProductGrid = ({ products, viewMode: externalViewMode, onViewModeChange, onQuickView }) => {
   const [internalViewMode, setInternalViewMode] = useState("grid");
@@ -10,11 +11,13 @@ const ProductGrid = ({ products, viewMode: externalViewMode, onViewModeChange, o
 
   if (!products || products.length === 0) {
     return (
-      <div className="text-center py-16">
-        <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
-          No products found
-        </p>
-      </div>
+      <EmptyState
+        icon={FiPackage}
+        title="No products found"
+        description="Try adjusting your filters or search terms"
+        actionLabel="Browse All Products"
+        actionPath="/"
+      />
     );
   }
 

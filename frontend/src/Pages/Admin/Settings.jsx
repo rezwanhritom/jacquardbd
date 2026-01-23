@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiSettings, FiSave, FiStore, FiTruck, FiCreditCard, FiBell } from "react-icons/fi";
 import { adminSettings } from "../../data/adminData";
+import toast from "react-hot-toast";
 
 const Settings = () => {
   const [settings, setSettings] = useState(adminSettings);
@@ -22,6 +23,7 @@ const Settings = () => {
   const handleSave = () => {
     // In real app, this would save to backend
     setSaved(true);
+    toast.success("Settings saved successfully!");
     setTimeout(() => setSaved(false), 3000);
   };
 

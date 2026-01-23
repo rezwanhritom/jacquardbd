@@ -62,6 +62,17 @@ const ProductVariants = ({ selectedSize, selectedColor, onSizeChange, onColorCha
                     ? "2px solid var(--color-primary)"
                     : "2px solid transparent",
                 }}
+                onFocus={(e) => {
+                  if (isAvailable) {
+                    e.currentTarget.style.outline = "2px solid var(--color-primary)";
+                    e.currentTarget.style.outlineOffset = "2px";
+                  }
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.outline = "none";
+                }}
+                aria-label={`Select size ${size}`}
+                aria-pressed={isSelected}
               >
                 {size}
               </motion.button>
@@ -91,6 +102,15 @@ const ProductVariants = ({ selectedSize, selectedColor, onSizeChange, onColorCha
                 onClick={() => onColorChange(color.name)}
                 className="relative"
                 title={color.name}
+                onFocus={(e) => {
+                  e.currentTarget.style.outline = "2px solid var(--color-primary)";
+                  e.currentTarget.style.outlineOffset = "2px";
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.outline = "none";
+                }}
+                aria-label={`Select color ${color.name}`}
+                aria-pressed={isSelected}
               >
                 <div
                   className="w-12 h-12 rounded-full border-2 transition-all"

@@ -6,6 +6,7 @@ import { getReviewsForProduct, getAverageRating } from "../../data/reviews";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiShoppingBag, FiHeart, FiChevronLeft, FiShare2, FiCheck, FiStar } from "react-icons/fi";
+import toast from "react-hot-toast";
 
 const ProductDetail = () => {
   const { productId } = useParams();
@@ -47,15 +48,17 @@ const ProductDetail = () => {
 
   const handleAddToCart = () => {
     if (!selectedSize) {
-      alert("Please select a size");
+      toast.error("Please select a size");
       return;
     }
     setAddedToCart(true);
+    toast.success(`${quantity} ${product.name} added to cart!`);
     setTimeout(() => setAddedToCart(false), 2000);
   };
 
   const handleAddToWishlist = () => {
     setIsInWishlist(!isInWishlist);
+    toast.success(isInWishlist ? "Removed from wishlist" : "Added to wishlist!");
   };
 
   const handleShare = () => {
@@ -67,11 +70,11 @@ const ProductDetail = () => {
       }).catch(() => {
         // Fallback if share fails
         navigator.clipboard.writeText(window.location.href);
-        alert("Link copied to clipboard!");
+        toast.success("Link copied to clipboard!");
       });
     } else {
       navigator.clipboard.writeText(window.location.href);
-      alert("Link copied to clipboard!");
+      toast.success("Link copied to clipboard!");
     }
   };
 

@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiUser, FiMail, FiEdit, FiTrash2, FiSearch, FiFilter, FiPhone, FiShoppingBag } from "react-icons/fi";
 import { adminCustomers } from "../../data/adminData";
+import { EmptyState } from "../../components";
+import toast from "react-hot-toast";
 
 const Users = () => {
   const [customers, setCustomers] = useState(adminCustomers);
@@ -18,8 +20,10 @@ const Users = () => {
   });
 
   const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this customer?")) {
+    const customer = customers.find((c) => c.id === id);
+    if (window.confirm(`Are you sure you want to delete "${customer?.name}"?`)) {
       setCustomers(customers.filter((c) => c.id !== id));
+      toast.success(`"${customer?.name}" deleted successfully`);
     }
   };
 
@@ -197,9 +201,11 @@ const Users = () => {
           </table>
         </div>
         {filteredCustomers.length === 0 && (
-          <div className="text-center py-12">
-            <p style={{ color: "var(--text-secondary)" }}>No customers found</p>
-          </div>
+          <EmptyState
+            icon={FiUser}
+            title="No customers found"
+            description={searchQuery || statusFilter !== "all" ? "Try adjusting your filters" : "No customers available"}
+          />
         )}
       </motion.div>
     </div>

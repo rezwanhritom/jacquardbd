@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiCrown, FiCheck, FiStar, FiGift, FiTruck, FiPercent } from "react-icons/fi";
 import { mockUser, membershipTiers } from "../../data/accountData";
+import toast from "react-hot-toast";
 
 const Membership = () => {
   const [selectedTier, setSelectedTier] = useState(null);
@@ -21,12 +22,14 @@ const Membership = () => {
   };
 
   const handleUpgrade = (tierId) => {
+    const tier = membershipTiers.find((t) => t.id === tierId);
     setSelectedTier(tierId);
+    toast.loading("Processing upgrade...", { id: "upgrade" });
     // In real app, this would process payment
     setTimeout(() => {
-      alert(`Upgraded to ${membershipTiers.find((t) => t.id === tierId)?.name} membership!`);
+      toast.success(`Upgraded to ${tier?.name} membership!`, { id: "upgrade" });
       setSelectedTier(null);
-    }, 1000);
+    }, 1500);
   };
 
   return (

@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from "react-router";
+import { Outlet, useLocation, Link } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../Navbar";
 import Footer from "../Footer";
@@ -9,10 +9,21 @@ const Layout = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-theme-primary transition-colors duration-300">
+      {/* Skip to main content link for accessibility */}
+      <Link
+        to="#main-content"
+        className="skip-to-main"
+        onClick={(e) => {
+          e.preventDefault();
+          document.getElementById("main-content")?.focus();
+        }}
+      >
+        Skip to main content
+      </Link>
       <header className="sticky top-0 z-50 w-full">
         <Navbar />
       </header>
-      <main className="flex-1 w-full overflow-x-hidden">
+      <main id="main-content" className="flex-1 w-full overflow-x-hidden" tabIndex={-1}>
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}

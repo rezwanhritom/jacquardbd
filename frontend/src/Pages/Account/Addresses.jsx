@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiMapPin, FiEdit2, FiTrash2, FiPlus, FiCheck, FiX } from "react-icons/fi";
 import { mockAddresses } from "../../data/accountData";
+import { EmptyState } from "../../components";
+import toast from "react-hot-toast";
 
 const Addresses = () => {
   const [addresses, setAddresses] = useState(mockAddresses);
@@ -28,8 +30,10 @@ const Addresses = () => {
   };
 
   const handleDelete = (id) => {
+    const address = addresses.find((addr) => addr.id === id);
     if (window.confirm("Are you sure you want to delete this address?")) {
       setAddresses(addresses.filter((addr) => addr.id !== id));
+      toast.success("Address deleted successfully");
     }
   };
 
@@ -51,11 +55,13 @@ const Addresses = () => {
         )
       );
       setEditingId(null);
+      toast.success("Address updated successfully");
     } else {
       setAddresses([
         ...addresses,
         { ...formData, id: addresses.length + 1 },
       ]);
+      toast.success("Address added successfully");
     }
     setShowAddForm(false);
     setFormData({

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router";
-import { Container, ProductGrid, ProductFilters, ProductSort, Pagination, QuickView } from "../../components";
+import { Container, ProductGrid, ProductFilters, ProductSort, Pagination, QuickView, EmptyState } from "../../components";
 import { productsData } from "../../data/products";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
@@ -112,12 +112,23 @@ const Search = () => {
             </form>
           </motion.div>
 
-          {searchQuery && (
+          {searchQuery && sortedProducts.length === 0 && (
+            <EmptyState
+              icon={FiSearch}
+              title={`No results found for "${searchQuery}"`}
+              description="Try adjusting your search terms or filters"
+              actionLabel="Clear Search"
+              onAction={() => {
+                setSearchQuery("");
+                setSearchParams({});
+              }}
+            />
+          )}
+
+          {searchQuery && sortedProducts.length > 0 && (
             <motion.div variants={fadeInUp}>
               <p className="text-lg mb-6" style={{ color: "var(--text-secondary)" }}>
-                {sortedProducts.length > 0
-                  ? `Found ${sortedProducts.length} result${sortedProducts.length > 1 ? "s" : ""} for "${searchQuery}"`
-                  : `No results found for "${searchQuery}"`}
+                Found {sortedProducts.length} result{sortedProducts.length > 1 ? "s" : ""} for "{searchQuery}"
               </p>
             </motion.div>
           )}

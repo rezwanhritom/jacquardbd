@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { fadeInUp } from "../../utils/animations";
 import { FiMail, FiCheck, FiBell } from "react-icons/fi";
 import { newsletterPreferences as initialPreferences } from "../../data/accountData";
+import toast from "react-hot-toast";
 
 const Newsletter = () => {
   const [preferences, setPreferences] = useState(initialPreferences);
@@ -22,6 +23,7 @@ const Newsletter = () => {
   const handleSave = () => {
     // In real app, this would save to backend
     setSaved(true);
+    toast.success("Newsletter preferences saved!");
     setTimeout(() => setSaved(false), 3000);
   };
 
@@ -75,10 +77,12 @@ const Newsletter = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  setPreferences({ ...preferences, subscribed: !preferences.subscribed });
-                  setSaved(false);
-                }}
+              onClick={() => {
+                const newStatus = !preferences.subscribed;
+                setPreferences({ ...preferences, subscribed: newStatus });
+                setSaved(false);
+                toast.success(newStatus ? "Subscribed to newsletter!" : "Unsubscribed from newsletter");
+              }}
                 className="px-4 py-2 border-2 rounded-lg font-semibold text-sm transition-colors"
                 style={{
                   borderColor: "var(--border-primary)",

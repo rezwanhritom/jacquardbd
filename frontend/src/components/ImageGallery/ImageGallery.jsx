@@ -82,6 +82,15 @@ const ImageGallery = ({ images, productName }) => {
               style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
+              onFocus={(e) => {
+                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.outline = "2px solid var(--color-primary)";
+                e.currentTarget.style.outlineOffset = "2px";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.opacity = "0";
+                e.currentTarget.style.outline = "none";
+              }}
               aria-label="Previous image"
             >
               <FiChevronLeft size={24} style={{ color: "var(--text-primary)" }} />
@@ -92,6 +101,15 @@ const ImageGallery = ({ images, productName }) => {
               style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
+              onFocus={(e) => {
+                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.outline = "2px solid var(--color-primary)";
+                e.currentTarget.style.outlineOffset = "2px";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.opacity = "0";
+                e.currentTarget.style.outline = "none";
+              }}
               aria-label="Next image"
             >
               <FiChevronRight size={24} style={{ color: "var(--text-primary)" }} />

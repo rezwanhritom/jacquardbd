@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiPlus, FiEdit, FiTrash2, FiX, FiSave, FiTrendingUp, FiCalendar, FiUsers } from "react-icons/fi";
 import { campaigns } from "../../data/adminData";
+import { EmptyState } from "../../components";
+import toast from "react-hot-toast";
 
 const Campaigns = () => {
   const [campaignsList, setCampaignsList] = useState(campaigns);
@@ -61,8 +63,10 @@ const Campaigns = () => {
   };
 
   const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this campaign?")) {
+    const campaign = campaignsList.find((c) => c.id === id);
+    if (window.confirm(`Are you sure you want to delete "${campaign?.name}"?`)) {
       setCampaignsList(campaignsList.filter((c) => c.id !== id));
+      toast.success(`"${campaign?.name}" deleted successfully`);
     }
   };
 
@@ -82,6 +86,7 @@ const Campaigns = () => {
             : c
         )
       );
+      toast.success(`"${formData.name}" updated successfully`);
     } else {
       setCampaignsList([
         ...campaignsList,
@@ -93,6 +98,7 @@ const Campaigns = () => {
           revenue: 0,
         },
       ]);
+      toast.success(`"${formData.name}" created successfully`);
     }
     handleCancel();
   };

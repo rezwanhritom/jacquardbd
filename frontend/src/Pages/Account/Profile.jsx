@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiUser, FiMail, FiPhone, FiMapPin, FiCamera, FiSave } from "react-icons/fi";
 import { mockUser } from "../../data/accountData";
+import toast from "react-hot-toast";
 
 const Profile = () => {
   const [formData, setFormData] = useState({
@@ -26,6 +27,7 @@ const Profile = () => {
   const handleSave = () => {
     // In real app, this would save to backend
     setSaved(true);
+    toast.success("Profile updated successfully!");
     setTimeout(() => setSaved(false), 3000);
   };
 

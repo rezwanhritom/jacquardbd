@@ -4,6 +4,8 @@ import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiEye, FiPackage, FiSearch, FiFilter, FiDownload } from "react-icons/fi";
 import { adminOrders } from "../../data/adminData";
 import { productsData } from "../../data/products";
+import { EmptyState } from "../../components";
+import toast from "react-hot-toast";
 
 const Orders = () => {
   const [orders, setOrders] = useState(adminOrders);
@@ -39,7 +41,9 @@ const Orders = () => {
   };
 
   const handleStatusChange = (orderId, newStatus) => {
+    const order = orders.find((o) => o.id === orderId);
     setOrders(orders.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
+    toast.success(`Order ${orderId} status updated to ${newStatus}`);
   };
 
   return (
@@ -215,9 +219,11 @@ const Orders = () => {
           </table>
         </div>
         {filteredOrders.length === 0 && (
-          <div className="text-center py-12">
-            <p style={{ color: "var(--text-secondary)" }}>No orders found</p>
-          </div>
+          <EmptyState
+            icon={FiPackage}
+            title="No orders found"
+            description={searchQuery || statusFilter !== "all" ? "Try adjusting your filters" : "No orders available"}
+          />
         )}
       </motion.div>
 

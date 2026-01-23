@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiHeart, FiShoppingBag, FiTrash2, FiEye } from "react-icons/fi";
 import { productsData } from "../../data/products";
+import { EmptyState } from "../../components";
+import toast from "react-hot-toast";
 
 // Fake wishlist data
 const wishlistItems = [1, 2, 5, 7, 8, 10];
@@ -13,7 +15,9 @@ const Wishlist = () => {
   const wishlistProducts = productsData.filter((p) => wishlist.includes(p.id));
 
   const handleRemove = (productId) => {
+    const product = productsData.find((p) => p.id === productId);
     setWishlist(wishlist.filter((id) => id !== productId));
+    toast.success(`${product?.name || "Item"} removed from wishlist`);
   };
 
   return (
@@ -154,29 +158,13 @@ const Wishlist = () => {
           ))}
         </motion.div>
       ) : (
-        <motion.div
-          initial="initial"
-          animate="animate"
-          variants={fadeInUp}
-          className="text-center py-16 space-y-6"
-        >
-          <FiHeart size={64} className="mx-auto" style={{ color: "var(--text-tertiary)" }} />
-          <div>
-            <p className="text-lg font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
-              Your wishlist is empty
-            </p>
-            <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>
-              Start adding items you love to your wishlist
-            </p>
-          </div>
-          <Link
-            to="/"
-            className="inline-block px-8 py-4 text-white font-semibold uppercase tracking-wider rounded-lg"
-            style={{ backgroundColor: "var(--color-primary)" }}
-          >
-            Start Shopping
-          </Link>
-        </motion.div>
+        <EmptyState
+          icon={FiHeart}
+          title="Your wishlist is empty"
+          description="Start adding items you love to your wishlist"
+          actionLabel="Start Shopping"
+          actionPath="/"
+        />
       )}
     </div>
   );

@@ -53,6 +53,15 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
           backgroundColor: currentPage === 1 ? "transparent" : "var(--bg-secondary)",
           color: "var(--text-secondary)",
         }}
+        onFocus={(e) => {
+          if (!e.currentTarget.disabled) {
+            e.currentTarget.style.outline = "2px solid var(--color-primary)";
+            e.currentTarget.style.outlineOffset = "2px";
+          }
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.outline = "none";
+        }}
         aria-label="Previous page"
       >
         <FiChevronLeft size={20} />
@@ -87,6 +96,15 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
                 : "var(--bg-secondary)",
               color: isActive ? "white" : "var(--text-secondary)",
             }}
+            onFocus={(e) => {
+              e.currentTarget.style.outline = "2px solid var(--color-primary)";
+              e.currentTarget.style.outlineOffset = "2px";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.outline = "none";
+            }}
+            aria-label={`Go to page ${page}`}
+            aria-current={isActive ? "page" : undefined}
           >
             {page}
           </motion.button>
@@ -102,6 +120,15 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
         style={{
           backgroundColor: currentPage === totalPages ? "transparent" : "var(--bg-secondary)",
           color: "var(--text-secondary)",
+        }}
+        onFocus={(e) => {
+          if (!e.currentTarget.disabled) {
+            e.currentTarget.style.outline = "2px solid var(--color-primary)";
+            e.currentTarget.style.outlineOffset = "2px";
+          }
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.outline = "none";
         }}
         aria-label="Next page"
       >

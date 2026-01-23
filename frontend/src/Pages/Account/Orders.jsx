@@ -4,6 +4,8 @@ import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiPackage, FiEye, FiDownload, FiTruck } from "react-icons/fi";
 import { mockOrders } from "../../data/accountData";
 import { productsData } from "../../data/products";
+import { EmptyState } from "../../components";
+import toast from "react-hot-toast";
 
 const Orders = () => {
   const getProduct = (productId) => {
@@ -176,19 +178,13 @@ const Orders = () => {
             </motion.div>
           ))
         ) : (
-          <div className="text-center py-12">
-            <FiPackage size={48} className="mx-auto mb-4" style={{ color: "var(--text-tertiary)" }} />
-            <p className="text-lg mb-2" style={{ color: "var(--text-secondary)" }}>
-              No orders found
-            </p>
-            <Link
-              to="/"
-              className="inline-block mt-4 px-6 py-3 text-white font-semibold uppercase tracking-wider rounded-lg"
-              style={{ backgroundColor: "var(--color-primary)" }}
-            >
-              Start Shopping
-            </Link>
-          </div>
+          <EmptyState
+            icon={FiPackage}
+            title="No orders found"
+            description="You haven't placed any orders yet"
+            actionLabel="Start Shopping"
+            actionPath="/"
+          />
         )}
       </motion.div>
     </div>

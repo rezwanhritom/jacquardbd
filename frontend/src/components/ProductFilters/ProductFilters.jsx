@@ -77,7 +77,16 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
       <div className="border-b pb-6" style={{ borderColor: "var(--border-primary)" }}>
         <button
           onClick={() => toggleSection("price")}
-          className="w-full flex items-center justify-between mb-4"
+          className="w-full flex items-center justify-between mb-4 transition-colors"
+          onFocus={(e) => {
+            e.currentTarget.style.outline = "2px solid var(--color-primary)";
+            e.currentTarget.style.outlineOffset = "2px";
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.outline = "none";
+          }}
+          aria-expanded={openSections.price}
+          aria-controls="price-filter-section"
         >
           <h4 className="font-semibold" style={{ color: "var(--text-primary)" }}>
             Price
@@ -166,6 +175,17 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
                             ? "white"
                             : "var(--text-secondary)",
                       }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.outline = "2px solid var(--color-primary)";
+                        e.currentTarget.style.outlineOffset = "2px";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.outline = "none";
+                      }}
+                      aria-pressed={
+                        filters.priceRange?.min === range.min &&
+                        filters.priceRange?.max === range.max
+                      }
                     >
                       {range.label}
                     </motion.button>
@@ -181,7 +201,16 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
       <div className="border-b pb-6" style={{ borderColor: "var(--border-primary)" }}>
         <button
           onClick={() => toggleSection("size")}
-          className="w-full flex items-center justify-between mb-4"
+          className="w-full flex items-center justify-between mb-4 transition-colors"
+          onFocus={(e) => {
+            e.currentTarget.style.outline = "2px solid var(--color-primary)";
+            e.currentTarget.style.outlineOffset = "2px";
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.outline = "none";
+          }}
+          aria-expanded={openSections.size}
+          aria-controls="size-filter-section"
         >
           <h4 className="font-semibold" style={{ color: "var(--text-primary)" }}>
             Size
@@ -196,6 +225,7 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
         <AnimatePresence>
           {openSections.size && (
             <motion.div
+              id="size-filter-section"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -220,6 +250,15 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
                           : "var(--bg-secondary)",
                         color: isSelected ? "white" : "var(--text-secondary)",
                       }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.outline = "2px solid var(--color-primary)";
+                        e.currentTarget.style.outlineOffset = "2px";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.outline = "none";
+                      }}
+                      aria-pressed={isSelected}
+                      aria-label={`Filter by size ${size}`}
                     >
                       {size}
                     </motion.button>
@@ -235,7 +274,16 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
       <div className="border-b pb-6" style={{ borderColor: "var(--border-primary)" }}>
         <button
           onClick={() => toggleSection("color")}
-          className="w-full flex items-center justify-between mb-4"
+          className="w-full flex items-center justify-between mb-4 transition-colors"
+          onFocus={(e) => {
+            e.currentTarget.style.outline = "2px solid var(--color-primary)";
+            e.currentTarget.style.outlineOffset = "2px";
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.outline = "none";
+          }}
+          aria-expanded={openSections.color}
+          aria-controls="color-filter-section"
         >
           <h4 className="font-semibold" style={{ color: "var(--text-primary)" }}>
             Color
@@ -250,6 +298,7 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
         <AnimatePresence>
           {openSections.color && (
             <motion.div
+              id="color-filter-section"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
@@ -267,6 +316,15 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
                       onClick={() => handleColorToggle(color.name)}
                       className="relative"
                       title={color.name}
+                      onFocus={(e) => {
+                        e.currentTarget.style.outline = "2px solid var(--color-primary)";
+                        e.currentTarget.style.outlineOffset = "2px";
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.outline = "none";
+                      }}
+                      aria-pressed={isSelected}
+                      aria-label={`Filter by color ${color.name}`}
                     >
                       <div
                         className="w-10 h-10 rounded-full border-2 transition-all"

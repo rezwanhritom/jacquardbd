@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiEdit, FiTrash2, FiPlus, FiX, FiSave, FiSearch, FiFilter } from "react-icons/fi";
 import { productsData } from "../../data/products";
+import { EmptyState } from "../../components";
+import toast from "react-hot-toast";
 
 const Products = () => {
   const [products, setProducts] = useState(productsData);
@@ -41,8 +43,10 @@ const Products = () => {
   };
 
   const handleDelete = (id) => {
-    if (window.confirm("Are you sure you want to delete this product?")) {
+    const product = products.find((p) => p.id === id);
+    if (window.confirm(`Are you sure you want to delete "${product?.name}"?`)) {
       setProducts(products.filter((p) => p.id !== id));
+      toast.success(`"${product?.name}" deleted successfully`);
     }
   };
 
@@ -62,6 +66,7 @@ const Products = () => {
             : p
         )
       );
+      toast.success(`"${formData.name}" updated successfully`);
     } else {
       setProducts([
         ...products,
@@ -74,6 +79,7 @@ const Products = () => {
           images: ["https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80"],
         },
       ]);
+      toast.success(`"${formData.name}" added successfully`);
     }
     handleCancel();
   };
@@ -439,9 +445,11 @@ const Products = () => {
           </table>
         </div>
         {filteredProducts.length === 0 && (
-          <div className="text-center py-12">
-            <p style={{ color: "var(--text-secondary)" }}>No products found</p>
-          </div>
+          <EmptyState
+            icon={FiFilter}
+            title="No products found"
+            description={searchQuery ? "Try adjusting your search terms" : "No products available"}
+          />
         )}
       </motion.div>
     </div>

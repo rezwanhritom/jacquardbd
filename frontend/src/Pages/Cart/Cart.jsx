@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Container } from "../../components";
+import { Container, EmptyState } from "../../components";
 import { productsData } from "../../data/products";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { FiTrash2, FiPlus, FiMinus, FiShoppingBag, FiTag, FiX, FiCheck } from "react-icons/fi";
+import { FiTrash2, FiPlus, FiMinus, FiShoppingBag, FiTag, FiX, FiCheck, FiShoppingCart } from "react-icons/fi";
 import { Link } from "react-router";
+import toast from "react-hot-toast";
 
 // Fake cart data
 const initialCartItems = [
@@ -38,7 +39,12 @@ const Cart = () => {
   };
 
   const removeItem = (itemId) => {
+    const item = cartItems.find((i) => i.id === itemId);
     setCartItems((items) => items.filter((item) => item.id !== itemId));
+    if (item) {
+      const product = getProduct(item.productId);
+      toast.success(`${product?.name || "Item"} removed from cart`);
+    }
   };
 
   const subtotal = cartItems.reduce((sum, item) => {
@@ -69,6 +75,7 @@ const Cart = () => {
     setAppliedCoupon(null);
     setCouponCode("");
     setCouponError("");
+    toast.success("Coupon removed");
   };
 
   const calculateDiscount = () => {
@@ -104,21 +111,13 @@ const Cart = () => {
           </motion.div>
 
           {cartItems.length === 0 ? (
-            <motion.div
-              variants={fadeInUp}
-              className="text-center py-16 space-y-6"
-            >
-              <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
-                Your cart is empty
-              </p>
-              <Link
-                to="/"
-                className="inline-block px-8 py-4 text-white font-semibold uppercase tracking-wider rounded-lg"
-                style={{ backgroundColor: "var(--color-primary)" }}
-              >
-                Continue Shopping
-              </Link>
-            </motion.div>
+            <EmptyState
+              icon={FiShoppingCart}
+              title="Your cart is empty"
+              description="Start adding items to your cart to see them here"
+              actionLabel="Continue Shopping"
+              actionPath="/"
+            />
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Cart Items */}
