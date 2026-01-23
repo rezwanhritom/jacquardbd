@@ -27,7 +27,7 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative h-screen overflow-hidden mt-16">
+    <section className="relative h-screen overflow-hidden">
       <AnimatePresence mode="wait">
         {heroData.map(
           (slide, index) =>

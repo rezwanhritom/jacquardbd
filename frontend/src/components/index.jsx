@@ -5,3 +5,6 @@ export { default as Products } from "./Products";
 export { default as Trust } from "./Trust";
 export { default as Newsletter } from "./Newsletter";
 export { default as Footer } from "./Footer";
+export { default as Layout } from "./Layout";
+export { default as Container } from "./Container";
+export { default as Section } from "./Section";

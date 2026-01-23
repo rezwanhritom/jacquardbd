@@ -36,3 +36,25 @@ export const slideInFromLeft = {
   exit: { x: "-100%", opacity: 0 },
   transition: { duration: 0.3, ease: "easeInOut" },
 };
+
+// Page transition variants
+export const pageTransitionVariants = {
+  initial: {
+    opacity: 0,
+    x: -20,
+  },
+  animate: {
+    opacity: 1,
+    x: 0,
+  },
+  exit: {
+    opacity: 0,
+    x: 20,
+  },
+};
+
+export const pageTransitionConfig = {
+  type: "tween",
+  ease: "anticipate",
+  duration: 0.4,
+};

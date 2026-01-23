@@ -1,26 +1,14 @@
-import {
-  Navbar,
-  Hero,
-  Categories,
-  Products,
-  Trust,
-  Newsletter,
-  Footer,
-} from "../components";
+import { Hero, Categories, Products, Trust, Newsletter } from "../components";
 
 const Home = () => {
   return (
-    <div className="min-h-screen">
-      <Navbar />
-      <main>
-        <Hero />
-        <Categories />
-        <Products />
-        <Trust />
-        <Newsletter />
-      </main>
-      <Footer />
-    </div>
+    <>
+      <Hero />
+      <Categories />
+      <Products />
+      <Trust />
+      <Newsletter />
+    </>
   );
 };
 
