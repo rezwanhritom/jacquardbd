@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { Link, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { navigationData } from "../../data/navigation";
 import {
@@ -18,7 +19,15 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeMegaMenu, setActiveMegaMenu] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { isDark, toggleDarkMode } = useDarkMode();
+  const navigate = useNavigate();
+  const searchInputRef = useRef(null);
+
+  // Fake counters
+  const cartCount = 3;
+  const wishlistCount = 5;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -28,14 +37,19 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const getIcon = (name) => {
-    const icons = {
-      search: FiSearch,
-      wishlist: FiHeart,
-      cart: FiShoppingBag,
-      profile: FiUser,
-    };
-    return icons[name] || FiSearch;
+  useEffect(() => {
+    if (searchOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [searchOpen]);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      setSearchOpen(false);
+      setSearchQuery("");
+    }
   };
 
   const handleMegaMenuHover = (label) => {
@@ -48,256 +62,512 @@ const Navbar = () => {
     setActiveMegaMenu(null);
   };
 
+  const getIcon = (name) => {
+    const icons = {
+      search: FiSearch,
+      wishlist: FiHeart,
+      cart: FiShoppingBag,
+      profile: FiUser,
+    };
+    return icons[name] || FiSearch;
+  };
+
   return (
-    <motion.nav
-      initial={{ y: -100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      style={{
-        backgroundColor: "var(--bg-primary)",
-        opacity: isScrolled ? 1 : 0.95,
-      }}
-      className="w-full transition-all duration-300 backdrop-blur-sm shadow-md py-3"
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <motion.a
-            href="/"
-            whileHover={{ scale: 1.05 }}
-            className="cursor-pointer flex items-center gap-3"
-          >
-            <img
-              src="/images/logo.png"
-              alt={navigationData.logo}
-              className="h-10 w-auto object-contain"
-            />
-            <span
-              className="text-2xl font-bold tracking-wider"
-              style={{ color: "var(--color-primary)" }}
-            >
-              {navigationData.logo}
-            </span>
-          </motion.a>
-
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-8">
-            {navigationData.links.map((link) => (
-              <div
-                key={link.id}
-                className="relative"
-                onMouseEnter={() => handleMegaMenuHover(link.label)}
-                onMouseLeave={handleMegaMenuLeave}
-              >
-                <motion.a
-                  href={link.path}
-                  className="font-medium text-sm uppercase tracking-wide transition-colors"
-                  style={{
-                    color: "var(--text-secondary)",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.color = "var(--color-primary)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.color = "var(--text-secondary)";
-                  }}
-                  whileHover={{ y: -2 }}
-                >
-                  {link.label}
-                </motion.a>
-
-                {/* Mega Menu */}
-                <AnimatePresence>
-                  {activeMegaMenu === link.label && link.hasMegaMenu && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute top-full left-1/2 transform -translate-x-1/2 mt-4 w-[600px] shadow-xl rounded-lg p-8"
-                      style={{ backgroundColor: "var(--bg-primary)" }}
-                    >
-                      <div className="grid grid-cols-2 gap-6">
-                        {navigationData.megaMenuCategories[link.label]?.map(
-                          (category) => (
-                            <div key={category.id}>
-                              <h4
-                                className="font-semibold mb-3 text-sm uppercase tracking-wide"
-                                style={{ color: "var(--color-primary)" }}
-                              >
-                                {category.title}
-                              </h4>
-                              <ul className="space-y-2">
-                                {category.items.map((item, idx) => (
-                                  <li key={idx}>
-                                    <a
-                                      href="#"
-                                      className="text-sm transition-colors"
-                                      style={{ color: "var(--text-tertiary)" }}
-                                      onMouseEnter={(e) => {
-                                        e.target.style.color =
-                                          "var(--color-primary)";
-                                      }}
-                                      onMouseLeave={(e) => {
-                                        e.target.style.color =
-                                          "var(--text-tertiary)";
-                                      }}
-                                    >
-                                      {item}
-                                    </a>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ))}
-          </div>
-
-          {/* Icon Actions */}
-          <div className="hidden lg:flex items-center space-x-6">
-            {/* Dark Mode Toggle */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
+    <>
+      <motion.nav
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className={`w-full transition-all duration-300 ${
+          isScrolled
+            ? "shadow-lg backdrop-blur-md bg-opacity-95"
+            : "shadow-sm backdrop-blur-sm bg-opacity-90"
+        }`}
+        style={{
+          backgroundColor: "var(--bg-primary)",
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20">
+            {/* Logo */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={toggleDarkMode}
-              className="transition-colors"
-              style={{ color: "var(--text-secondary)" }}
-              onMouseEnter={(e) => {
-                e.target.style.color = "var(--color-primary)";
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.color = "var(--text-secondary)";
-              }}
-              aria-label="Toggle dark mode"
+              className="flex-shrink-0"
             >
-              {isDark ? <FiSun size={20} /> : <FiMoon size={20} />}
-            </motion.button>
-            {navigationData.iconActions.map((action) => {
-              const Icon = getIcon(action.name);
-              return (
+              <Link to="/" className="flex items-center gap-3 group">
+                <motion.img
+                  src="/images/logo.png"
+                  alt={navigationData.logo}
+                  className="h-10 w-auto object-contain"
+                  whileHover={{ rotate: [0, -5, 5, -5, 0] }}
+                  transition={{ duration: 0.5 }}
+                />
+                <motion.span
+                  className="text-2xl font-bold tracking-wider"
+                  style={{ color: "var(--color-primary)" }}
+                  whileHover={{ x: 2 }}
+                >
+                  {navigationData.logo}
+                </motion.span>
+              </Link>
+            </motion.div>
+
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center space-x-1 flex-1 justify-center">
+              {navigationData.links.map((link) => (
+                <div
+                  key={link.id}
+                  className="relative"
+                  onMouseEnter={() => handleMegaMenuHover(link.label)}
+                  onMouseLeave={handleMegaMenuLeave}
+                >
+                  <Link to={link.path}>
+                    <motion.div
+                      className="px-4 py-2 rounded-lg font-medium text-sm uppercase tracking-wide transition-colors relative"
+                      style={{
+                        color: "var(--text-secondary)",
+                      }}
+                      whileHover={{
+                        color: "var(--color-primary)",
+                        y: -2,
+                      }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {link.label}
+                      <motion.div
+                        className="absolute bottom-0 left-0 right-0 h-0.5"
+                        style={{ backgroundColor: "var(--color-primary)" }}
+                        initial={{ scaleX: 0 }}
+                        whileHover={{ scaleX: 1 }}
+                        transition={{ duration: 0.2 }}
+                      />
+                    </motion.div>
+                  </Link>
+
+                  {/* Mega Menu */}
+                  <AnimatePresence>
+                    {activeMegaMenu === link.label && link.hasMegaMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-[600px] shadow-2xl rounded-xl p-8 z-50"
+                        style={{
+                          backgroundColor: "var(--bg-primary)",
+                          border: "1px solid var(--border-primary)",
+                        }}
+                      >
+                        <div className="grid grid-cols-2 gap-6">
+                          {navigationData.megaMenuCategories[link.label]?.map(
+                            (category) => (
+                              <motion.div
+                                key={category.id}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.1 }}
+                              >
+                                <h4
+                                  className="font-semibold mb-4 text-sm uppercase tracking-wide"
+                                  style={{ color: "var(--color-primary)" }}
+                                >
+                                  {category.title}
+                                </h4>
+                                <ul className="space-y-2">
+                                  {category.items.map((item, idx) => (
+                                    <li key={idx}>
+                                      <motion.button
+                                        className="text-sm text-left w-full transition-colors"
+                                        style={{ color: "var(--text-tertiary)" }}
+                                        whileHover={{
+                                          color: "var(--color-primary)",
+                                          x: 5,
+                                        }}
+                                      >
+                                        {item}
+                                      </motion.button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </motion.div>
+                            )
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ))}
+            </div>
+
+            {/* Right Actions */}
+            <div className="hidden lg:flex items-center space-x-4 flex-shrink-0">
+              {/* Search */}
+              <AnimatePresence>
+                {searchOpen ? (
+                  <motion.form
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 300, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    onSubmit={handleSearch}
+                    className="flex items-center"
+                  >
+                    <div className="relative w-full">
+                      <input
+                        ref={searchInputRef}
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search products..."
+                        className="w-full px-4 py-2 pr-10 border-2 rounded-lg outline-none transition-colors text-sm"
+                        style={{
+                          borderColor: "var(--border-primary)",
+                          backgroundColor: "var(--bg-secondary)",
+                          color: "var(--text-primary)",
+                        }}
+                        onBlur={() => {
+                          if (!searchQuery) {
+                            setTimeout(() => setSearchOpen(false), 200);
+                          }
+                        }}
+                      />
+                      <button
+                        type="submit"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded"
+                        style={{ color: "var(--color-primary)" }}
+                      >
+                        <FiSearch size={18} />
+                      </button>
+                    </div>
+                  </motion.form>
+                ) : (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setSearchOpen(true)}
+                    className="p-2 rounded-lg transition-colors relative"
+                    style={{
+                      color: "var(--text-secondary)",
+                      backgroundColor: "transparent",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "var(--color-primary)";
+                      e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = "var(--text-secondary)";
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                    aria-label="Search"
+                  >
+                    <FiSearch size={20} />
+                  </motion.button>
+                )}
+              </AnimatePresence>
+
+              {/* Theme Toggle */}
+              <motion.button
+                whileHover={{ scale: 1.1, rotate: 15 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={toggleDarkMode}
+                className="p-2 rounded-lg transition-colors relative"
+                style={{
+                  color: "var(--text-secondary)",
+                  backgroundColor: "transparent",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--color-primary)";
+                  e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }}
+                aria-label="Toggle dark mode"
+              >
+                {isDark ? <FiSun size={20} /> : <FiMoon size={20} />}
+              </motion.button>
+
+              {/* Wishlist */}
+              <Link to="/account/wishlist">
                 <motion.button
-                  key={action.id}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
-                  className="transition-colors"
-              style={{ color: "var(--text-secondary)" }}
-              onMouseEnter={(e) => {
-                e.target.style.color = "var(--color-primary)";
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.color = "var(--text-secondary)";
-              }}
-                  aria-label={action.label}
+                  className="p-2 rounded-lg transition-colors relative"
+                  style={{
+                    color: "var(--text-secondary)",
+                    backgroundColor: "transparent",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--color-primary)";
+                    e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--text-secondary)";
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }}
+                  aria-label="Wishlist"
                 >
-                  <Icon size={20} />
+                  <FiHeart size={20} />
+                  {wishlistCount > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                      style={{ backgroundColor: "var(--color-primary)" }}
+                    >
+                      {wishlistCount}
+                    </motion.span>
+                  )}
                 </motion.button>
-              );
-            })}
-          </div>
+              </Link>
 
-          {/* Mobile Menu Button */}
-          <div className="lg:hidden flex items-center space-x-4">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={toggleDarkMode}
-              className="text-gray-700 dark:text-gray-300"
-              aria-label="Toggle dark mode"
-            >
-              {isDark ? <FiSun size={24} /> : <FiMoon size={24} />}
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              className="text-gray-700 dark:text-gray-300"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-            </motion.button>
+              {/* Cart */}
+              <Link to="/cart">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="p-2 rounded-lg transition-colors relative"
+                  style={{
+                    color: "var(--text-secondary)",
+                    backgroundColor: "transparent",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--color-primary)";
+                    e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--text-secondary)";
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }}
+                  aria-label="Shopping Cart"
+                >
+                  <FiShoppingBag size={20} />
+                  {cartCount > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                      style={{ backgroundColor: "var(--color-primary)" }}
+                    >
+                      {cartCount}
+                    </motion.span>
+                  )}
+                </motion.button>
+              </Link>
+
+              {/* Profile */}
+              <Link to="/account/profile">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="p-2 rounded-lg transition-colors"
+                  style={{
+                    color: "var(--text-secondary)",
+                    backgroundColor: "transparent",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--color-primary)";
+                    e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--text-secondary)";
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }}
+                  aria-label="Profile"
+                >
+                  <FiUser size={20} />
+                </motion.button>
+              </Link>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <div className="lg:hidden flex items-center space-x-3">
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={toggleDarkMode}
+                className="p-2 rounded-lg"
+                style={{ color: "var(--text-secondary)" }}
+                aria-label="Toggle dark mode"
+              >
+                {isDark ? <FiSun size={22} /> : <FiMoon size={22} />}
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 rounded-lg"
+                style={{ color: "var(--text-secondary)" }}
+                aria-label="Toggle menu"
+              >
+                {mobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
+              </motion.button>
+            </div>
           </div>
         </div>
-      </div>
+      </motion.nav>
 
       {/* Mobile Menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div
-            {...slideInFromRight}
-            className="fixed inset-y-0 right-0 w-full max-w-sm shadow-2xl z-50 lg:hidden"
-            style={{ backgroundColor: "var(--bg-primary)" }}
-          >
-            <div className="flex flex-col h-full p-6">
-              <div className="flex justify-between items-center mb-8">
-                <div className="flex items-center gap-2">
-                  <img
-                    src="/images/logo.png"
-                    alt={navigationData.logo}
-                    className="h-8 w-auto object-contain"
-                  />
-                  <span
-                    className="text-xl font-bold tracking-wider"
-                    style={{ color: "var(--color-primary)" }}
-                  >
-                    {navigationData.logo}
-                  </span>
-                </div>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <FiX size={24} />
-                </motion.button>
-              </div>
-
-              <nav className="flex-1 space-y-4">
-                {navigationData.links.map((link) => (
-                  <motion.a
-                    key={link.id}
-                    href={link.path}
-                    className="font-medium text-lg uppercase tracking-wide py-2 transition-colors"
-                    style={{ color: "var(--text-secondary)" }}
-                    onMouseEnter={(e) => {
-                      e.target.style.color = "var(--color-primary)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.color = "var(--text-secondary)";
-                    }}
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <motion.div
+              {...slideInFromRight}
+              className="fixed inset-y-0 right-0 w-full max-w-sm shadow-2xl z-50 lg:hidden"
+              style={{ backgroundColor: "var(--bg-primary)" }}
+            >
+              <div className="flex flex-col h-full p-6">
+                <div className="flex justify-between items-center mb-8">
+                  <Link
+                    to="/"
                     onClick={() => setMobileMenuOpen(false)}
-                    whileHover={{ x: 5 }}
+                    className="flex items-center gap-2"
                   >
-                    {link.label}
-                  </motion.a>
-                ))}
-              </nav>
-
-              <div
-                className="flex items-center justify-around pt-8 border-t"
-                style={{ borderColor: "var(--border-primary)" }}
-              >
-                {navigationData.iconActions.map((action) => {
-                  const Icon = getIcon(action.name);
-                  return (
-                    <motion.button
-                      key={action.id}
-                      whileTap={{ scale: 0.95 }}
-                      className="text-gray-700 dark:text-gray-300"
-                      aria-label={action.label}
+                    <img
+                      src="/images/logo.png"
+                      alt={navigationData.logo}
+                      className="h-8 w-auto object-contain"
+                    />
+                    <span
+                      className="text-xl font-bold tracking-wider"
+                      style={{ color: "var(--color-primary)" }}
                     >
-                      <Icon size={24} />
-                    </motion.button>
-                  );
-                })}
+                      {navigationData.logo}
+                    </span>
+                  </Link>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setMobileMenuOpen(false)}
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    <FiX size={24} />
+                  </motion.button>
+                </div>
+
+                {/* Mobile Search */}
+                <form onSubmit={handleSearch} className="mb-6">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search products..."
+                      className="w-full px-4 py-3 pr-12 border-2 rounded-lg outline-none transition-colors"
+                      style={{
+                        borderColor: "var(--border-primary)",
+                        backgroundColor: "var(--bg-secondary)",
+                        color: "var(--text-primary)",
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                      style={{ color: "var(--color-primary)" }}
+                    >
+                      <FiSearch size={20} />
+                    </button>
+                  </div>
+                </form>
+
+                <nav className="flex-1 space-y-2 overflow-y-auto">
+                  {navigationData.links.map((link, index) => (
+                    <motion.div
+                      key={link.id}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <Link
+                        to={link.path}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="block px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide transition-colors"
+                        style={{ color: "var(--text-secondary)" }}
+                        onMouseEnter={(e) => {
+                          e.target.style.color = "var(--color-primary)";
+                          e.target.style.backgroundColor = "var(--bg-secondary)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.color = "var(--text-secondary)";
+                          e.target.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        {link.label}
+                      </Link>
+                    </motion.div>
+                  ))}
+                </nav>
+
+                <div
+                  className="flex items-center justify-around pt-6 border-t space-x-4"
+                  style={{ borderColor: "var(--border-primary)" }}
+                >
+                  <Link
+                    to="/account/wishlist"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="relative p-3 rounded-lg transition-colors"
+                    style={{
+                      color: "var(--text-secondary)",
+                      backgroundColor: "transparent",
+                    }}
+                  >
+                    <FiHeart size={24} />
+                    {wishlistCount > 0 && (
+                      <span
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                        style={{ backgroundColor: "var(--color-primary)" }}
+                      >
+                        {wishlistCount}
+                      </span>
+                    )}
+                  </Link>
+                  <Link
+                    to="/cart"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="relative p-3 rounded-lg transition-colors"
+                    style={{
+                      color: "var(--text-secondary)",
+                      backgroundColor: "transparent",
+                    }}
+                  >
+                    <FiShoppingBag size={24} />
+                    {cartCount > 0 && (
+                      <span
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                        style={{ backgroundColor: "var(--color-primary)" }}
+                      >
+                        {cartCount}
+                      </span>
+                    )}
+                  </Link>
+                  <Link
+                    to="/account/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-3 rounded-lg transition-colors"
+                    style={{
+                      color: "var(--text-secondary)",
+                      backgroundColor: "transparent",
+                    }}
+                  >
+                    <FiUser size={24} />
+                  </Link>
+                </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
-    </motion.nav>
+    </>
   );
 };
 

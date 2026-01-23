@@ -6,6 +6,7 @@ export const productsData = [
     price: 89.99,
     originalPrice: 119.99,
     discount: 25,
+    description: "Premium quality polo shirt made from 100% cotton. Perfect for casual and semi-formal occasions.",
     images: [
       "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80",
       "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=600&q=80",
@@ -23,6 +24,7 @@ export const productsData = [
     price: 59.99,
     originalPrice: null,
     discount: null,
+    description: "Soft and comfortable cotton t-shirt with a modern fit. Available in multiple colors.",
     images: [
       "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&q=80",
       "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=600&q=80",

@@ -8,10 +8,10 @@ export const footerData = {
     {
       title: "Shop",
       links: [
-        { id: 1, label: "Men's Collection", path: "/men" },
-        { id: 2, label: "Women's Collection", path: "/women" },
-        { id: 3, label: "New Arrivals", path: "/new-arrivals" },
-        { id: 4, label: "Sale", path: "/sale" },
+        { id: 1, label: "Men's Collection", path: "/category/men" },
+        { id: 2, label: "Women's Collection", path: "/category/women" },
+        { id: 3, label: "New Arrivals", path: "/collection/new-arrivals" },
+        { id: 4, label: "Sale", path: "/collection/sale" },
         { id: 5, label: "Gift Cards", path: "/gift-cards" },
       ],
     },
@@ -26,7 +26,7 @@ export const footerData = {
       ],
     },
     {
-      title: "Customer Service",
+      title: "Support",
       links: [
         { id: 1, label: "Shipping & Returns", path: "/shipping" },
         { id: 2, label: "Size Guide", path: "/size-guide" },
