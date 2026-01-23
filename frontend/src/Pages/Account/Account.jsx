@@ -3,18 +3,29 @@ import { Link, Outlet, useLocation } from "react-router";
 import { Container } from "../../components";
 import { motion } from "framer-motion";
 import { fadeInUp } from "../../utils/animations";
-import { FiUser, FiPackage, FiHeart, FiSettings, FiLogOut } from "react-icons/fi";
+import {
+  FiLayout,
+  FiUser,
+  FiPackage,
+  FiHeart,
+  FiMapPin,
+  FiCrown,
+  FiMail,
+  FiSettings,
+  FiLogOut,
+} from "react-icons/fi";
 
 const Account = () => {
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState(
-    location.pathname.split("/").pop() || "profile"
-  );
 
   const tabs = [
+    { id: "dashboard", label: "Dashboard", icon: FiLayout, path: "/account" },
     { id: "profile", label: "Profile", icon: FiUser, path: "/account/profile" },
     { id: "orders", label: "Orders", icon: FiPackage, path: "/account/orders" },
+    { id: "addresses", label: "Addresses", icon: FiMapPin, path: "/account/addresses" },
     { id: "wishlist", label: "Wishlist", icon: FiHeart, path: "/account/wishlist" },
+    { id: "membership", label: "Membership", icon: FiCrown, path: "/account/membership" },
+    { id: "newsletter", label: "Newsletter", icon: FiMail, path: "/account/newsletter" },
     { id: "settings", label: "Settings", icon: FiSettings, path: "/account/settings" },
   ];
 
@@ -37,18 +48,27 @@ const Account = () => {
               <nav className="space-y-2">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
-                  const isActive = location.pathname === tab.path;
+                  const isActive = location.pathname === tab.path || (tab.path === "/account" && location.pathname === "/account");
                   return (
                     <Link
                       key={tab.id}
                       to={tab.path}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
                         isActive ? "font-semibold" : ""
                       }`}
                       style={{
                         backgroundColor: isActive ? "var(--bg-secondary)" : "transparent",
                         color: isActive ? "var(--color-primary)" : "var(--text-secondary)",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }
                       }}
                     >
                       <Icon size={20} />
@@ -59,6 +79,12 @@ const Account = () => {
                 <button
                   className="flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors w-full text-left"
                   style={{ color: "var(--text-secondary)" }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }}
                 >
                   <FiLogOut size={20} />
                   <span>Logout</span>

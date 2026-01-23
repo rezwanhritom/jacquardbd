@@ -14,9 +14,14 @@ const Cart = lazy(() => import("../Pages/Cart"));
 const Checkout = lazy(() => import("../Pages/Checkout"));
 const OrderSuccess = lazy(() => import("../Pages/OrderSuccess"));
 const Account = lazy(() => import("../Pages/Account/Account"));
+const AccountDashboard = lazy(() => import("../Pages/Account/Dashboard"));
 const AccountProfile = lazy(() => import("../Pages/Account/Profile"));
 const AccountOrders = lazy(() => import("../Pages/Account/Orders"));
+const AccountOrderDetail = lazy(() => import("../Pages/Account/OrderDetail"));
+const AccountAddresses = lazy(() => import("../Pages/Account/Addresses"));
 const AccountWishlist = lazy(() => import("../Pages/Account/Wishlist"));
+const AccountMembership = lazy(() => import("../Pages/Account/Membership"));
+const AccountNewsletter = lazy(() => import("../Pages/Account/Newsletter"));
 const AccountSettings = lazy(() => import("../Pages/Account/Settings"));
 const Admin = lazy(() => import("../Pages/Admin/Admin"));
 const AdminDashboard = lazy(() => import("../Pages/Admin/Dashboard"));
@@ -115,7 +120,7 @@ export const router = createBrowserRouter([
             index: true,
             element: (
               <LazyWrapper>
-                <AccountProfile />
+                <AccountDashboard />
               </LazyWrapper>
             ),
           },
@@ -136,10 +141,42 @@ export const router = createBrowserRouter([
             ),
           },
           {
+            path: "orders/:orderId",
+            element: (
+              <LazyWrapper>
+                <AccountOrderDetail />
+              </LazyWrapper>
+            ),
+          },
+          {
+            path: "addresses",
+            element: (
+              <LazyWrapper>
+                <AccountAddresses />
+              </LazyWrapper>
+            ),
+          },
+          {
             path: "wishlist",
             element: (
               <LazyWrapper>
                 <AccountWishlist />
+              </LazyWrapper>
+            ),
+          },
+          {
+            path: "membership",
+            element: (
+              <LazyWrapper>
+                <AccountMembership />
+              </LazyWrapper>
+            ),
+          },
+          {
+            path: "newsletter",
+            element: (
+              <LazyWrapper>
+                <AccountNewsletter />
               </LazyWrapper>
             ),
           },

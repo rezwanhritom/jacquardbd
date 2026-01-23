@@ -1,0 +1,173 @@
+// Mock account data
+export const mockUser = {
+  id: 1,
+  firstName: "John",
+  lastName: "Doe",
+  email: "john.doe@example.com",
+  phone: "+880 1712 345678",
+  avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&q=80",
+  memberSince: "2023-06-15",
+  membershipTier: "Premium",
+  membershipExpiry: "2025-06-15",
+  totalOrders: 12,
+  totalSpent: 2849.98,
+  loyaltyPoints: 2849,
+};
+
+export const mockAddresses = [
+  {
+    id: 1,
+    type: "Home",
+    firstName: "John",
+    lastName: "Doe",
+    phone: "+880 1712 345678",
+    address: "123 Main Street, Gulshan-2",
+    city: "Dhaka",
+    state: "Dhaka",
+    zipCode: "1212",
+    country: "Bangladesh",
+    isDefault: true,
+  },
+  {
+    id: 2,
+    type: "Office",
+    firstName: "John",
+    lastName: "Doe",
+    phone: "+880 1712 345678",
+    address: "456 Business Tower, Banani",
+    city: "Dhaka",
+    state: "Dhaka",
+    zipCode: "1213",
+    country: "Bangladesh",
+    isDefault: false,
+  },
+  {
+    id: 3,
+    type: "Home",
+    firstName: "John",
+    lastName: "Doe",
+    phone: "+880 1712 345678",
+    address: "789 Residential Area, Dhanmondi",
+    city: "Dhaka",
+    state: "Dhaka",
+    zipCode: "1205",
+    country: "Bangladesh",
+    isDefault: false,
+  },
+];
+
+export const mockOrders = [
+  {
+    id: "ORD-1234567890",
+    date: "2024-01-15",
+    status: "Delivered",
+    total: 269.98,
+    items: [
+      { productId: 1, quantity: 2, size: "M", color: "Black", price: 89.99 },
+      { productId: 3, quantity: 1, size: "L", color: "Navy", price: 199.99 },
+    ],
+    shippingAddress: mockAddresses[0],
+    shippingMethod: "Express Shipping",
+    paymentMethod: "bKash",
+    trackingNumber: "TRK-1234567890",
+    estimatedDelivery: "2024-01-18",
+    deliveredDate: "2024-01-17",
+  },
+  {
+    id: "ORD-1234567891",
+    date: "2024-01-10",
+    status: "Shipped",
+    total: 149.99,
+    items: [
+      { productId: 2, quantity: 1, size: "S", color: "White", price: 59.99 },
+      { productId: 5, quantity: 1, size: "M", color: "Black", price: 89.99 },
+    ],
+    shippingAddress: mockAddresses[0],
+    shippingMethod: "Standard Shipping",
+    paymentMethod: "Credit Card",
+    trackingNumber: "TRK-1234567891",
+    estimatedDelivery: "2024-01-20",
+  },
+  {
+    id: "ORD-1234567892",
+    date: "2024-01-05",
+    status: "Processing",
+    total: 89.99,
+    items: [
+      { productId: 1, quantity: 1, size: "L", color: "White", price: 89.99 },
+    ],
+    shippingAddress: mockAddresses[1],
+    shippingMethod: "Standard Shipping",
+    paymentMethod: "Nagad",
+    estimatedDelivery: "2024-01-15",
+  },
+  {
+    id: "ORD-1234567893",
+    date: "2023-12-28",
+    status: "Delivered",
+    total: 199.99,
+    items: [
+      { productId: 3, quantity: 1, size: "XL", color: "Navy", price: 199.99 },
+    ],
+    shippingAddress: mockAddresses[0],
+    shippingMethod: "Express Shipping",
+    paymentMethod: "Credit Card",
+    trackingNumber: "TRK-1234567893",
+    estimatedDelivery: "2023-12-30",
+    deliveredDate: "2023-12-30",
+  },
+];
+
+export const membershipTiers = [
+  {
+    id: "basic",
+    name: "Basic",
+    price: 0,
+    benefits: [
+      "Standard shipping",
+      "5% discount on all orders",
+      "Access to exclusive sales",
+    ],
+  },
+  {
+    id: "premium",
+    name: "Premium",
+    price: 99,
+    benefits: [
+      "Free shipping on all orders",
+      "10% discount on all orders",
+      "Early access to new collections",
+      "Priority customer support",
+      "Exclusive member-only events",
+      "Birthday gift",
+    ],
+    isCurrent: true,
+  },
+  {
+    id: "vip",
+    name: "VIP",
+    price: 199,
+    benefits: [
+      "Free express shipping",
+      "15% discount on all orders",
+      "First access to limited editions",
+      "24/7 dedicated support",
+      "Personal shopping assistant",
+      "Annual gift box",
+      "VIP events invitation",
+    ],
+  },
+];
+
+export const newsletterPreferences = {
+  email: "john.doe@example.com",
+  subscribed: true,
+  preferences: {
+    newArrivals: true,
+    sales: true,
+    exclusiveOffers: true,
+    styleTips: false,
+    events: true,
+    birthdayOffers: true,
+  },
+};
