@@ -9,3 +9,6 @@ export { default as Layout } from "./Layout";
 export { default as Container } from "./Container";
 export { default as Section } from "./Section";
 export { default as Loading } from "./Loading";
+export { default as FeaturedBanner } from "./FeaturedBanner";
+export { default as ProductCarousel } from "./ProductCarousel";
+export { default as Membership } from "./Membership";

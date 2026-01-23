@@ -67,6 +67,7 @@ export const productsData = [
       "https://images.unsplash.com/photo-1582657008425-3b9a2c28d4f5?w=600&q=80",
     ],
     badge: "New",
+    description: "Sophisticated blazer perfect for professional and elegant occasions.",
     inStock: true,
   },
   {

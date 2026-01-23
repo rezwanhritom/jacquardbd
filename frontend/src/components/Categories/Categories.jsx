@@ -1,10 +1,11 @@
+import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { categoriesData } from "../../data/categories";
 import { fadeInUp, staggerContainer, scaleOnHover } from "../../utils/animations";
 
 const Categories = () => {
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 transition-colors duration-300" style={{ backgroundColor: "var(--bg-primary)" }}>
+    <section className="py-24 px-4 sm:px-6 lg:px-8 transition-colors duration-300" style={{ backgroundColor: "var(--bg-primary)" }}>
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial="initial"
@@ -22,7 +23,7 @@ const Categories = () => {
           </motion.h2>
           <motion.p
             variants={fadeInUp}
-            className="max-w-2xl mx-auto"
+            className="max-w-2xl mx-auto text-lg"
             style={{ color: "var(--text-secondary)" }}
           >
             Discover our curated collections designed for every occasion
@@ -74,14 +75,15 @@ const Categories = () => {
                   <p className="text-sm text-white/90 mb-4">
                     {category.description}
                   </p>
-                  <motion.a
-                    href={category.link}
-                    className="inline-block text-sm font-medium uppercase tracking-wider underline hover:no-underline"
-                    whileHover={{ x: 5 }}
-                    style={{ color: "var(--color-tertiary)" }}
-                  >
-                    Explore
-                  </motion.a>
+                  <Link to={category.link}>
+                    <motion.span
+                      className="inline-block text-sm font-medium uppercase tracking-wider underline hover:no-underline"
+                      whileHover={{ x: 5 }}
+                      style={{ color: "var(--color-tertiary)" }}
+                    >
+                      Explore
+                    </motion.span>
+                  </Link>
                 </div>
               </div>
             </motion.div>

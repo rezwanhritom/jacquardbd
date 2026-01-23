@@ -5,12 +5,15 @@ import { fadeInUp } from "../../utils/animations";
 const Newsletter = () => {
   const [email, setEmail] = useState("");
   const [focused, setFocused] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // UI-only submission
-    console.log("Newsletter signup:", email);
-    setEmail("");
+    if (email.trim()) {
+      setSubmitted(true);
+      setEmail("");
+      setTimeout(() => setSubmitted(false), 3000);
+    }
   };
 
   return (
@@ -50,7 +53,7 @@ const Newsletter = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email address"
-                className="w-full px-6 py-4 border-2 outline-none transition-colors placeholder:opacity-60"
+                className="w-full px-6 py-4 border-2 outline-none transition-colors placeholder:opacity-60 rounded-lg"
                 style={{
                   borderColor: focused ? "var(--color-primary)" : "var(--border-primary)",
                   backgroundColor: "var(--bg-primary)",
@@ -69,20 +72,36 @@ const Newsletter = () => {
             </motion.div>
             <motion.button
               type="submit"
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.05, x: 2 }}
               whileTap={{ scale: 0.95 }}
-              className="px-8 py-4 uppercase tracking-wider text-sm font-semibold transition-colors whitespace-nowrap text-white"
-              style={{ backgroundColor: "var(--color-primary)" }}
+              className="px-8 py-4 uppercase tracking-wider text-sm font-semibold transition-colors whitespace-nowrap text-white rounded-lg"
+              style={{
+                backgroundColor: submitted ? "var(--color-secondary)" : "var(--color-primary)",
+              }}
               onMouseEnter={(e) => {
-                e.target.style.backgroundColor = "var(--active-color)";
+                if (!submitted) {
+                  e.target.style.backgroundColor = "var(--active-color)";
+                }
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = "var(--color-primary)";
+                if (!submitted) {
+                  e.target.style.backgroundColor = "var(--color-primary)";
+                }
               }}
             >
-              Subscribe
+              {submitted ? "Subscribed!" : "Subscribe"}
             </motion.button>
           </motion.form>
+          {submitted && (
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-sm mt-4"
+              style={{ color: "var(--color-primary)" }}
+            >
+              Thank you for subscribing to our newsletter!
+            </motion.p>
+          )}
         </motion.div>
       </div>
     </section>
