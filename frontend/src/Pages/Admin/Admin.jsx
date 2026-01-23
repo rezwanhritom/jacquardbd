@@ -3,19 +3,24 @@ import { Link, Outlet, useLocation } from "react-router";
 import { Container } from "../../components";
 import { motion } from "framer-motion";
 import { fadeInUp } from "../../utils/animations";
-import { FiLayout, FiPackage, FiUsers, FiBarChart2, FiSettings } from "react-icons/fi";
+import {
+  FiLayout,
+  FiPackage,
+  FiUsers,
+  FiBarChart2,
+  FiSettings,
+  FiMegaphone,
+} from "react-icons/fi";
 
 const Admin = () => {
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState(
-    location.pathname.split("/").pop() || "dashboard"
-  );
 
   const tabs = [
-    { id: "dashboard", label: "Dashboard", icon: FiLayout, path: "/admin/dashboard" },
+    { id: "dashboard", label: "Dashboard", icon: FiLayout, path: "/admin" },
     { id: "products", label: "Products", icon: FiPackage, path: "/admin/products" },
     { id: "orders", label: "Orders", icon: FiBarChart2, path: "/admin/orders" },
-    { id: "users", label: "Users", icon: FiUsers, path: "/admin/users" },
+    { id: "users", label: "Customers", icon: FiUsers, path: "/admin/users" },
+    { id: "campaigns", label: "Campaigns", icon: FiMegaphone, path: "/admin/campaigns" },
     { id: "settings", label: "Settings", icon: FiSettings, path: "/admin/settings" },
   ];
 
@@ -43,18 +48,27 @@ const Admin = () => {
               <nav className="space-y-2">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
-                  const isActive = location.pathname === tab.path;
+                  const isActive = location.pathname === tab.path || (tab.path === "/admin" && location.pathname === "/admin");
                   return (
                     <Link
                       key={tab.id}
                       to={tab.path}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
                         isActive ? "font-semibold" : ""
                       }`}
                       style={{
                         backgroundColor: isActive ? "var(--bg-secondary)" : "transparent",
                         color: isActive ? "var(--color-primary)" : "var(--text-secondary)",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }
                       }}
                     >
                       <Icon size={20} />
