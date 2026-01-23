@@ -1,34 +1,82 @@
+import { useState, useMemo } from "react";
 import { useParams } from "react-router";
-import { Container } from "../../components";
+import { Container, ProductGrid, ProductFilters, ProductSort, Pagination } from "../../components";
 import { productsData } from "../../data/products";
 import { categoriesData } from "../../data/categories";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { FiShoppingBag } from "react-icons/fi";
+import { filterProducts, sortProducts, paginateProducts } from "../../utils/productUtils";
 
 const Category = () => {
   const { categoryName } = useParams();
+  const [filters, setFilters] = useState({
+    priceRange: { min: 0, max: 1000 },
+    sizes: [],
+    colors: [],
+  });
+  const [sortOption, setSortOption] = useState("default");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+
   const normalizedCategoryName = categoryName?.toLowerCase();
   const category = categoriesData.find(
     (cat) => {
       const normalized = cat.name.toLowerCase().replace(/\s+/g, "-").replace("'s", "").replace("'", "");
-      return normalized === normalizedCategoryName || 
-             normalized.includes(normalizedCategoryName) ||
-             normalizedCategoryName?.includes(normalized.replace(/-/g, ""));
+      return normalized === normalizedCategoryName || cat.name.toLowerCase().includes(normalizedCategoryName);
     }
   );
-  const categoryProducts = productsData.filter(
-    (product) => {
-      const productCategory = product.category.toLowerCase();
-      const normalizedCat = category?.name.toLowerCase().replace("'s collection", "").replace("'s", "").trim();
-      return productCategory === normalizedCat || 
-             productCategory.includes(normalizedCategoryName) ||
-             (normalizedCategoryName === "men" && productCategory === "men") ||
-             (normalizedCategoryName === "women" && productCategory === "women") ||
-             (normalizedCategoryName === "accessories" && productCategory === "accessories") ||
-             (normalizedCategoryName === "footwear" && productCategory === "footwear");
-    }
-  );
+
+  const categoryProducts = useMemo(() => {
+    return productsData.filter(
+      (product) => {
+        const productCategory = product.category.toLowerCase();
+        return (
+          productCategory === normalizedCategoryName ||
+          productCategory.includes(normalizedCategoryName) ||
+          (normalizedCategoryName === "men" && productCategory === "men") ||
+          (normalizedCategoryName === "women" && productCategory === "women") ||
+          (normalizedCategoryName === "accessories" && productCategory === "accessories") ||
+          (normalizedCategoryName === "footwear" && productCategory === "footwear")
+        );
+      }
+    );
+  }, [normalizedCategoryName]);
+
+  const filteredProducts = useMemo(() => {
+    return filterProducts(categoryProducts, filters);
+  }, [categoryProducts, filters]);
+
+  const sortedProducts = useMemo(() => {
+    return sortProducts(filteredProducts, sortOption);
+  }, [filteredProducts, sortOption]);
+
+  const { paginatedProducts, totalPages } = useMemo(() => {
+    return paginateProducts(sortedProducts, currentPage, itemsPerPage);
+  }, [sortedProducts, currentPage, itemsPerPage]);
+
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters);
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      priceRange: { min: 0, max: 1000 },
+      sizes: [],
+      colors: [],
+    });
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (newSort) => {
+    setSortOption(newSort);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   if (!category) {
     return (
@@ -51,6 +99,7 @@ const Category = () => {
           variants={staggerContainer}
           className="space-y-8"
         >
+          {/* Header */}
           <motion.div variants={fadeInUp} className="text-center space-y-4">
             <h1 className="text-4xl md:text-5xl font-bold" style={{ color: "var(--color-primary)" }}>
               {category.name}
@@ -58,71 +107,53 @@ const Category = () => {
             <p className="text-lg max-w-2xl mx-auto" style={{ color: "var(--text-secondary)" }}>
               {category.description}
             </p>
+            <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+              {sortedProducts.length} product{sortedProducts.length !== 1 ? "s" : ""} found
+            </p>
           </motion.div>
 
-          <motion.div
-            variants={staggerContainer}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-          >
-            {categoryProducts.length > 0 ? (
-              categoryProducts.map((product) => (
-                <motion.div
-                  key={product.id}
-                  variants={fadeInUp}
-                  className="group cursor-pointer"
-                  style={{ backgroundColor: "var(--bg-primary)" }}
-                >
-                  <div className="relative overflow-hidden aspect-[3/4] mb-4" style={{ backgroundColor: "var(--bg-tertiary)" }}>
-                    <img
-                      src={product.images[0]}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    {product.badge && (
-                      <span
-                        className="absolute top-4 left-4 px-3 py-1 text-xs font-semibold uppercase text-white"
-                        style={{ backgroundColor: "var(--color-primary)" }}
-                      >
-                        {product.badge}
-                      </span>
-                    )}
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="p-3 rounded-full text-white"
-                        style={{ backgroundColor: "var(--color-primary)" }}
-                      >
-                        <FiShoppingBag size={20} />
-                      </motion.button>
-                    </div>
-                  </div>
-                  <div className="p-4 space-y-2">
-                    <p className="text-xs uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
-                      {product.category}
-                    </p>
-                    <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
-                      {product.name}
-                    </h3>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
-                        ${product.price.toFixed(2)}
-                      </span>
-                      {product.originalPrice && (
-                        <span className="text-sm line-through" style={{ color: "var(--text-tertiary)" }}>
-                          ${product.originalPrice.toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <p style={{ color: "var(--text-secondary)" }}>No products found in this category.</p>
+          {/* Main Content */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* Filters Sidebar */}
+            <motion.aside
+              variants={fadeInUp}
+              className="lg:col-span-1"
+            >
+              <div className="sticky top-24">
+                <ProductFilters
+                  filters={filters}
+                  onFilterChange={handleFilterChange}
+                  onClearFilters={handleClearFilters}
+                />
               </div>
-            )}
-          </motion.div>
+            </motion.aside>
+
+            {/* Products Section */}
+            <div className="lg:col-span-3 space-y-6">
+              {/* Sort and Results */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                  Showing {paginatedProducts.length} of {sortedProducts.length} products
+                </p>
+                <ProductSort
+                  currentSort={sortOption}
+                  onSortChange={handleSortChange}
+                />
+              </div>
+
+              {/* Product Grid */}
+              <ProductGrid products={paginatedProducts} />
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              )}
+            </div>
+          </div>
         </motion.div>
       </Container>
     </div>
