@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiRuler, FiX } from "react-icons/fi";
+import { FiInfo, FiX } from "react-icons/fi";
 
 const ProductVariants = ({ selectedSize, selectedColor, onSizeChange, onColorChange }) => {
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
@@ -33,7 +33,7 @@ const ProductVariants = ({ selectedSize, selectedColor, onSizeChange, onColorCha
               e.currentTarget.style.color = "var(--color-primary)";
             }}
           >
-            <FiRuler size={14} />
+            <FiInfo size={14} />
             Size Guide
           </button>
         </div>
