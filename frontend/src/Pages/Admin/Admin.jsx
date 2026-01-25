@@ -9,7 +9,8 @@ import {
   FiUsers,
   FiBarChart2,
   FiSettings,
-  FiMegaphone,
+  FiRadio,
+  FiPlus,
 } from "react-icons/fi";
 
 const Admin = () => {
@@ -20,7 +21,7 @@ const Admin = () => {
     { id: "products", label: "Products", icon: FiPackage, path: "/admin/products" },
     { id: "orders", label: "Orders", icon: FiBarChart2, path: "/admin/orders" },
     { id: "users", label: "Customers", icon: FiUsers, path: "/admin/users" },
-    { id: "campaigns", label: "Campaigns", icon: FiMegaphone, path: "/admin/campaigns" },
+    { id: "campaigns", label: "Campaigns", icon: FiRadio, path: "/admin/campaigns" },
     { id: "settings", label: "Settings", icon: FiSettings, path: "/admin/settings" },
   ];
 
@@ -45,10 +46,25 @@ const Admin = () => {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Sidebar */}
             <div className="lg:col-span-1">
+              {/* Quick Action - Add Product */}
+              <Link to="/admin/products/new">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold text-sm text-white mb-4"
+                  style={{ backgroundColor: "var(--color-primary)" }}
+                >
+                  <FiPlus size={18} />
+                  Add New Product
+                </motion.button>
+              </Link>
+
               <nav className="space-y-2">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
-                  const isActive = location.pathname === tab.path || (tab.path === "/admin" && location.pathname === "/admin");
+                  const isActive = location.pathname === tab.path || 
+                    (tab.path === "/admin" && location.pathname === "/admin") ||
+                    (tab.id === "products" && location.pathname.startsWith("/admin/products"));
                   return (
                     <Link
                       key={tab.id}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useLocation } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { navigationData } from "../../data/navigation";
 import {
@@ -12,6 +12,7 @@ import {
   FiSun,
   FiMoon,
   FiLogIn,
+  FiGrid,
 } from "react-icons/fi";
 import { slideInFromRight, fadeIn } from "../../utils/animations";
 import { useDarkMode } from "../../context/DarkModeContext";
@@ -24,7 +25,16 @@ const Navbar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { isDark, toggleDarkMode } = useDarkMode();
   const navigate = useNavigate();
+  const location = useLocation();
   const searchInputRef = useRef(null);
+
+  // Check if a path is active
+  const isActivePath = (path) => {
+    if (path === "/") {
+      return location.pathname === "/";
+    }
+    return location.pathname.startsWith(path);
+  };
 
   // Fake counters
   const cartCount = 3;
@@ -116,7 +126,9 @@ const Navbar = () => {
 
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-1 flex-1 justify-center">
-              {navigationData.links.map((link) => (
+              {navigationData.links.map((link) => {
+                const isActive = isActivePath(link.path);
+                return (
                 <div
                   key={link.id}
                   className="relative"
@@ -127,7 +139,7 @@ const Navbar = () => {
                     <motion.div
                       className="px-4 py-2 rounded-lg font-medium text-sm uppercase tracking-wide transition-colors relative"
                       style={{
-                        color: "var(--text-secondary)",
+                        color: isActive ? "var(--color-primary)" : "var(--text-secondary)",
                       }}
                       whileHover={{
                         color: "var(--color-primary)",
@@ -139,7 +151,8 @@ const Navbar = () => {
                       <motion.div
                         className="absolute bottom-0 left-0 right-0 h-0.5"
                         style={{ backgroundColor: "var(--color-primary)" }}
-                        initial={{ scaleX: 0 }}
+                        initial={{ scaleX: isActive ? 1 : 0 }}
+                        animate={{ scaleX: isActive ? 1 : 0 }}
                         whileHover={{ scaleX: 1 }}
                         transition={{ duration: 0.2 }}
                       />
@@ -199,7 +212,8 @@ const Navbar = () => {
                     )}
                   </AnimatePresence>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Right Actions */}
@@ -301,7 +315,7 @@ const Navbar = () => {
                   whileTap={{ scale: 0.95 }}
                   className="p-2 rounded-lg transition-colors relative"
                   style={{
-                    color: "var(--text-secondary)",
+                    color: isActivePath("/account/wishlist") ? "var(--color-primary)" : "var(--text-secondary)",
                     backgroundColor: "transparent",
                   }}
                   onMouseEnter={(e) => {
@@ -309,7 +323,9 @@ const Navbar = () => {
                     e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.color = "var(--text-secondary)";
+                    if (!isActivePath("/account/wishlist")) {
+                      e.currentTarget.style.color = "var(--text-secondary)";
+                    }
                     e.currentTarget.style.backgroundColor = "transparent";
                   }}
                   aria-label="Wishlist"
@@ -335,7 +351,7 @@ const Navbar = () => {
                   whileTap={{ scale: 0.95 }}
                   className="p-2 rounded-lg transition-colors relative"
                   style={{
-                    color: "var(--text-secondary)",
+                    color: isActivePath("/cart") ? "var(--color-primary)" : "var(--text-secondary)",
                     backgroundColor: "transparent",
                   }}
                   onMouseEnter={(e) => {
@@ -343,7 +359,9 @@ const Navbar = () => {
                     e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.color = "var(--text-secondary)";
+                    if (!isActivePath("/cart")) {
+                      e.currentTarget.style.color = "var(--text-secondary)";
+                    }
                     e.currentTarget.style.backgroundColor = "transparent";
                   }}
                   aria-label="Shopping Cart"
@@ -362,14 +380,14 @@ const Navbar = () => {
                 </motion.button>
               </Link>
 
-              {/* Profile */}
-              <Link to="/account">
+              {/* Admin */}
+              <Link to="/admin">
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   className="p-2 rounded-lg transition-colors"
                   style={{
-                    color: "var(--text-secondary)",
+                    color: isActivePath("/admin") ? "var(--color-primary)" : "var(--text-secondary)",
                     backgroundColor: "transparent",
                   }}
                   onMouseEnter={(e) => {
@@ -377,7 +395,36 @@ const Navbar = () => {
                     e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.color = "var(--text-secondary)";
+                    if (!isActivePath("/admin")) {
+                      e.currentTarget.style.color = "var(--text-secondary)";
+                    }
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }}
+                  aria-label="Admin Panel"
+                  title="Admin Panel"
+                >
+                  <FiGrid size={20} />
+                </motion.button>
+              </Link>
+
+              {/* Profile */}
+              <Link to="/account">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="p-2 rounded-lg transition-colors"
+                  style={{
+                    color: isActivePath("/account") && !isActivePath("/account/wishlist") ? "var(--color-primary)" : "var(--text-secondary)",
+                    backgroundColor: "transparent",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--color-primary)";
+                    e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActivePath("/account") || isActivePath("/account/wishlist")) {
+                      e.currentTarget.style.color = "var(--text-secondary)";
+                    }
                     e.currentTarget.style.backgroundColor = "transparent";
                   }}
                   aria-label="My Account"
@@ -505,7 +552,9 @@ const Navbar = () => {
                 </form>
 
                 <nav className="flex-1 space-y-2 overflow-y-auto">
-                  {navigationData.links.map((link, index) => (
+                  {navigationData.links.map((link, index) => {
+                    const isActive = isActivePath(link.path);
+                    return (
                     <motion.div
                       key={link.id}
                       initial={{ opacity: 0, x: 20 }}
@@ -515,22 +564,57 @@ const Navbar = () => {
                       <Link
                         to={link.path}
                         onClick={() => setMobileMenuOpen(false)}
-                        className="block px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide transition-colors"
-                        style={{ color: "var(--text-secondary)" }}
+                        className="block px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide transition-colors relative"
+                        style={{ 
+                          color: isActive ? "var(--color-primary)" : "var(--text-secondary)",
+                        }}
                         onMouseEnter={(e) => {
                           e.target.style.color = "var(--color-primary)";
-                          e.target.style.backgroundColor = "var(--bg-secondary)";
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.color = "var(--text-secondary)";
-                          e.target.style.backgroundColor = "transparent";
+                          if (!isActive) {
+                            e.target.style.color = "var(--text-secondary)";
+                          }
                         }}
                       >
                         {link.label}
+                        {isActive && (
+                          <span 
+                            className="absolute bottom-1 left-4 right-4 h-0.5"
+                            style={{ backgroundColor: "var(--color-primary)" }}
+                          />
+                        )}
                       </Link>
                     </motion.div>
-                  ))}
+                    );
+                  })}
                 </nav>
+
+                {/* Mobile Admin Button */}
+                <Link
+                  to="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block mb-3"
+                >
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide border-2 relative"
+                    style={{
+                      borderColor: "var(--color-primary)",
+                      backgroundColor: "transparent",
+                      color: "var(--color-primary)",
+                    }}
+                  >
+                    <FiGrid size={18} />
+                    <span>Admin Panel</span>
+                    {isActivePath("/admin") && (
+                      <span 
+                        className="absolute bottom-1 left-6 right-6 h-0.5"
+                        style={{ backgroundColor: "var(--color-primary)" }}
+                      />
+                    )}
+                  </motion.button>
+                </Link>
 
                 {/* Mobile Login Button */}
                 <Link
@@ -560,8 +644,7 @@ const Navbar = () => {
                     onClick={() => setMobileMenuOpen(false)}
                     className="relative p-3 rounded-lg transition-colors"
                     style={{
-                      color: "var(--text-secondary)",
-                      backgroundColor: "transparent",
+                      color: isActivePath("/account/wishlist") ? "var(--color-primary)" : "var(--text-secondary)",
                     }}
                   >
                     <FiHeart size={24} />
@@ -579,8 +662,7 @@ const Navbar = () => {
                     onClick={() => setMobileMenuOpen(false)}
                     className="relative p-3 rounded-lg transition-colors"
                     style={{
-                      color: "var(--text-secondary)",
-                      backgroundColor: "transparent",
+                      color: isActivePath("/cart") ? "var(--color-primary)" : "var(--text-secondary)",
                     }}
                   >
                     <FiShoppingBag size={24} />
@@ -598,8 +680,7 @@ const Navbar = () => {
                     onClick={() => setMobileMenuOpen(false)}
                     className="p-3 rounded-lg transition-colors"
                     style={{
-                      color: "var(--text-secondary)",
-                      backgroundColor: "transparent",
+                      color: isActivePath("/account") && !isActivePath("/account/wishlist") ? "var(--color-primary)" : "var(--text-secondary)",
                     }}
                   >
                     <FiUser size={24} />
