@@ -14,6 +14,7 @@ const Search = lazy(() => import("../Pages/Search"));
 const Cart = lazy(() => import("../Pages/Cart"));
 const Wishlist = lazy(() => import("../Pages/Wishlist"));
 const NewArrivals = lazy(() => import("../Pages/NewArrivals"));
+const Sale = lazy(() => import("../Pages/Sale"));
 const Checkout = lazy(() => import("../Pages/Checkout"));
 const OrderSuccess = lazy(() => import("../Pages/OrderSuccess"));
 const Account = lazy(() => import("../Pages/Account/Account"));
@@ -159,6 +160,14 @@ export const router = createBrowserRouter([
         element: (
           <LazyWrapper>
             <NewArrivals />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "sale",
+        element: (
+          <LazyWrapper>
+            <Sale />
           </LazyWrapper>
         ),
       },
