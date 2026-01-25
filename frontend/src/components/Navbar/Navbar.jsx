@@ -309,13 +309,13 @@ const Navbar = () => {
               </motion.button>
 
               {/* Wishlist */}
-              <Link to="/account/wishlist">
+              <Link to="/wishlist">
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   className="p-2 rounded-lg transition-colors relative"
                   style={{
-                    color: isActivePath("/account/wishlist") ? "var(--color-primary)" : "var(--text-secondary)",
+                    color: isActivePath("/wishlist") ? "var(--color-primary)" : "var(--text-secondary)",
                     backgroundColor: "transparent",
                   }}
                   onMouseEnter={(e) => {
@@ -323,7 +323,7 @@ const Navbar = () => {
                     e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
                   }}
                   onMouseLeave={(e) => {
-                    if (!isActivePath("/account/wishlist")) {
+                    if (!isActivePath("/wishlist")) {
                       e.currentTarget.style.color = "var(--text-secondary)";
                     }
                     e.currentTarget.style.backgroundColor = "transparent";
@@ -414,7 +414,7 @@ const Navbar = () => {
                   whileTap={{ scale: 0.95 }}
                   className="p-2 rounded-lg transition-colors"
                   style={{
-                    color: isActivePath("/account") && !isActivePath("/account/wishlist") ? "var(--color-primary)" : "var(--text-secondary)",
+                    color: isActivePath("/account") ? "var(--color-primary)" : "var(--text-secondary)",
                     backgroundColor: "transparent",
                   }}
                   onMouseEnter={(e) => {
@@ -422,7 +422,7 @@ const Navbar = () => {
                     e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
                   }}
                   onMouseLeave={(e) => {
-                    if (!isActivePath("/account") || isActivePath("/account/wishlist")) {
+                    if (!isActivePath("/account")) {
                       e.currentTarget.style.color = "var(--text-secondary)";
                     }
                     e.currentTarget.style.backgroundColor = "transparent";
@@ -640,11 +640,11 @@ const Navbar = () => {
                   style={{ borderColor: "var(--border-primary)" }}
                 >
                   <Link
-                    to="/account/wishlist"
+                    to="/wishlist"
                     onClick={() => setMobileMenuOpen(false)}
                     className="relative p-3 rounded-lg transition-colors"
                     style={{
-                      color: isActivePath("/account/wishlist") ? "var(--color-primary)" : "var(--text-secondary)",
+                      color: isActivePath("/wishlist") ? "var(--color-primary)" : "var(--text-secondary)",
                     }}
                   >
                     <FiHeart size={24} />
@@ -680,7 +680,7 @@ const Navbar = () => {
                     onClick={() => setMobileMenuOpen(false)}
                     className="p-3 rounded-lg transition-colors"
                     style={{
-                      color: isActivePath("/account") && !isActivePath("/account/wishlist") ? "var(--color-primary)" : "var(--text-secondary)",
+                      color: isActivePath("/account") ? "var(--color-primary)" : "var(--text-secondary)",
                     }}
                   >
                     <FiUser size={24} />
