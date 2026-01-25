@@ -27,6 +27,7 @@ const AccountWishlist = lazy(() => import("../Pages/Account/Wishlist"));
 const AccountMembership = lazy(() => import("../Pages/Account/Membership"));
 const AccountNewsletter = lazy(() => import("../Pages/Account/Newsletter"));
 const AccountSettings = lazy(() => import("../Pages/Account/Settings"));
+const AccountSecurity = lazy(() => import("../Pages/Account/Security"));
 const Admin = lazy(() => import("../Pages/Admin/Admin"));
 const AdminDashboard = lazy(() => import("../Pages/Admin/Dashboard"));
 const AdminProducts = lazy(() => import("../Pages/Admin/Products"));
@@ -244,6 +245,14 @@ export const router = createBrowserRouter([
             element: (
               <LazyWrapper>
                 <AccountMembership />
+              </LazyWrapper>
+            ),
+          },
+          {
+            path: "security",
+            element: (
+              <LazyWrapper>
+                <AccountSecurity />
               </LazyWrapper>
             ),
           },
