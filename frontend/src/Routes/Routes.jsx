@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { createBrowserRouter } from "react-router";
 import Root from "../Pages/Root";
 import Loading from "../components/Loading";
+import AuthWrapper from "../Pages/Auth/AuthWrapper";
 
 // Lazy load all pages
 const Home = lazy(() => import("../Pages/Home"));
@@ -31,12 +32,57 @@ const AdminUsers = lazy(() => import("../Pages/Admin/Users"));
 const AdminCampaigns = lazy(() => import("../Pages/Admin/Campaigns"));
 const AdminSettings = lazy(() => import("../Pages/Admin/Settings"));
 
+// Auth pages
+const Login = lazy(() => import("../Pages/Auth/Login"));
+const Register = lazy(() => import("../Pages/Auth/Register"));
+const ForgotPassword = lazy(() => import("../Pages/Auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("../Pages/Auth/ResetPassword"));
+
 // Wrapper component for Suspense
 const LazyWrapper = ({ children }) => (
   <Suspense fallback={<Loading />}>{children}</Suspense>
 );
 
 export const router = createBrowserRouter([
+  // Auth routes (with DarkModeProvider)
+  {
+    element: <AuthWrapper />,
+    children: [
+      {
+        path: "/login",
+        element: (
+          <LazyWrapper>
+            <Login />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "/register",
+        element: (
+          <LazyWrapper>
+            <Register />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "/forgot-password",
+        element: (
+          <LazyWrapper>
+            <ForgotPassword />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "/reset-password",
+        element: (
+          <LazyWrapper>
+            <ResetPassword />
+          </LazyWrapper>
+        ),
+      },
+    ],
+  },
+  // Main app routes
   {
     path: "/",
     Component: Root,

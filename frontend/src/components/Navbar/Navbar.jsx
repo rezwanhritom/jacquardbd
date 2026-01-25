@@ -11,6 +11,7 @@ import {
   FiX,
   FiSun,
   FiMoon,
+  FiLogIn,
 } from "react-icons/fi";
 import { slideInFromRight, fadeIn } from "../../utils/animations";
 import { useDarkMode } from "../../context/DarkModeContext";
@@ -362,7 +363,7 @@ const Navbar = () => {
               </Link>
 
               {/* Profile */}
-              <Link to="/account/profile">
+              <Link to="/account">
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
@@ -379,9 +380,32 @@ const Navbar = () => {
                     e.currentTarget.style.color = "var(--text-secondary)";
                     e.currentTarget.style.backgroundColor = "transparent";
                   }}
-                  aria-label="Profile"
+                  aria-label="My Account"
                 >
                   <FiUser size={20} />
+                </motion.button>
+              </Link>
+
+              {/* Login Button */}
+              <Link to="/login">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm uppercase tracking-wide transition-all"
+                  style={{
+                    backgroundColor: "var(--color-primary)",
+                    color: "white",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "var(--active-color)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "var(--color-primary)";
+                  }}
+                  aria-label="Sign In"
+                >
+                  <FiLogIn size={16} />
+                  <span>Sign In</span>
                 </motion.button>
               </Link>
             </div>
@@ -508,6 +532,25 @@ const Navbar = () => {
                   ))}
                 </nav>
 
+                {/* Mobile Login Button */}
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block mb-4"
+                >
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide"
+                    style={{
+                      backgroundColor: "var(--color-primary)",
+                      color: "white",
+                    }}
+                  >
+                    <FiLogIn size={18} />
+                    <span>Sign In</span>
+                  </motion.button>
+                </Link>
+
                 <div
                   className="flex items-center justify-around pt-6 border-t space-x-4"
                   style={{ borderColor: "var(--border-primary)" }}
@@ -551,7 +594,7 @@ const Navbar = () => {
                     )}
                   </Link>
                   <Link
-                    to="/account/profile"
+                    to="/account"
                     onClick={() => setMobileMenuOpen(false)}
                     className="p-3 rounded-lg transition-colors"
                     style={{
