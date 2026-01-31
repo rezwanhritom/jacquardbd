@@ -14,7 +14,8 @@ const sortOptions = [
 const ProductSort = ({ onSortChange, currentSort = "default" }) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  const currentOption = sortOptions.find((opt) => opt.value === currentSort) || sortOptions[0];
+  const currentOption =
+    sortOptions.find((opt) => opt.value === currentSort) || sortOptions[0];
 
   const handleSort = (value) => {
     onSortChange(value);
@@ -66,7 +67,10 @@ const ProductSort = ({ onSortChange, currentSort = "default" }) => {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
               className="absolute top-full right-0 mt-2 w-56 rounded-lg shadow-xl z-20 overflow-hidden"
-              style={{ backgroundColor: "var(--bg-primary)", border: "1px solid var(--border-primary)" }}
+              style={{
+                backgroundColor: "var(--bg-primary)",
+                border: "1px solid var(--border-primary)",
+              }}
               role="listbox"
               aria-label="Sort options"
             >
@@ -89,7 +93,8 @@ const ProductSort = ({ onSortChange, currentSort = "default" }) => {
                         : "transparent",
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.outline = "2px solid var(--color-primary)";
+                    e.currentTarget.style.outline =
+                      "2px solid var(--color-primary)";
                     e.currentTarget.style.outlineOffset = "2px";
                   }}
                   onBlur={(e) => {

@@ -4,7 +4,24 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FiHeart, FiShoppingBag, FiChevronLeft, FiChevronRight, FiEye } from "react-icons/fi";
 import toast from "react-hot-toast";
 
+/** Display category: prefer 3rd level (e.g. "Oversized Polo"), else last segment of path, else full category string. */
+const getDisplayCategory = (product) => {
+  const path = product.categoryPath;
+  if (Array.isArray(path) && path.length > 0) {
+    if (path.length >= 3) return path[2].trim();
+    return path[path.length - 1].trim();
+  }
+  const cat = product.category;
+  if (typeof cat === "string") {
+    const parts = cat.split(">").map((s) => s.trim()).filter(Boolean);
+    if (parts.length >= 3) return parts[2];
+    if (parts.length >= 1) return parts[parts.length - 1];
+  }
+  return cat ?? "";
+};
+
 const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => {
+  const displayCategory = getDisplayCategory(product);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -83,7 +100,7 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
             <div className="flex-1 space-y-3">
               <div>
                 <p className="text-xs uppercase tracking-wider mb-1" style={{ color: "var(--text-tertiary)" }}>
-                  {product.category}
+                  {displayCategory}
                 </p>
                 <h3 className="text-2xl font-semibold mb-2 group-hover:underline" style={{ color: "var(--text-primary)" }}>
                   {product.name}
@@ -356,7 +373,7 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
           {/* Product Info */}
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
-              {product.category}
+              {displayCategory}
             </p>
             <h3 className="font-semibold text-lg group-hover:underline transition-all" style={{ color: "var(--text-primary)" }}>
               {product.name}
