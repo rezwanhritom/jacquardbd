@@ -8,7 +8,8 @@ const productSchema = new mongoose.Schema(
     description: { type: String, default: "" },
     price: { type: Number, required: true, min: 0 },
     originalPrice: { type: Number, min: 0, default: null },
-    category: { type: String, default: "" },
+    category: { type: String, default: "" }, // full path e.g. "Male > Winter Wear > Jackets > Leather Jacket"
+    categoryPath: [{ type: String }], // parsed path for filtering e.g. ["Male", "Winter Wear", "Jackets", "Leather Jacket"]
     collections: [{ type: String }],
     tags: [{ type: String }],
     variants: {

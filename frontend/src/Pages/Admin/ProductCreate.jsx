@@ -15,20 +15,13 @@ import {
   FiAlertCircle,
   FiCheck,
 } from "react-icons/fi";
-import { ImageUpload, TagInput, ColorSwatch } from "../../components/Admin";
+import { ImageUpload, TagInput, ColorSwatch, CascadingCategorySelect } from "../../components/Admin";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import toast from "react-hot-toast";
 import { createProduct as createProductApi } from "../../services/productApi";
+import { categoryTree } from "../../data/categoryTree";
 
 const availableSizes = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
-const categories = [
-  "Men's Clothing",
-  "Women's Clothing",
-  "Accessories",
-  "Footwear",
-  "Bags",
-  "Jewelry",
-];
 const collections = [
   "New Arrivals",
   "Best Sellers",
@@ -794,40 +787,20 @@ const ProductCreate = () => {
             </div>
 
             <div className="space-y-5">
-              {/* Category */}
+              {/* Category (gender-based cascading) */}
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
                   Category <span style={{ color: "var(--color-tertiary)" }}>*</span>
                 </label>
-                <select
-                  name="category"
+                <CascadingCategorySelect
+                  categoryTree={categoryTree}
                   value={formData.category}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors text-sm appearance-none cursor-pointer"
-                  style={{
-                    borderColor: errors.category ? "var(--color-tertiary)" : "var(--border-primary)",
-                    backgroundColor: "var(--bg-primary)",
-                    color: formData.category ? "var(--text-primary)" : "var(--text-tertiary)",
+                  onChange={(fullPath) => {
+                    setFormData((prev) => ({ ...prev, category: fullPath }));
+                    if (errors.category) setErrors((prev) => ({ ...prev, category: "" }));
                   }}
-                  onFocus={(e) => (e.target.style.borderColor = "var(--color-primary)")}
-                  onBlur={(e) =>
-                    (e.target.style.borderColor = errors.category
-                      ? "var(--color-tertiary)"
-                      : "var(--border-primary)")
-                  }
-                >
-                  <option value="">Select category</option>
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-                {errors.category && (
-                  <p className="text-xs mt-1 flex items-center gap-1" style={{ color: "var(--color-tertiary)" }}>
-                    <FiAlertCircle size={12} /> {errors.category}
-                  </p>
-                )}
+                  error={errors.category}
+                />
               </div>
 
               {/* Collections */}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { FiEdit, FiTrash2, FiPlus, FiX, FiSave, FiSearch, FiFilter } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiX, FiSave, FiSearch, FiFilter } from "react-icons/fi";
 import { productsData } from "../../data/products";
 import { EmptyState } from "../../components";
 import toast from "react-hot-toast";
@@ -106,35 +106,20 @@ const Products = () => {
         <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
           Products Management
         </h2>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <FiSearch size={20} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-tertiary)" }} />
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 border-2 rounded-lg outline-none"
-              style={{
-                borderColor: "var(--border-primary)",
-                backgroundColor: "var(--bg-primary)",
-                color: "var(--text-primary)",
-              }}
-            />
-          </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              setShowForm(true);
-              setEditingProduct(null);
+        <div className="relative">
+          <FiSearch size={20} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-tertiary)" }} />
+          <input
+            type="text"
+            placeholder="Search products..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 pr-4 py-2 border-2 rounded-lg outline-none"
+            style={{
+              borderColor: "var(--border-primary)",
+              backgroundColor: "var(--bg-primary)",
+              color: "var(--text-primary)",
             }}
-            className="flex items-center gap-2 px-4 py-2 text-white font-semibold rounded-lg"
-            style={{ backgroundColor: "var(--color-primary)" }}
-          >
-            <FiPlus size={18} />
-            Add Product
-          </motion.button>
+          />
         </div>
       </div>
 

@@ -51,7 +51,7 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
         onMouseLeave={() => setIsHovered(false)}
       >
         <Link
-          to={`/product/${product.id}`}
+          to={`/product/${product.slug != null && product.slug !== "" ? product.slug : product.id}`}
           className="block"
           aria-label={`View ${product.name} details`}
         >
@@ -162,7 +162,7 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
       onMouseLeave={() => setIsHovered(false)}
     >
       <Link
-        to={`/product/${product.id}`}
+        to={`/product/${product.slug != null && product.slug !== "" ? product.slug : product.id}`}
         className="block"
         aria-label={`View ${product.name} details`}
       >

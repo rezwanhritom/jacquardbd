@@ -1,11 +1,25 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams } from "react-router";
-import { Container, ProductGrid, ProductFilters, ProductSort, Pagination, QuickView } from "../../components";
+import { Container, ProductGrid, ProductFilters, ProductSort, Pagination, QuickView, ProductCardSkeleton } from "../../components";
 import { productsData } from "../../data/products";
 import { categoriesData } from "../../data/categories";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { filterProducts, sortProducts, paginateProducts } from "../../utils/productUtils";
+import { getProductsByGender } from "../../services/productApi";
+
+const isGenderCategory = (name) => name === "men" || name === "women";
+
+/** Map API product to shape expected by ProductCard (id, images, name, price, originalPrice, slug). */
+const mapApiProduct = (p) => ({
+  ...p,
+  id: p._id || p.id,
+  images: Array.isArray(p.images) && p.images.length > 0 ? p.images : ["/images/product-placeholder.png"],
+  name: p.name || "",
+  price: p.price ?? 0,
+  originalPrice: p.originalPrice ?? null,
+  slug: p.slug || "",
+});
 
 const Category = () => {
   const { categoryName } = useParams();
@@ -17,6 +31,9 @@ const Category = () => {
   const [sortOption, setSortOption] = useState("default");
   const [currentPage, setCurrentPage] = useState(1);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
+  const [apiProducts, setApiProducts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const itemsPerPage = 12;
 
   const normalizedCategoryName = categoryName?.toLowerCase();
@@ -27,21 +44,42 @@ const Category = () => {
     }
   );
 
+  const useBackendForGender = isGenderCategory(normalizedCategoryName);
+
+  useEffect(() => {
+    if (!useBackendForGender || !normalizedCategoryName) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    getProductsByGender(normalizedCategoryName)
+      .then((res) => {
+        if (cancelled) return;
+        setLoading(false);
+        if (res.success) setApiProducts((res.products || []).map(mapApiProduct));
+        else setError(res.message || "Failed to load products");
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setLoading(false);
+        setError(err?.message || "Failed to load products");
+      });
+    return () => { cancelled = true; };
+  }, [normalizedCategoryName, useBackendForGender]);
+
   const categoryProducts = useMemo(() => {
+    if (useBackendForGender) return apiProducts;
     return productsData.filter(
       (product) => {
         const productCategory = product.category.toLowerCase();
         return (
           productCategory === normalizedCategoryName ||
           productCategory.includes(normalizedCategoryName) ||
-          (normalizedCategoryName === "men" && productCategory === "men") ||
-          (normalizedCategoryName === "women" && productCategory === "women") ||
           (normalizedCategoryName === "accessories" && productCategory === "accessories") ||
           (normalizedCategoryName === "footwear" && productCategory === "footwear")
         );
       }
     );
-  }, [normalizedCategoryName]);
+  }, [useBackendForGender, apiProducts, normalizedCategoryName]);
 
   const filteredProducts = useMemo(() => {
     return filterProducts(categoryProducts, filters);
@@ -142,19 +180,50 @@ const Category = () => {
                 />
               </div>
 
-              {/* Product Grid */}
-              <ProductGrid
-                products={paginatedProducts}
-                onQuickView={setQuickViewProduct}
-              />
+              {/* Loading state (men/women only) */}
+              {useBackendForGender && loading && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <ProductCardSkeleton key={i} />
+                  ))}
+                </div>
+              )}
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                />
+              {/* Error state (men/women only) */}
+              {useBackendForGender && !loading && error && (
+                <motion.div
+                  variants={fadeInUp}
+                  className="py-12 text-center rounded-xl border"
+                  style={{
+                    backgroundColor: "var(--bg-secondary)",
+                    borderColor: "var(--border-primary)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  <p className="font-medium">{error}</p>
+                  <p className="text-sm mt-2" style={{ color: "var(--text-tertiary)" }}>
+                    Please try again later.
+                  </p>
+                </motion.div>
+              )}
+
+              {/* Product Grid (when not loading and no error for gender pages) */}
+              {(!useBackendForGender || (!loading && !error)) && (
+                <>
+                  <ProductGrid
+                    products={paginatedProducts}
+                    onQuickView={setQuickViewProduct}
+                  />
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={handlePageChange}
+                    />
+                  )}
+                </>
               )}
             </div>
           </div>

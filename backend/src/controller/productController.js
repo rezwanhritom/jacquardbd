@@ -4,6 +4,32 @@ import { validateProductBody } from "../utils/productValidation.js";
 import { DEFAULT_PRODUCT_IMAGE_URL } from "../constants/defaults.js";
 
 /**
+ * GET /api/products?gender=men|women
+ * Returns active products filtered by categoryPath[0] (Male = men, Female = women).
+ */
+export async function getProducts(req, res, next) {
+  try {
+    const gender = (req.query.gender || "").toLowerCase();
+    const filter = { status: "active" };
+
+    if (gender === "men") {
+      filter["categoryPath.0"] = "Male";
+    } else if (gender === "women") {
+      filter["categoryPath.0"] = "Female";
+    }
+
+    const products = await Product.find(filter).lean().sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      products,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * POST /api/products
  * Accept JSON body, validate, generate slug, assign default image, save to MongoDB.
  * Ready to extend later with Multer/Cloudinary/multiple images.
@@ -49,6 +75,9 @@ export async function createProduct(req, res, next) {
       color: Array.isArray(body.variants?.color) ? body.variants.color : [],
     };
 
+    const categoryStr = (body.category || "").trim();
+    const categoryPath = categoryStr ? categoryStr.split(" > ").map((s) => s.trim()).filter(Boolean) : [];
+
     const product = new Product({
       name,
       slug,
@@ -56,7 +85,8 @@ export async function createProduct(req, res, next) {
       description: (body.description || "").trim(),
       price,
       originalPrice,
-      category: (body.category || "").trim(),
+      category: categoryStr,
+      categoryPath,
       collections,
       tags,
       variants,

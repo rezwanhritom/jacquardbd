@@ -1,3 +1,40 @@
+import { categoryTree } from "./categoryTree";
+
+/**
+ * Flatten a category value into a list of item labels for the mega menu.
+ * Object -> [keys, ...child array items]; Array -> items as-is.
+ */
+function flattenCategoryItems(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (value && typeof value === "object") {
+    const keys = Object.keys(value);
+    const items = [...keys];
+    keys.forEach((k) => {
+      const v = value[k];
+      if (Array.isArray(v) && v.length) items.push(...v);
+    });
+    return items;
+  }
+  return [];
+}
+
+/**
+ * Build mega menu sections from category tree (Male/Female) for nav (Men/Women).
+ */
+function buildMegaMenuFromCategoryTree(tree) {
+  if (!tree || typeof tree !== "object") return [];
+  return Object.entries(tree).map(([title, value], id) => ({
+    id: id + 1,
+    title,
+    items: flattenCategoryItems(value),
+  }));
+}
+
+const megaMenuCategories = {
+  Men: buildMegaMenuFromCategoryTree(categoryTree.Male),
+  Women: buildMegaMenuFromCategoryTree(categoryTree.Female),
+};
+
 export const navigationData = {
   logo: "JACQUARD",
   links: [
@@ -7,20 +44,7 @@ export const navigationData = {
     { id: 4, label: "New Arrivals", path: "/new-arrivals" },
     { id: 5, label: "Sale", path: "/sale" },
   ],
-  megaMenuCategories: {
-    Men: [
-      { id: 1, title: "T-Shirts & Polos", items: ["Classic T-Shirts", "Polo Shirts", "Long Sleeve Tees", "Henley Shirts"] },
-      { id: 2, title: "Shirts", items: ["Dress Shirts", "Casual Shirts", "Oxford Shirts", "Denim Shirts"] },
-      { id: 3, title: "Outerwear", items: ["Jackets", "Coats", "Blazers", "Hoodies"] },
-      { id: 4, title: "Bottoms", items: ["Trousers", "Jeans", "Shorts", "Chinos"] },
-    ],
-    Women: [
-      { id: 1, title: "Tops & Blouses", items: ["T-Shirts", "Blouses", "Shirts", "Tank Tops"] },
-      { id: 2, title: "Dresses", items: ["Casual Dresses", "Evening Dresses", "Midi Dresses", "Maxi Dresses"] },
-      { id: 3, title: "Outerwear", items: ["Jackets", "Coats", "Blazers", "Cardigans"] },
-      { id: 4, title: "Bottoms", items: ["Trousers", "Jeans", "Skirts", "Shorts"] },
-    ],
-  },
+  megaMenuCategories,
   iconActions: [
     { id: 1, name: "search", label: "Search" },
     { id: 2, name: "wishlist", label: "Wishlist" },

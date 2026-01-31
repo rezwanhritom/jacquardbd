@@ -10,6 +10,32 @@ const getBaseUrl = () => {
 };
 
 /**
+ * Fetch products by gender (GET /api/products?gender=men|women).
+ * @param {string} gender - "men" or "women"
+ * @returns {Promise<{ success: boolean, products?: Array, message?: string }>}
+ */
+export async function getProductsByGender(gender) {
+  const baseUrl = getBaseUrl();
+  const params = new URLSearchParams({ gender: gender.toLowerCase() });
+  const response = await fetch(`${baseUrl}/api/products?${params}`);
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    return {
+      success: false,
+      message: data.message || "Failed to load products",
+      products: [],
+    };
+  }
+
+  return {
+    success: true,
+    products: Array.isArray(data.products) ? data.products : [],
+  };
+}
+
+/**
  * Create a product via POST /api/products (JSON body).
  * @param {Object} payload - Product data (name, price, category, etc.)
  * @returns {Promise<{ success: boolean, product?: Object, message?: string, errors?: string[] }>}
