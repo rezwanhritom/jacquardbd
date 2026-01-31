@@ -5,6 +5,7 @@ import { FiEdit, FiTrash2, FiX, FiSave, FiSearch, FiFilter } from "react-icons/f
 import { productsData } from "../../data/products";
 import { EmptyState } from "../../components";
 import toast from "react-hot-toast";
+import { getDisplayCategory } from "../../utils/productUtils";
 
 const Products = () => {
   const [products, setProducts] = useState(productsData);
@@ -364,7 +365,7 @@ const Products = () => {
                   </td>
                   <td className="py-4 px-4">
                     <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                      {product.category}
+                      {getDisplayCategory(product)}
                     </span>
                   </td>
                   <td className="py-4 px-4">

@@ -1,11 +1,15 @@
 import Product from "../models/Product.js";
 import { slugify } from "../utils/slugify.js";
 import { validateProductBody } from "../utils/productValidation.js";
+import { parseOriginalPrice, parseDiscount, computeFinalPrice, resolveSellingPrice } from "../utils/priceUtils.js";
+import { parseCategoryPath } from "../utils/categoryUtils.js";
 import { DEFAULT_PRODUCT_IMAGE_URL } from "../constants/defaults.js";
+
+const MONGO_ID_REGEX = /^[a-fA-F0-9]{24}$/;
 
 /**
  * GET /api/products/:identifier
- * Fetch a single product by slug or by MongoDB _id (24 hex chars).
+ * Fetch a single product by slug or by MongoDB _id.
  */
 export async function getProductById(req, res, next) {
   try {
@@ -14,7 +18,7 @@ export async function getProductById(req, res, next) {
       return res.status(400).json({ success: false, message: "Product identifier required" });
     }
 
-    const isMongoId = /^[a-fA-F0-9]{24}$/.test(identifier);
+    const isMongoId = MONGO_ID_REGEX.test(identifier);
     const product = isMongoId
       ? await Product.findById(identifier).lean()
       : await Product.findOne({ slug: identifier, status: "active" }).lean();
@@ -23,10 +27,7 @@ export async function getProductById(req, res, next) {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
 
-    res.json({
-      success: true,
-      product,
-    });
+    res.json({ success: true, product });
   } catch (err) {
     next(err);
   }
@@ -41,18 +42,11 @@ export async function getProducts(req, res, next) {
     const gender = (req.query.gender || "").toLowerCase();
     const filter = { status: "active" };
 
-    if (gender === "men") {
-      filter["categoryPath.0"] = "Male";
-    } else if (gender === "women") {
-      filter["categoryPath.0"] = "Female";
-    }
+    if (gender === "men") filter["categoryPath.0"] = "Male";
+    else if (gender === "women") filter["categoryPath.0"] = "Female";
 
     const products = await Product.find(filter).lean().sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      products,
-    });
+    res.json({ success: true, products });
   } catch (err) {
     next(err);
   }
@@ -60,8 +54,7 @@ export async function getProducts(req, res, next) {
 
 /**
  * POST /api/products
- * Accept JSON body, validate, generate slug, assign default image, save to MongoDB.
- * Ready to extend later with Multer/Cloudinary/multiple images.
+ * Validate body, compute slug/price/categoryPath, save product. Default image used until upload flow exists.
  */
 export async function createProduct(req, res, next) {
   try {
@@ -83,34 +76,16 @@ export async function createProduct(req, res, next) {
       return next(err);
     }
 
-    // Ensure unique slug (future: could append id or random suffix)
     const existing = await Product.findOne({ slug });
-    if (existing) {
-      slug = `${slug}-${Date.now()}`;
-    }
+    if (existing) slug = `${slug}-${Date.now()}`;
 
-    const originalPrice =
-      body.originalPrice !== undefined && body.originalPrice !== ""
-        ? Number(body.originalPrice)
-        : null;
-    const discount = body.discount !== undefined && body.discount !== "" ? Math.min(100, Math.max(0, Number(body.discount))) : 0;
-    const finalPrice =
-      originalPrice != null && !Number.isNaN(originalPrice)
-        ? Math.round((originalPrice * (1 - discount / 100)) * 100) / 100
-        : originalPrice;
-    const price = finalPrice != null ? finalPrice : originalPrice;
-    const stockQuantity = Number(body.stockQuantity) || 0;
-    const status = body.status === "active" ? "active" : "draft";
-    const isFeatured = Boolean(body.isFeatured);
-    const collections = Array.isArray(body.collections) ? body.collections : [];
-    const tags = Array.isArray(body.tags) ? body.tags : [];
-    const variants = {
-      size: Array.isArray(body.variants?.size) ? body.variants.size : [],
-      color: Array.isArray(body.variants?.color) ? body.variants.color : [],
-    };
+    const originalPrice = parseOriginalPrice(body.originalPrice);
+    const discount = parseDiscount(body.discount);
+    const finalPrice = computeFinalPrice(originalPrice, discount);
+    const price = resolveSellingPrice(originalPrice, discount);
 
     const categoryStr = (body.category || "").trim();
-    const categoryPath = categoryStr ? categoryStr.split(" > ").map((s) => s.trim()).filter(Boolean) : [];
+    const categoryPath = parseCategoryPath(categoryStr);
 
     const product = new Product({
       name,
@@ -123,12 +98,15 @@ export async function createProduct(req, res, next) {
       finalPrice: finalPrice != null ? finalPrice : undefined,
       category: categoryStr,
       categoryPath,
-      collections,
-      tags,
-      variants,
-      stockQuantity,
-      isFeatured,
-      status,
+      collections: Array.isArray(body.collections) ? body.collections : [],
+      tags: Array.isArray(body.tags) ? body.tags : [],
+      variants: {
+        size: Array.isArray(body.variants?.size) ? body.variants.size : [],
+        color: Array.isArray(body.variants?.color) ? body.variants.color : [],
+      },
+      stockQuantity: Number(body.stockQuantity) || 0,
+      isFeatured: Boolean(body.isFeatured),
+      status: body.status === "active" ? "active" : "draft",
       images: [DEFAULT_PRODUCT_IMAGE_URL],
       sku: (body.sku || "").trim(),
       material: (body.material || "").trim(),

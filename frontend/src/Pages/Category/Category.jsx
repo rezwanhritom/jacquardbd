@@ -1,3 +1,7 @@
+/**
+ * Category page: /category/:categoryName (men, women, accessories, footwear).
+ * Gender routes (men/women) fetch from API and group products by level-2 category; others use local data with flat grid.
+ */
 import { useState, useMemo, useEffect } from "react";
 import { useParams } from "react-router";
 import {
@@ -17,41 +21,22 @@ import {
   filterProducts,
   sortProducts,
   paginateProducts,
+  getLevel2Category,
+  mapApiProduct,
 } from "../../utils/productUtils";
 import { getProductsByGender } from "../../services/productApi";
 
 const isGenderCategory = (name) => name === "men" || name === "women";
 
-/** Get level-2 category from product (e.g. "Winter Wear", "Summer Wear"). Uses categoryPath[1] or parses category string. */
-const getLevel2Category = (product) => {
-  const path = product.categoryPath;
-  if (Array.isArray(path) && path[1]) return path[1].trim();
-  const cat = product.category;
-  if (typeof cat === "string") {
-    const parts = cat
-      .split(">")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (parts[1]) return parts[1];
-  }
-  return "Other";
-};
-
-/** Map API product to shape expected by ProductCard (id, images, name, price/finalPrice, originalPrice, discount, tag/badge, slug). */
-const mapApiProduct = (p) => ({
-  ...p,
-  id: p._id || p.id,
-  images:
-    Array.isArray(p.images) && p.images.length > 0
-      ? p.images
-      : ["/images/product-placeholder.png"],
-  name: p.name || "",
-  price: p.finalPrice ?? p.price ?? 0,
-  originalPrice: p.originalPrice ?? null,
-  discount: p.discount ?? 0,
-  badge: p.badge || (Array.isArray(p.tags) && p.tags[0]) || undefined,
-  slug: p.slug || "",
-});
+/** Find category from route param (men, women, accessories, footwear) using categoriesData. */
+function findCategoryBySlug(categoryName, categoriesData) {
+  const normalized = categoryName?.toLowerCase();
+  if (!normalized) return null;
+  return categoriesData.find((cat) => {
+    const catNorm = cat.name.toLowerCase().replace(/\s+/g, "-").replace("'s", "").replace("'", "");
+    return catNorm === normalized || cat.name.toLowerCase().includes(normalized);
+  }) ?? null;
+}
 
 const Category = () => {
   const { categoryName } = useParams();
@@ -69,18 +54,7 @@ const Category = () => {
   const itemsPerPage = 12;
 
   const normalizedCategoryName = categoryName?.toLowerCase();
-  const category = categoriesData.find((cat) => {
-    const normalized = cat.name
-      .toLowerCase()
-      .replace(/\s+/g, "-")
-      .replace("'s", "")
-      .replace("'", "");
-    return (
-      normalized === normalizedCategoryName ||
-      cat.name.toLowerCase().includes(normalizedCategoryName)
-    );
-  });
-
+  const category = findCategoryBySlug(categoryName, categoriesData);
   const useBackendForGender = isGenderCategory(normalizedCategoryName);
 
   useEffect(() => {

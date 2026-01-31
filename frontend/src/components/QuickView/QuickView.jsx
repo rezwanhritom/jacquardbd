@@ -4,6 +4,7 @@ import { FiX, FiHeart, FiShoppingBag } from "react-icons/fi";
 import ImageGallery from "../ImageGallery";
 import ProductVariants from "../ProductVariants";
 import toast from "react-hot-toast";
+import { getDisplayCategory } from "../../utils/productUtils";
 
 const QuickView = ({ product, isOpen, onClose, onAddToCart, onAddToWishlist }) => {
   const [selectedSize, setSelectedSize] = useState(null);
@@ -95,7 +96,7 @@ const QuickView = ({ product, isOpen, onClose, onAddToCart, onAddToWishlist }) =
                   <div className="space-y-6">
                     <div>
                       <p className="text-sm uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
-                        {product.category}
+                        {getDisplayCategory(product)}
                       </p>
                       <h1 className="text-3xl font-bold mb-4" style={{ color: "var(--text-primary)" }}>
                         {product.name}

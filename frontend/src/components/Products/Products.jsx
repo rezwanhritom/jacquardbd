@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { productsData } from "../../data/products";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiHeart, FiShoppingBag, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { getDisplayCategory } from "../../utils/productUtils";
 
 const Products = () => {
   const [hoveredProduct, setHoveredProduct] = useState(null);
@@ -193,9 +194,9 @@ const Products = () => {
                 </div>
 
                 <div className="p-4 space-y-2">
-                  <p className="text-xs uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
-                    {product.category}
-                  </p>
+<p className="text-xs uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
+                  {getDisplayCategory(product)}
+                </p>
                   <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>{product.name}</h3>
                   <div className="flex items-center space-x-2">
                     <span className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>

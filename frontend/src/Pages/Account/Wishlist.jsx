@@ -6,6 +6,7 @@ import { FiHeart, FiShoppingBag, FiTrash2, FiEye } from "react-icons/fi";
 import { productsData } from "../../data/products";
 import { EmptyState } from "../../components";
 import toast from "react-hot-toast";
+import { getDisplayCategory } from "../../utils/productUtils";
 
 // Fake wishlist data
 const wishlistItems = [1, 2, 5, 7, 8, 10];
@@ -137,7 +138,7 @@ const Wishlist = () => {
                 </div>
                 <div className="p-4 space-y-2">
                   <p className="text-xs uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
-                    {product.category}
+                    {getDisplayCategory(product)}
                   </p>
                   <h3 className="font-semibold group-hover:underline transition-all" style={{ color: "var(--text-primary)" }}>
                     {product.name}

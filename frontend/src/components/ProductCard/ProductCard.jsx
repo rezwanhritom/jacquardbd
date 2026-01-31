@@ -3,22 +3,7 @@ import { Link } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiHeart, FiShoppingBag, FiChevronLeft, FiChevronRight, FiEye } from "react-icons/fi";
 import toast from "react-hot-toast";
-
-/** Display category: prefer 3rd level (e.g. "Oversized Polo"), else last segment of path, else full category string. */
-const getDisplayCategory = (product) => {
-  const path = product.categoryPath;
-  if (Array.isArray(path) && path.length > 0) {
-    if (path.length >= 3) return path[2].trim();
-    return path[path.length - 1].trim();
-  }
-  const cat = product.category;
-  if (typeof cat === "string") {
-    const parts = cat.split(">").map((s) => s.trim()).filter(Boolean);
-    if (parts.length >= 3) return parts[2];
-    if (parts.length >= 1) return parts[parts.length - 1];
-  }
-  return cat ?? "";
-};
+import { getDisplayCategory } from "../../utils/productUtils";
 
 const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => {
   const displayCategory = getDisplayCategory(product);

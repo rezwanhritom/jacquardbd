@@ -8,6 +8,7 @@ import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiShoppingBag, FiHeart, FiChevronLeft, FiShare2, FiCheck, FiStar } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { getProduct, getProductsByGender } from "../../services/productApi";
+import { getDisplayCategory } from "../../utils/productUtils";
 
 const mapApiProductForDetail = (p) => ({
   ...p,
@@ -214,7 +215,7 @@ const ProductDetail = () => {
               {/* Category & Rating */}
               <div>
                 <p className="text-sm uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
-                  {product.category}
+                  {getDisplayCategory(product)}
                 </p>
                 <div className="flex items-center gap-4 mb-3">
                   <h1 className="text-4xl md:text-5xl font-bold" style={{ color: "var(--text-primary)" }}>
@@ -369,7 +370,7 @@ const ProductDetail = () => {
                   Product Details
                 </h3>
                 <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                  {product.description || `Premium quality ${product.name.toLowerCase()} from our ${product.category} collection. Crafted with attention to detail and designed for comfort and style. Perfect addition to your wardrobe.`}
+                  {product.description || `Premium quality ${product.name.toLowerCase()} from our ${getDisplayCategory(product)} collection. Crafted with attention to detail and designed for comfort and style. Perfect addition to your wardrobe.`}
                 </p>
                 <div className="space-y-2 text-sm" style={{ color: "var(--text-secondary)" }}>
                   <p>• Premium quality materials</p>

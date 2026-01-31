@@ -1,3 +1,7 @@
+/**
+ * Sort dropdown for product lists. Options: default, price, name, newest.
+ * Dropdown aligns left under the trigger (left-0).
+ */
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiChevronDown } from "react-icons/fi";

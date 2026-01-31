@@ -20,7 +20,7 @@ import {
 } from "../../components";
 import { productsData } from "../../data/products";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { filterProducts, paginateProducts } from "../../utils/productUtils";
+import { filterProducts, paginateProducts, getDisplayCategory } from "../../utils/productUtils";
 
 // Create sale products with enhanced discount data
 const saleProducts = productsData
@@ -732,7 +732,7 @@ const SaleProductCard = ({ product, index, onQuickView }) => {
           className="text-xs uppercase tracking-wider mb-1"
           style={{ color: "var(--text-tertiary)" }}
         >
-          {product.category}
+          {getDisplayCategory(product)}
         </p>
         <Link to={`/product/${product.id}`}>
           <h3

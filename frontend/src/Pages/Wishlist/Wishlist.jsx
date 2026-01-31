@@ -12,6 +12,7 @@ import {
 import { Container } from "../../components";
 import { productsData } from "../../data/products";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
+import { getDisplayCategory } from "../../utils/productUtils";
 import toast from "react-hot-toast";
 
 // Mock wishlist data - simulating items saved by user
@@ -354,7 +355,7 @@ const WishlistCard = ({ product, index, isRemoving, onRemove, onMoveToCart }) =>
             className="text-xs uppercase tracking-wider mb-1"
             style={{ color: "var(--text-tertiary)" }}
           >
-            {product.category}
+            {getDisplayCategory(product)}
           </p>
           <Link to={`/product/${product.id}`}>
             <h3 

@@ -1,5 +1,9 @@
 import mongoose from "mongoose";
 
+/**
+ * Product schema: name, slug, pricing (price/originalPrice/discount/finalPrice),
+ * category path for filtering, variants, status. Used by productController and API.
+ */
 const productSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },

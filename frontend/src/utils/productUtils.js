@@ -1,49 +1,75 @@
-// Product filtering, sorting, and pagination utilities
+/**
+ * Product filtering, sorting, pagination, and category/display helpers.
+ * Used by Category page, ProductCard, and product list views.
+ */
 
-export const filterProducts = (products, filters) => {
+/** Level-2 category from product (e.g. "Winter Wear"). Used for section grouping on category page. */
+export function getLevel2Category(product) {
+  const path = product?.categoryPath;
+  if (Array.isArray(path) && path[1]) return path[1].trim();
+  const cat = product?.category;
+  if (typeof cat === "string") {
+    const parts = cat.split(">").map((s) => s.trim()).filter(Boolean);
+    if (parts[1]) return parts[1];
+  }
+  return "Other";
+}
+
+/** Display category for cards: 3rd level (e.g. "Oversized Polo") or last segment, else full string. */
+export function getDisplayCategory(product) {
+  const path = product?.categoryPath;
+  if (Array.isArray(path) && path.length > 0) {
+    if (path.length >= 3) return path[2].trim();
+    return path[path.length - 1].trim();
+  }
+  const cat = product?.category;
+  if (typeof cat === "string") {
+    const parts = cat.split(">").map((s) => s.trim()).filter(Boolean);
+    if (parts.length >= 3) return parts[2];
+    if (parts.length >= 1) return parts[parts.length - 1];
+  }
+  return cat ?? "";
+}
+
+/** Normalize API product to shape expected by ProductCard (id, images, name, price, badge, slug). */
+export function mapApiProduct(p) {
+  return {
+    ...p,
+    id: p._id || p.id,
+    images: Array.isArray(p.images) && p.images.length > 0 ? p.images : ["/images/product-placeholder.png"],
+    name: p.name || "",
+    price: p.finalPrice ?? p.price ?? 0,
+    originalPrice: p.originalPrice ?? null,
+    discount: p.discount ?? 0,
+    badge: p.badge || (Array.isArray(p.tags) && p.tags?.[0]) || undefined,
+    slug: p.slug || "",
+  };
+}
+
+export function filterProducts(products, filters) {
   if (!products) return [];
-
   return products.filter((product) => {
-    // Price filter
     if (filters.priceRange) {
       const { min, max } = filters.priceRange;
-      if (product.price < min || product.price > max) {
-        return false;
-      }
+      if (product.price < min || product.price > max) return false;
     }
-
-    // Size filter (mock - in real app, products would have sizes)
-    if (filters.sizes && filters.sizes.length > 0) {
-      // For demo, we'll randomly assign sizes or skip this filter
-      // In production, this would check product.sizes array
-    }
-
-    // Color filter (mock - in real app, products would have colors)
-    if (filters.colors && filters.colors.length > 0) {
-      // For demo, we'll skip this filter
-      // In production, this would check product.colors array
-    }
-
     return true;
   });
-};
+}
 
-export const sortProducts = (products, sortOption) => {
+export function sortProducts(products, sortOption) {
   if (!products) return [];
-
   const sorted = [...products];
-
   switch (sortOption) {
     case "price-low":
       return sorted.sort((a, b) => a.price - b.price);
     case "price-high":
       return sorted.sort((a, b) => b.price - a.price);
     case "name-asc":
-      return sorted.sort((a, b) => a.name.localeCompare(b.name));
+      return sorted.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
     case "name-desc":
-      return sorted.sort((a, b) => b.name.localeCompare(a.name));
+      return sorted.sort((a, b) => (b.name || "").localeCompare(a.name || ""));
     case "newest":
-      // Assuming products with "New" badge are newest
       return sorted.sort((a, b) => {
         if (a.badge === "New" && b.badge !== "New") return -1;
         if (a.badge !== "New" && b.badge === "New") return 1;
@@ -52,15 +78,12 @@ export const sortProducts = (products, sortOption) => {
     default:
       return sorted;
   }
-};
+}
 
-export const paginateProducts = (products, currentPage, itemsPerPage = 12) => {
+export function paginateProducts(products, currentPage, itemsPerPage = 12) {
   if (!products) return { paginatedProducts: [], totalPages: 0 };
-
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedProducts = products.slice(startIndex, endIndex);
+  const paginatedProducts = products.slice(startIndex, startIndex + itemsPerPage);
   const totalPages = Math.ceil(products.length / itemsPerPage);
-
   return { paginatedProducts, totalPages };
-};
+}
