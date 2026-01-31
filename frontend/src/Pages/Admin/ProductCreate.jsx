@@ -18,6 +18,7 @@ import {
 import { ImageUpload, TagInput, ColorSwatch } from "../../components/Admin";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import toast from "react-hot-toast";
+import { createProduct as createProductApi } from "../../services/productApi";
 
 const availableSizes = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
 const categories = [
@@ -129,10 +130,28 @@ const ProductCreate = () => {
     if (!formData.name.trim()) newErrors.name = "Product name is required";
     if (!formData.price) newErrors.price = "Price is required";
     if (!formData.category) newErrors.category = "Category is required";
-    if (images.length === 0) newErrors.images = "At least one image is required";
+    // Images not required: backend uses default placeholder
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
+  const buildProductPayload = (isDraft) => ({
+    name: formData.name.trim(),
+    shortDescription: formData.shortDescription.trim(),
+    description: formData.fullDescription.trim(),
+    price: formData.price,
+    originalPrice: formData.originalPrice || undefined,
+    category: formData.category || undefined,
+    collections: formData.collections,
+    tags: formData.tags,
+    variants: { size: formData.sizes, color: formData.colors },
+    stockQuantity: parseInt(formData.stockQuantity, 10) || 0,
+    isFeatured: formData.isFeatured,
+    status: isDraft ? "draft" : formData.isActive ? "active" : "draft",
+    sku: formData.sku.trim() || undefined,
+    material: formData.material.trim() || undefined,
+    fit: formData.fit || undefined,
+  });
 
   const handleSubmit = async (isDraft = false) => {
     if (!isDraft && !validateForm()) {
@@ -141,15 +160,32 @@ const ProductCreate = () => {
     }
 
     setIsSubmitting(true);
+    setErrors({});
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const payload = buildProductPayload(isDraft);
+    const result = await createProductApi(payload);
 
-    toast.success(isDraft ? "Draft saved successfully!" : "Product created successfully!");
     setIsSubmitting(false);
 
-    if (!isDraft) {
-      navigate("/admin/products");
+    if (result.success) {
+      toast.success(isDraft ? "Draft saved successfully!" : "Product created successfully!");
+      if (!isDraft) {
+        navigate("/admin/products");
+      }
+    } else {
+      const msg = result.errors?.length ? result.errors.join(". ") : result.message;
+      toast.error(msg || "Failed to create product");
+      if (result.errors?.length) {
+        const fieldMap = { name: "name", price: "price", category: "category" };
+        const newErrors = {};
+        result.errors.forEach((e) => {
+          const lower = e.toLowerCase();
+          if (lower.includes("name")) newErrors.name = e;
+          else if (lower.includes("price")) newErrors.price = e;
+          else if (lower.includes("category")) newErrors.category = e;
+        });
+        if (Object.keys(newErrors).length) setErrors(newErrors);
+      }
     }
   };
 
