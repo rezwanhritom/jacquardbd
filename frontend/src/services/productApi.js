@@ -10,6 +10,31 @@ const getBaseUrl = () => {
 };
 
 /**
+ * Fetch a single product by slug or id (GET /api/products/:identifier).
+ * @param {string} identifier - Product slug or MongoDB _id
+ * @returns {Promise<{ success: boolean, product?: Object, message?: string }>}
+ */
+export async function getProduct(identifier) {
+  const baseUrl = getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/products/${encodeURIComponent(identifier)}`);
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    return {
+      success: false,
+      message: data.message || "Product not found",
+      product: null,
+    };
+  }
+
+  return {
+    success: true,
+    product: data.product || null,
+  };
+}
+
+/**
  * Fetch products by gender (GET /api/products?gender=men|women).
  * @param {string} gender - "men" or "women"
  * @returns {Promise<{ success: boolean, products?: Array, message?: string }>}

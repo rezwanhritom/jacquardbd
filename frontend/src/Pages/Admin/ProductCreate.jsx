@@ -36,15 +36,15 @@ const ProductCreate = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeSection, setActiveSection] = useState("basic");
 
-  // Form state
+  // Form state (originalPrice + discount; finalPrice is calculated)
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
     sku: "",
     shortDescription: "",
     fullDescription: "",
-    price: "",
     originalPrice: "",
+    discount: "",
     stockQuantity: "",
     sizes: [],
     colors: [],
@@ -98,17 +98,14 @@ const ProductCreate = () => {
     }));
   };
 
-  // Calculate discount percentage
-  const discountPercentage = useMemo(() => {
-    if (formData.price && formData.originalPrice) {
-      const price = parseFloat(formData.price);
-      const original = parseFloat(formData.originalPrice);
-      if (original > price) {
-        return Math.round(((original - price) / original) * 100);
-      }
-    }
-    return 0;
-  }, [formData.price, formData.originalPrice]);
+  // Final price = Original Price - (Original Price * Discount / 100)
+  const finalPrice = useMemo(() => {
+    const original = parseFloat(formData.originalPrice);
+    const discountPct = parseFloat(formData.discount) || 0;
+    if (Number.isNaN(original) || original < 0) return null;
+    const value = original * (1 - discountPct / 100);
+    return Math.round(value * 100) / 100;
+  }, [formData.originalPrice, formData.discount]);
 
   // Stock status
   const stockStatus = useMemo(() => {
@@ -121,7 +118,14 @@ const ProductCreate = () => {
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = "Product name is required";
-    if (!formData.price) newErrors.price = "Price is required";
+    const orig = parseFloat(formData.originalPrice);
+    if (formData.originalPrice === "" || formData.originalPrice == null || Number.isNaN(orig) || orig < 0) {
+      newErrors.originalPrice = "Original price is required";
+    }
+    const disc = parseFloat(formData.discount);
+    if (formData.discount !== "" && !Number.isNaN(disc) && (disc < 0 || disc > 100)) {
+      newErrors.discount = "Discount must be 0–100";
+    }
     if (!formData.category) newErrors.category = "Category is required";
     // Images not required: backend uses default placeholder
     setErrors(newErrors);
@@ -132,8 +136,8 @@ const ProductCreate = () => {
     name: formData.name.trim(),
     shortDescription: formData.shortDescription.trim(),
     description: formData.fullDescription.trim(),
-    price: formData.price,
     originalPrice: formData.originalPrice || undefined,
+    discount: formData.discount !== "" ? formData.discount : undefined,
     category: formData.category || undefined,
     collections: formData.collections,
     tags: formData.tags,
@@ -169,12 +173,12 @@ const ProductCreate = () => {
       const msg = result.errors?.length ? result.errors.join(". ") : result.message;
       toast.error(msg || "Failed to create product");
       if (result.errors?.length) {
-        const fieldMap = { name: "name", price: "price", category: "category" };
         const newErrors = {};
         result.errors.forEach((e) => {
           const lower = e.toLowerCase();
           if (lower.includes("name")) newErrors.name = e;
-          else if (lower.includes("price")) newErrors.price = e;
+          else if (lower.includes("original price")) newErrors.originalPrice = e;
+          else if (lower.includes("discount")) newErrors.discount = e;
           else if (lower.includes("category")) newErrors.category = e;
         });
         if (Object.keys(newErrors).length) setErrors(newErrors);
@@ -518,51 +522,10 @@ const ProductCreate = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {/* Price */}
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-                  Price <span style={{ color: "var(--color-tertiary)" }}>*</span>
-                </label>
-                <div className="relative">
-                  <span
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-sm"
-                    style={{ color: "var(--text-tertiary)" }}
-                  >
-                    ৳
-                  </span>
-                  <input
-                    type="number"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleChange}
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                    className="w-full pl-8 pr-4 py-3 border-2 rounded-lg outline-none transition-colors text-sm"
-                    style={{
-                      borderColor: errors.price ? "var(--color-tertiary)" : "var(--border-primary)",
-                      backgroundColor: "var(--bg-primary)",
-                      color: "var(--text-primary)",
-                    }}
-                    onFocus={(e) => (e.target.style.borderColor = "var(--color-primary)")}
-                    onBlur={(e) =>
-                      (e.target.style.borderColor = errors.price
-                        ? "var(--color-tertiary)"
-                        : "var(--border-primary)")
-                    }
-                  />
-                </div>
-                {errors.price && (
-                  <p className="text-xs mt-1 flex items-center gap-1" style={{ color: "var(--color-tertiary)" }}>
-                    <FiAlertCircle size={12} /> {errors.price}
-                  </p>
-                )}
-              </div>
-
               {/* Original Price */}
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-                  Original Price (MRP)
+                  Original Price <span style={{ color: "var(--color-tertiary)" }}>*</span>
                 </label>
                 <div className="relative">
                   <span
@@ -581,24 +544,77 @@ const ProductCreate = () => {
                     step="0.01"
                     className="w-full pl-8 pr-4 py-3 border-2 rounded-lg outline-none transition-colors text-sm"
                     style={{
-                      borderColor: "var(--border-primary)",
+                      borderColor: errors.originalPrice ? "var(--color-tertiary)" : "var(--border-primary)",
                       backgroundColor: "var(--bg-primary)",
                       color: "var(--text-primary)",
                     }}
                     onFocus={(e) => (e.target.style.borderColor = "var(--color-primary)")}
-                    onBlur={(e) => (e.target.style.borderColor = "var(--border-primary)")}
+                    onBlur={(e) =>
+                      (e.target.style.borderColor = errors.originalPrice
+                        ? "var(--color-tertiary)"
+                        : "var(--border-primary)")
+                    }
                   />
                 </div>
-                {discountPercentage > 0 && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-xs mt-1 flex items-center gap-1"
-                    style={{ color: "var(--color-secondary)" }}
-                  >
-                    <FiCheck size={12} /> {discountPercentage}% discount will be shown
-                  </motion.p>
+                {errors.originalPrice && (
+                  <p className="text-xs mt-1 flex items-center gap-1" style={{ color: "var(--color-tertiary)" }}>
+                    <FiAlertCircle size={12} /> {errors.originalPrice}
+                  </p>
                 )}
+              </div>
+
+              {/* Discount (%) */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                  Discount (%)
+                </label>
+                <input
+                  type="number"
+                  name="discount"
+                  value={formData.discount}
+                  onChange={handleChange}
+                  placeholder="0"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors text-sm"
+                  style={{
+                    borderColor: errors.discount ? "var(--color-tertiary)" : "var(--border-primary)",
+                    backgroundColor: "var(--bg-primary)",
+                    color: "var(--text-primary)",
+                  }}
+                  onFocus={(e) => (e.target.style.borderColor = "var(--color-primary)")}
+                  onBlur={(e) =>
+                    (e.target.style.borderColor = errors.discount
+                      ? "var(--color-tertiary)"
+                      : "var(--border-primary)")
+                  }
+                />
+                {errors.discount && (
+                  <p className="text-xs mt-1 flex items-center gap-1" style={{ color: "var(--color-tertiary)" }}>
+                    <FiAlertCircle size={12} /> {errors.discount}
+                  </p>
+                )}
+              </div>
+
+              {/* Final Price (calculated, read-only) */}
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                  Final Price
+                </label>
+                <div
+                  className="w-full px-4 py-3 border-2 rounded-lg text-sm font-semibold"
+                  style={{
+                    borderColor: "var(--border-primary)",
+                    backgroundColor: "var(--bg-secondary)",
+                    color: "var(--color-primary)",
+                  }}
+                >
+                  {finalPrice != null ? `৳ ${finalPrice.toFixed(2)}` : "—"}
+                </div>
+                <p className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>
+                  Original Price − (Original Price × Discount ÷ 100)
+                </p>
               </div>
 
               {/* Stock Quantity */}

@@ -10,14 +10,16 @@ import { getProductsByGender } from "../../services/productApi";
 
 const isGenderCategory = (name) => name === "men" || name === "women";
 
-/** Map API product to shape expected by ProductCard (id, images, name, price, originalPrice, slug). */
+/** Map API product to shape expected by ProductCard (id, images, name, price/finalPrice, originalPrice, discount, tag/badge, slug). */
 const mapApiProduct = (p) => ({
   ...p,
   id: p._id || p.id,
   images: Array.isArray(p.images) && p.images.length > 0 ? p.images : ["/images/product-placeholder.png"],
   name: p.name || "",
-  price: p.price ?? 0,
+  price: p.finalPrice ?? p.price ?? 0,
   originalPrice: p.originalPrice ?? null,
+  discount: p.discount ?? 0,
+  badge: p.badge || (Array.isArray(p.tags) && p.tags[0]) || undefined,
   slug: p.slug || "",
 });
 

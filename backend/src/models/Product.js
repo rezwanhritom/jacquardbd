@@ -6,8 +6,10 @@ const productSchema = new mongoose.Schema(
     slug: { type: String, required: true, unique: true, trim: true },
     shortDescription: { type: String, default: "" },
     description: { type: String, default: "" },
-    price: { type: Number, required: true, min: 0 },
+    price: { type: Number, required: true, min: 0 }, // selling price (same as finalPrice when discount set)
     originalPrice: { type: Number, min: 0, default: null },
+    discount: { type: Number, min: 0, max: 100, default: 0 }, // percentage 0-100
+    finalPrice: { type: Number, min: 0, default: null }, // originalPrice - (originalPrice * discount / 100)
     category: { type: String, default: "" }, // full path e.g. "Male > Winter Wear > Jackets > Leather Jacket"
     categoryPath: [{ type: String }], // parsed path for filtering e.g. ["Male", "Winter Wear", "Jackets", "Leather Jacket"]
     collections: [{ type: String }],

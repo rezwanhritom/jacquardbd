@@ -4,6 +4,35 @@ import { validateProductBody } from "../utils/productValidation.js";
 import { DEFAULT_PRODUCT_IMAGE_URL } from "../constants/defaults.js";
 
 /**
+ * GET /api/products/:identifier
+ * Fetch a single product by slug or by MongoDB _id (24 hex chars).
+ */
+export async function getProductById(req, res, next) {
+  try {
+    const { identifier } = req.params;
+    if (!identifier) {
+      return res.status(400).json({ success: false, message: "Product identifier required" });
+    }
+
+    const isMongoId = /^[a-fA-F0-9]{24}$/.test(identifier);
+    const product = isMongoId
+      ? await Product.findById(identifier).lean()
+      : await Product.findOne({ slug: identifier, status: "active" }).lean();
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    res.json({
+      success: true,
+      product,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * GET /api/products?gender=men|women
  * Returns active products filtered by categoryPath[0] (Male = men, Female = women).
  */
@@ -60,11 +89,16 @@ export async function createProduct(req, res, next) {
       slug = `${slug}-${Date.now()}`;
     }
 
-    const price = Number(body.price);
     const originalPrice =
       body.originalPrice !== undefined && body.originalPrice !== ""
         ? Number(body.originalPrice)
         : null;
+    const discount = body.discount !== undefined && body.discount !== "" ? Math.min(100, Math.max(0, Number(body.discount))) : 0;
+    const finalPrice =
+      originalPrice != null && !Number.isNaN(originalPrice)
+        ? Math.round((originalPrice * (1 - discount / 100)) * 100) / 100
+        : originalPrice;
+    const price = finalPrice != null ? finalPrice : originalPrice;
     const stockQuantity = Number(body.stockQuantity) || 0;
     const status = body.status === "active" ? "active" : "draft";
     const isFeatured = Boolean(body.isFeatured);
@@ -85,6 +119,8 @@ export async function createProduct(req, res, next) {
       description: (body.description || "").trim(),
       price,
       originalPrice,
+      discount,
+      finalPrice: finalPrice != null ? finalPrice : undefined,
       category: categoryStr,
       categoryPath,
       collections,

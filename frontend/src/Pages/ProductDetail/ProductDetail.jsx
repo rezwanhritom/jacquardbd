@@ -1,29 +1,118 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
-import { Container, ImageGallery, ProductVariants, ProductReviews, ProductCarousel } from "../../components";
+import { Container, ImageGallery, ProductVariants, ProductReviews, ProductCarousel, Loading } from "../../components";
 import { productsData } from "../../data/products";
 import { getReviewsForProduct, getAverageRating } from "../../data/reviews";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiShoppingBag, FiHeart, FiChevronLeft, FiShare2, FiCheck, FiStar } from "react-icons/fi";
 import toast from "react-hot-toast";
+import { getProduct, getProductsByGender } from "../../services/productApi";
+
+const mapApiProductForDetail = (p) => ({
+  ...p,
+  id: p._id || p.id,
+  images: Array.isArray(p.images) && p.images.length > 0 ? p.images : ["/images/product-placeholder.png"],
+  name: p.name || "",
+  category: p.category || "",
+  price: p.finalPrice ?? p.price ?? 0,
+  originalPrice: p.originalPrice ?? null,
+  discount: p.discount ?? 0,
+  finalPrice: p.finalPrice ?? p.price ?? 0,
+  description: p.description || "",
+  slug: p.slug || "",
+  tags: p.tags || [],
+});
+
+const mapApiProductForCard = (p) => ({
+  ...p,
+  id: p._id || p.id,
+  images: Array.isArray(p.images) && p.images.length > 0 ? p.images : ["/images/product-placeholder.png"],
+  name: p.name || "",
+  price: p.finalPrice ?? p.price ?? 0,
+  originalPrice: p.originalPrice ?? null,
+  discount: p.discount ?? 0,
+  badge: p.badge || (Array.isArray(p.tags) && p.tags[0]) || undefined,
+  slug: p.slug || "",
+});
 
 const ProductDetail = () => {
   const { productId } = useParams();
-  const product = productsData.find((p) => p.id === parseInt(productId));
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
   const [selectedSize, setSelectedSize] = useState(null);
   const [selectedColor, setSelectedColor] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
 
-  const reviews = getReviewsForProduct(parseInt(productId));
-  const averageRating = parseFloat(getAverageRating(parseInt(productId)));
+  const isNumericId = /^\d+$/.test(productId);
+  const fromApi = !isNumericId;
 
-  // Get related products (same category, exclude current product)
-  const relatedProducts = productsData
-    .filter((p) => p.category === product?.category && p.id !== product?.id)
-    .slice(0, 8);
+  useEffect(() => {
+    if (!productId) {
+      setLoading(false);
+      setProduct(null);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    if (fromApi) {
+      getProduct(productId)
+        .then((res) => {
+          if (cancelled) return;
+          setLoading(false);
+          if (res.success && res.product) {
+            setProduct(mapApiProductForDetail(res.product));
+            const gender = res.product.categoryPath?.[0];
+            if (gender === "Male" || gender === "Female") {
+              getProductsByGender(gender === "Male" ? "men" : "women").then((r) => {
+                if (cancelled || !r.success) return;
+                const others = (r.products || [])
+                  .filter((p) => (p.slug || p._id) !== res.product.slug)
+                  .slice(0, 8)
+                  .map(mapApiProductForCard);
+                setRelatedProducts(others);
+              });
+            }
+          } else {
+            setProduct(null);
+            setError(res.message);
+          }
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          setLoading(false);
+          setProduct(null);
+          setError(err?.message || "Failed to load product");
+        });
+    } else {
+      const found = productsData.find((p) => p.id === parseInt(productId, 10));
+      setProduct(found || null);
+      setLoading(false);
+      if (found) {
+        const related = productsData
+          .filter((p) => p.category === found.category && p.id !== found.id)
+          .slice(0, 8);
+        setRelatedProducts(related);
+      }
+    }
+    return () => { cancelled = true; };
+  }, [productId, fromApi]);
+
+  const reviews = isNumericId ? getReviewsForProduct(parseInt(productId, 10)) : [];
+  const averageRating = isNumericId ? parseFloat(getAverageRating(parseInt(productId, 10))) : 0;
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center py-16">
+        <Loading />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -33,6 +122,11 @@ const ProductDetail = () => {
             <h1 className="text-4xl font-bold" style={{ color: "var(--color-primary)" }}>
               Product not found
             </h1>
+            {error && (
+              <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+                {error}
+              </p>
+            )}
             <Link
               to="/"
               className="inline-block px-6 py-3 text-white rounded-lg"
@@ -285,7 +379,7 @@ const ProductDetail = () => {
           {/* Reviews Section */}
           {reviews.length > 0 && (
             <ProductReviews
-              productId={parseInt(productId)}
+              productId={product.id}
               reviews={reviews}
               averageRating={averageRating}
             />
