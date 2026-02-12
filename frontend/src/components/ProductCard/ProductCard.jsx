@@ -4,8 +4,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FiHeart, FiShoppingBag, FiChevronLeft, FiChevronRight, FiEye } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { getDisplayCategory } from "../../utils/productUtils";
+import { useWishlist } from "../../context/WishlistContext";
 
 const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => {
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+  const inWishlist = isInWishlist(product);
   const displayCategory = getDisplayCategory(product);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -30,10 +33,16 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
     }
   };
 
-  const handleWishlist = (e) => {
+  const handleWishlist = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    toast.success("Added to wishlist!");
+    if (inWishlist) {
+      const { success } = await removeFromWishlist(product);
+      if (success) toast.success("Removed from wishlist");
+    } else {
+      const { success, message } = await addToWishlist(product);
+      if (success) toast.success(message === "Already in wishlist" ? message : "Added to wishlist!");
+    }
   };
 
   const handleAddToCart = (e) => {
@@ -118,8 +127,8 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
                   onClick={handleWishlist}
                   className="px-6 py-2.5 border-2 rounded-lg text-sm font-semibold uppercase tracking-wider transition-colors"
                   style={{
-                    borderColor: "var(--border-primary)",
-                    color: "var(--text-primary)",
+                    borderColor: inWishlist ? "var(--color-primary)" : "var(--border-primary)",
+                    color: inWishlist ? "var(--color-primary)" : "var(--text-primary)",
                   }}
                   onFocus={(e) => {
                     e.currentTarget.style.outline = "2px solid var(--color-primary)";
@@ -128,10 +137,10 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
                   onBlur={(e) => {
                     e.currentTarget.style.outline = "none";
                   }}
-                  aria-label={`Add ${product.name} to wishlist`}
+                  aria-label={inWishlist ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
                 >
-                  <FiHeart size={16} className="inline mr-2" />
-                  Wishlist
+                  <FiHeart size={16} className={`inline mr-2 ${inWishlist ? "fill-current" : ""}`} />
+                  {inWishlist ? "In Wishlist" : "Wishlist"}
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -319,7 +328,10 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
                     whileTap={{ scale: 0.95 }}
                     onClick={handleWishlist}
                     className="p-3 rounded-full shadow-lg backdrop-blur-sm transition-all"
-                    style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
+                    style={{
+                      backgroundColor: "rgba(255, 255, 255, 0.9)",
+                      color: inWishlist ? "var(--color-primary)" : "var(--color-primary)",
+                    }}
                     onFocus={(e) => {
                       e.currentTarget.style.outline = "2px solid var(--color-primary)";
                       e.currentTarget.style.outlineOffset = "2px";
@@ -327,10 +339,10 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
                     onBlur={(e) => {
                       e.currentTarget.style.outline = "none";
                     }}
-                    aria-label={`Add ${product.name} to wishlist`}
-                    title="Add to Wishlist"
+                    aria-label={inWishlist ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+                    title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
                   >
-                    <FiHeart size={18} style={{ color: "var(--color-primary)" }} />
+                    <FiHeart size={18} className={inWishlist ? "fill-current" : ""} style={{ color: "var(--color-primary)" }} />
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.1 }}

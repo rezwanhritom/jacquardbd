@@ -24,6 +24,7 @@ import {
 import { slideInFromRight, fadeIn } from "../../utils/animations";
 import { useDarkMode } from "../../context/DarkModeContext";
 import { useAuth } from "../../context/AuthContext";
+import { useWishlist } from "../../context/WishlistContext";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -35,6 +36,8 @@ const Navbar = () => {
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const { isDark, toggleDarkMode } = useDarkMode();
   const { isAuthenticated, user, logout } = useAuth();
+  const { wishlistItems } = useWishlist();
+  const wishlistCount = wishlistItems?.length ?? 0;
   const navigate = useNavigate();
   const location = useLocation();
   const searchInputRef = useRef(null);
@@ -47,9 +50,8 @@ const Navbar = () => {
     return location.pathname.startsWith(path);
   };
 
-  // Fake counters
+  // Cart counter (placeholder until cart context exists)
   const cartCount = 3;
-  const wishlistCount = 5;
 
   useEffect(() => {
     const handleScroll = () => {
