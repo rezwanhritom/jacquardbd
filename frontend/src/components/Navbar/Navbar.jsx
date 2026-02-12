@@ -397,34 +397,32 @@ const Navbar = () => {
                 </motion.button>
               </Link>
 
-              {/* Admin (only when authenticated and admin role) */}
-              {isAuthenticated && user?.role === "admin" && (
-                <Link to="/admin">
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="p-2 rounded-lg transition-colors"
-                    style={{
-                      color: isActivePath("/admin") ? "var(--color-primary)" : "var(--text-secondary)",
-                      backgroundColor: "transparent",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = "var(--color-primary)";
-                      e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActivePath("/admin")) {
-                        e.currentTarget.style.color = "var(--text-secondary)";
-                      }
-                      e.currentTarget.style.backgroundColor = "transparent";
-                    }}
-                    aria-label="Admin Panel"
-                    title="Admin Panel"
-                  >
-                    <FiGrid size={20} />
-                  </motion.button>
-                </Link>
-              )}
+              {/* Admin (always visible) */}
+              <Link to="/admin">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="p-2 rounded-lg transition-colors"
+                  style={{
+                    color: isActivePath("/admin") ? "var(--color-primary)" : "var(--text-secondary)",
+                    backgroundColor: "transparent",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--color-primary)";
+                    e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActivePath("/admin")) {
+                      e.currentTarget.style.color = "var(--text-secondary)";
+                    }
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }}
+                  aria-label="Admin Panel"
+                  title="Admin Panel"
+                >
+                  <FiGrid size={20} />
+                </motion.button>
+              </Link>
 
               {/* Account dropdown (when logged in) */}
               {isAuthenticated && (
@@ -747,33 +745,31 @@ const Navbar = () => {
                   </div>
                 )}
 
-                {/* Mobile Admin (only when authenticated and admin) */}
-                {isAuthenticated && user?.role === "admin" && (
-                  <Link
-                    to="/admin"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block mb-3"
+                {/* Mobile Admin (always visible) */}
+                <Link
+                  to="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block mb-3"
+                >
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide border-2 relative"
+                    style={{
+                      borderColor: "var(--color-primary)",
+                      backgroundColor: "transparent",
+                      color: "var(--color-primary)",
+                    }}
                   >
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide border-2 relative"
-                      style={{
-                        borderColor: "var(--color-primary)",
-                        backgroundColor: "transparent",
-                        color: "var(--color-primary)",
-                      }}
-                    >
-                      <FiGrid size={18} />
-                      <span>Admin Panel</span>
-                      {isActivePath("/admin") && (
-                        <span 
-                          className="absolute bottom-1 left-6 right-6 h-0.5"
-                          style={{ backgroundColor: "var(--color-primary)" }}
-                        />
-                      )}
-                    </motion.button>
-                  </Link>
-                )}
+                    <FiGrid size={18} />
+                    <span>Admin Panel</span>
+                    {isActivePath("/admin") && (
+                      <span 
+                        className="absolute bottom-1 left-6 right-6 h-0.5"
+                        style={{ backgroundColor: "var(--color-primary)" }}
+                      />
+                    )}
+                  </motion.button>
+                </Link>
 
                 {/* Mobile Login / Register (when not logged in) */}
                 {!isAuthenticated && (

@@ -284,11 +284,9 @@ export const router = createBrowserRouter([
       {
         path: "admin",
         element: (
-          <PrivateRoute>
-            <LazyWrapper>
-              <Admin />
-            </LazyWrapper>
-          </PrivateRoute>
+          <LazyWrapper>
+            <Admin />
+          </LazyWrapper>
         ),
         children: [
           {
