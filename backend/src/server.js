@@ -12,6 +12,7 @@ import notesRoutes from "./routes/notesRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import wishlistRoutes from "./routes/wishlist.routes.js";
 import cartRoutes from "./routes/cart.routes.js";
+import userRoutes from "./routes/user.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 dotenv.config();
@@ -39,6 +40,7 @@ app.use("/api/notes", notesRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/users", userRoutes);
 
 app.use(errorHandler);
 

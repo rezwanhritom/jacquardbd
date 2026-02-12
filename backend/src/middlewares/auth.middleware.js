@@ -29,6 +29,18 @@ export async function protect(req, res, next) {
 }
 
 /**
+ * Restrict access so that :userId in params must match the authenticated user.
+ * Use after protect. Returns 403 if userId !== req.user._id.
+ */
+export function sameUser(req, res, next) {
+  const userId = req.params?.userId;
+  if (!userId || String(req.user?._id) !== userId) {
+    return res.status(403).json({ success: false, message: "Access denied" });
+  }
+  next();
+}
+
+/**
  * Optional: attach user to req.user if valid cookie present, else req.user = null.
  * Use for routes that work for both authenticated and anonymous users.
  */

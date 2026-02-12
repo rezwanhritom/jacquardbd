@@ -1,23 +1,67 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiUser, FiMail, FiPhone, FiMapPin, FiCamera, FiSave } from "react-icons/fi";
-import { mockUser } from "../../data/accountData";
 import toast from "react-hot-toast";
+import { useAuth } from "../../context/AuthContext";
+import { getProfile, updateProfile } from "../../services/user.service";
+import Loading from "../../components/Loading";
+
+const defaultAvatar = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&q=80";
 
 const Profile = () => {
+  const { user: authUser, isAuthenticated } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [formData, setFormData] = useState({
-    firstName: mockUser.firstName,
-    lastName: mockUser.lastName,
-    email: mockUser.email,
-    phone: mockUser.phone,
-    address: "123 Main Street, Gulshan-2",
-    city: "Dhaka",
-    state: "Dhaka",
-    zipCode: "1212",
-    country: "Bangladesh",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "",
   });
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || !authUser?._id) {
+      setLoading(false);
+      setError("Please log in to view your profile.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    getProfile(authUser._id)
+      .then(({ success, user, message }) => {
+        if (success && user) {
+          setProfile(user);
+          const parts = (user.name || "").trim().split(/\s+/);
+          const firstName = parts[0] || "";
+          const lastName = parts.slice(1).join(" ") || "";
+          setFormData((prev) => ({
+            ...prev,
+            firstName,
+            lastName,
+            email: user.email || "",
+            phone: prev.phone,
+            address: prev.address,
+            city: prev.city,
+            state: prev.state,
+            zipCode: prev.zipCode,
+            country: prev.country,
+          }));
+        } else {
+          setError(message || "Failed to load profile");
+        }
+      })
+      .catch(() => setError("Failed to load profile"))
+      .finally(() => setLoading(false));
+  }, [isAuthenticated, authUser?._id]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -25,11 +69,67 @@ const Profile = () => {
   };
 
   const handleSave = () => {
-    // In real app, this would save to backend
-    setSaved(true);
-    toast.success("Profile updated successfully!");
-    setTimeout(() => setSaved(false), 3000);
+    if (!authUser?._id || !profile) return;
+    const name = [formData.firstName, formData.lastName].filter(Boolean).join(" ").trim();
+    if (!name) {
+      toast.error("Name is required");
+      return;
+    }
+    if (!formData.email?.trim()) {
+      toast.error("Email is required");
+      return;
+    }
+    setSaving(true);
+    updateProfile(authUser._id, { name, email: formData.email.trim() })
+      .then(({ success, user, message }) => {
+        if (success && user) {
+          setProfile(user);
+          const parts = (user.name || "").trim().split(/\s+/);
+          setFormData((prev) => ({
+            ...prev,
+            firstName: parts[0] || "",
+            lastName: parts.slice(1).join(" ") || "",
+            email: user.email || "",
+          }));
+          setSaved(true);
+          toast.success("Profile updated successfully!");
+          setTimeout(() => setSaved(false), 3000);
+        } else {
+          toast.error(message || "Failed to update profile");
+        }
+      })
+      .catch(() => toast.error("Failed to update profile"))
+      .finally(() => setSaving(false));
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loading />
+      </div>
+    );
+  }
+
+  if (error && !profile) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="p-6 rounded-lg text-center"
+        style={{ backgroundColor: "var(--bg-secondary)" }}
+      >
+        <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
+          {error}
+        </p>
+      </motion.div>
+    );
+  }
+
+  const displayName = [formData.firstName, formData.lastName].filter(Boolean).join(" ") || profile?.name || "User";
+  const avatarUrl = profile?.avatar?.trim() || defaultAvatar;
+  const memberSince = profile?.createdAt
+    ? new Date(profile.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long" })
+    : "";
 
   return (
     <div className="space-y-6">
@@ -44,7 +144,7 @@ const Profile = () => {
         <div className="flex items-center gap-6">
           <div className="relative">
             <div className="w-24 h-24 rounded-full overflow-hidden border-4" style={{ borderColor: "var(--border-primary)" }}>
-              <img src={mockUser.avatar} alt={mockUser.firstName} className="w-full h-full object-cover" />
+              <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
             </div>
             <motion.button
               whileHover={{ scale: 1.1 }}
@@ -61,17 +161,16 @@ const Profile = () => {
           </div>
           <div>
             <h3 className="text-xl font-bold mb-1" style={{ color: "var(--text-primary)" }}>
-              {mockUser.firstName} {mockUser.lastName}
+              {displayName}
             </h3>
             <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              {mockUser.email}
+              {formData.email || profile?.email}
             </p>
-            <p className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>
-              Member since {new Date(mockUser.memberSince).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-              })}
-            </p>
+            {memberSince && (
+              <p className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>
+                Member since {memberSince}
+              </p>
+            )}
           </div>
         </div>
       </motion.div>
@@ -182,11 +281,12 @@ const Profile = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleSave}
-              className="flex items-center gap-2 px-6 py-3 text-white font-semibold rounded-lg"
+              disabled={saving}
+              className="flex items-center gap-2 px-6 py-3 text-white font-semibold rounded-lg disabled:opacity-60"
               style={{ backgroundColor: "var(--color-primary)" }}
             >
               <FiSave size={18} />
-              Save Changes
+              {saving ? "Saving…" : "Save Changes"}
             </motion.button>
           </div>
         </motion.div>
@@ -297,7 +397,8 @@ const Profile = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleSave}
-              className="flex items-center gap-2 px-6 py-3 text-white font-semibold rounded-lg"
+              disabled={saving}
+              className="flex items-center gap-2 px-6 py-3 text-white font-semibold rounded-lg disabled:opacity-60"
               style={{ backgroundColor: "var(--color-primary)" }}
             >
               <FiSave size={18} />

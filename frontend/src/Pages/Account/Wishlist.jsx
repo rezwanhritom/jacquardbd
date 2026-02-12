@@ -3,23 +3,59 @@ import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiHeart, FiShoppingBag, FiTrash2, FiEye } from "react-icons/fi";
-import { productsData } from "../../data/products";
 import { EmptyState } from "../../components";
 import toast from "react-hot-toast";
 import { getDisplayCategory } from "../../utils/productUtils";
-
-// Fake wishlist data
-const wishlistItems = [1, 2, 5, 7, 8, 10];
+import { useAuth } from "../../context/AuthContext";
+import { useWishlist } from "../../context/WishlistContext";
+import Loading from "../../components/Loading";
 
 const Wishlist = () => {
-  const [wishlist, setWishlist] = useState(wishlistItems);
-  const wishlistProducts = productsData.filter((p) => wishlist.includes(p.id));
+  const { isAuthenticated } = useAuth();
+  const { wishlistItems, loading, removeFromWishlist } = useWishlist();
+  const [removingId, setRemovingId] = useState(null);
 
-  const handleRemove = (productId) => {
-    const product = productsData.find((p) => p.id === productId);
-    setWishlist(wishlist.filter((id) => id !== productId));
-    toast.success(`${product?.name || "Item"} removed from wishlist`);
+  const handleRemove = async (productId) => {
+    const item = wishlistItems.find((p) => (p._id || p.id) === productId);
+    const name = item?.name || "Item";
+    setRemovingId(productId);
+    const { success, message } = await removeFromWishlist(productId);
+    setRemovingId(null);
+    if (success) toast.success(`${name} removed from wishlist`);
+    else if (message) toast.error(message);
   };
+
+  if (!isAuthenticated) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="p-6 rounded-lg text-center"
+        style={{ backgroundColor: "var(--bg-secondary)" }}
+      >
+        <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
+          Please log in to view your wishlist.
+        </p>
+        <Link
+          to="/login"
+          className="inline-block mt-4 px-6 py-3 rounded-lg font-semibold text-white"
+          style={{ backgroundColor: "var(--color-primary)" }}
+        >
+          Log in
+        </Link>
+      </motion.div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loading />
+      </div>
+    );
+  }
+
+  const wishlistProducts = wishlistItems || [];
 
   return (
     <div className="space-y-6">
@@ -69,94 +105,101 @@ const Wishlist = () => {
           variants={staggerContainer}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
         >
-          {wishlistProducts.map((product, index) => (
-            <motion.div
-              key={product.id}
-              variants={fadeInUp}
-              className="group relative"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <div className="absolute top-4 right-4 z-10 flex gap-2">
-                <motion.button
-                  whileHover={{ scale: 1.1, rotate: 15 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => handleRemove(product.id)}
-                  className="p-2 rounded-full backdrop-blur-sm transition-colors"
-                  style={{
-                    backgroundColor: "rgba(255, 255, 255, 0.9)",
-                    color: "var(--color-tertiary)",
-                  }}
-                >
-                  <FiTrash2 size={18} />
-                </motion.button>
-              </div>
-              <Link to={`/product/${product.id}`}>
-                <div className="relative overflow-hidden aspect-[3/4] mb-4 rounded-lg" style={{ backgroundColor: "var(--bg-tertiary)" }}>
-                  <img
-                    src={product.images[0]}
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  {product.badge && (
-                    <span
-                      className="absolute top-4 left-4 px-3 py-1 text-xs font-semibold uppercase text-white z-10"
-                      style={{ backgroundColor: "var(--color-primary)" }}
-                    >
-                      {product.badge}
-                    </span>
-                  )}
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <motion.div className="flex gap-3">
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }}
-                        className="p-3 rounded-full text-white backdrop-blur-sm"
-                        style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
-                      >
-                        <FiEye size={20} />
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }}
-                        className="p-3 rounded-full text-white"
+          {wishlistProducts.map((product, index) => {
+            const id = product._id || product.id;
+            const slug = product.slug || id;
+            const imageUrl = Array.isArray(product.images) && product.images.length > 0
+              ? product.images[0]
+              : "/images/product-placeholder.png";
+            const price = product.finalPrice ?? product.price ?? 0;
+            const isRemoving = removingId === id;
+
+            return (
+              <motion.div
+                key={id}
+                variants={fadeInUp}
+                className="group relative"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <div className="absolute top-4 right-4 z-10 flex gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.1, rotate: 15 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleRemove(id)}
+                    disabled={isRemoving}
+                    className="p-2 rounded-full backdrop-blur-sm transition-colors disabled:opacity-60"
+                    style={{
+                      backgroundColor: "rgba(255, 255, 255, 0.9)",
+                      color: "var(--color-tertiary)",
+                    }}
+                  >
+                    <FiTrash2 size={18} />
+                  </motion.button>
+                </div>
+                <Link to={`/product/${slug}`}>
+                  <div className="relative overflow-hidden aspect-[3/4] mb-4 rounded-lg" style={{ backgroundColor: "var(--bg-tertiary)" }}>
+                    <img
+                      src={imageUrl}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    {product.badge && (
+                      <span
+                        className="absolute top-4 left-4 px-3 py-1 text-xs font-semibold uppercase text-white z-10"
                         style={{ backgroundColor: "var(--color-primary)" }}
                       >
-                        <FiShoppingBag size={20} />
-                      </motion.button>
-                    </motion.div>
-                  </div>
-                </div>
-                <div className="p-4 space-y-2">
-                  <p className="text-xs uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
-                    {getDisplayCategory(product)}
-                  </p>
-                  <h3 className="font-semibold group-hover:underline transition-all" style={{ color: "var(--text-primary)" }}>
-                    {product.name}
-                  </h3>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
-                      ${product.price.toFixed(2)}
-                    </span>
-                    {product.originalPrice && (
-                      <span className="text-sm line-through" style={{ color: "var(--text-tertiary)" }}>
-                        ${product.originalPrice.toFixed(2)}
+                        {product.badge}
                       </span>
                     )}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <motion.div className="flex gap-3">
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          className="p-3 rounded-full text-white backdrop-blur-sm"
+                          style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+                        >
+                          <FiEye size={20} />
+                        </motion.button>
+                        <Link
+                          to={`/product/${slug}`}
+                          className="p-3 rounded-full text-white"
+                          style={{ backgroundColor: "var(--color-primary)" }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <FiShoppingBag size={20} />
+                        </Link>
+                      </motion.div>
+                    </div>
                   </div>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
+                  <div className="p-4 space-y-2">
+                    <p className="text-xs uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
+                      {getDisplayCategory(product)}
+                    </p>
+                    <h3 className="font-semibold group-hover:underline transition-all" style={{ color: "var(--text-primary)" }}>
+                      {product.name}
+                    </h3>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
+                        ${Number(price).toFixed(2)}
+                      </span>
+                      {product.originalPrice != null && product.originalPrice > price && (
+                        <span className="text-sm line-through" style={{ color: "var(--text-tertiary)" }}>
+                          ${Number(product.originalPrice).toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
+            );
+          })}
         </motion.div>
       ) : (
         <EmptyState
