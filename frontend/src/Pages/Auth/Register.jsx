@@ -5,9 +5,11 @@ import { FiUser, FiMail, FiLock, FiAlertCircle, FiCheck } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { AuthLayout, FormInput, FormButton, FormCheckbox, PasswordStrength } from "../../components/Form";
 import toast from "react-hot-toast";
+import { useAuth } from "../../context/AuthContext";
 
 const Register = () => {
   const navigate = useNavigate();
+  const { register: registerUser } = useAuth();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -104,18 +106,23 @@ const Register = () => {
       return;
     }
 
-    // Mock registration
     setIsLoading(true);
+    setErrors({});
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const name = `${formData.firstName.trim()} ${formData.lastName.trim()}`.trim();
+    const result = await registerUser(name, formData.email.trim(), formData.password);
 
-    // Mock success
-    setShowSuccess(true);
-    toast.success("Account created successfully!");
-    setTimeout(() => {
-      navigate("/login");
-    }, 1500);
+    if (result.success) {
+      setShowSuccess(true);
+      toast.success("Account created successfully!");
+      setTimeout(() => navigate("/login"), 1200);
+    } else {
+      setErrors({
+        ...(result.errors?.length ? { general: result.errors[0] } : {}),
+        ...(result.message && !result.errors?.length ? { general: result.message } : {}),
+      });
+      toast.error(result.message || "Registration failed");
+    }
 
     setIsLoading(false);
   };
@@ -127,6 +134,23 @@ const Register = () => {
   return (
     <AuthLayout title="Create Account" subtitle="Join us and discover premium fashion">
       <form onSubmit={handleSubmit} className="space-y-5">
+        {/* General error */}
+        <AnimatePresence>
+          {errors.general && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="p-4 rounded-lg flex items-center gap-3"
+              style={{ backgroundColor: "rgba(220, 38, 38, 0.1)" }}
+            >
+              <FiAlertCircle style={{ color: "var(--color-tertiary)" }} />
+              <p className="text-sm" style={{ color: "var(--color-tertiary)" }}>
+                {errors.general}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {/* Success message */}
         <AnimatePresence>
           {showSuccess && (

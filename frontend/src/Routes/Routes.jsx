@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { createBrowserRouter } from "react-router";
 import Root from "../Pages/Root";
 import Loading from "../components/Loading";
+import PrivateRoute from "../components/PrivateRoute";
 import AuthWrapper from "../Pages/Auth/AuthWrapper";
 
 // Lazy load all pages
@@ -190,7 +191,13 @@ export const router = createBrowserRouter([
       },
       {
         path: "account",
-        Component: Account,
+        element: (
+          <PrivateRoute>
+            <LazyWrapper>
+              <Account />
+            </LazyWrapper>
+          </PrivateRoute>
+        ),
         children: [
           {
             index: true,
@@ -276,7 +283,13 @@ export const router = createBrowserRouter([
       },
       {
         path: "admin",
-        Component: Admin,
+        element: (
+          <PrivateRoute>
+            <LazyWrapper>
+              <Admin />
+            </LazyWrapper>
+          </PrivateRoute>
+        ),
         children: [
           {
             index: true,

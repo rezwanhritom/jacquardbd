@@ -15,10 +15,11 @@ export function errorHandler(err, req, res, next) {
     });
   }
   if (err.code === 11000) {
+    const field = err.keyPattern?.email ? "email" : "slug";
     return res.status(409).json({
       success: false,
       message: "Duplicate value",
-      errors: ["A product with this slug already exists"],
+      errors: [field === "email" ? "Email already registered" : "A product with this slug already exists"],
     });
   }
 

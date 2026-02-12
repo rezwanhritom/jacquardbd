@@ -12,10 +12,19 @@ import {
   FiSun,
   FiMoon,
   FiLogIn,
+  FiLogOut,
+  FiUserPlus,
   FiGrid,
+  FiChevronDown,
+  FiLayout,
+  FiPackage,
+  FiMapPin,
+  FiShield,
+  FiSliders,
 } from "react-icons/fi";
 import { slideInFromRight, fadeIn } from "../../utils/animations";
 import { useDarkMode } from "../../context/DarkModeContext";
+import { useAuth } from "../../context/AuthContext";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -23,7 +32,9 @@ const Navbar = () => {
   const [activeMegaMenu, setActiveMegaMenu] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const { isDark, toggleDarkMode } = useDarkMode();
+  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const searchInputRef = useRef(null);
@@ -71,6 +82,12 @@ const Navbar = () => {
 
   const handleMegaMenuLeave = () => {
     setActiveMegaMenu(null);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setMobileMenuOpen(false);
+    navigate("/");
   };
 
   const getIcon = (name) => {
@@ -380,81 +397,183 @@ const Navbar = () => {
                 </motion.button>
               </Link>
 
-              {/* Admin */}
-              <Link to="/admin">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="p-2 rounded-lg transition-colors"
-                  style={{
-                    color: isActivePath("/admin") ? "var(--color-primary)" : "var(--text-secondary)",
-                    backgroundColor: "transparent",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = "var(--color-primary)";
-                    e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActivePath("/admin")) {
-                      e.currentTarget.style.color = "var(--text-secondary)";
-                    }
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }}
-                  aria-label="Admin Panel"
-                  title="Admin Panel"
-                >
-                  <FiGrid size={20} />
-                </motion.button>
-              </Link>
+              {/* Admin (only when authenticated and admin role) */}
+              {isAuthenticated && user?.role === "admin" && (
+                <Link to="/admin">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="p-2 rounded-lg transition-colors"
+                    style={{
+                      color: isActivePath("/admin") ? "var(--color-primary)" : "var(--text-secondary)",
+                      backgroundColor: "transparent",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "var(--color-primary)";
+                      e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActivePath("/admin")) {
+                        e.currentTarget.style.color = "var(--text-secondary)";
+                      }
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                    aria-label="Admin Panel"
+                    title="Admin Panel"
+                  >
+                    <FiGrid size={20} />
+                  </motion.button>
+                </Link>
+              )}
 
-              {/* Profile */}
-              <Link to="/account">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="p-2 rounded-lg transition-colors"
-                  style={{
-                    color: isActivePath("/account") ? "var(--color-primary)" : "var(--text-secondary)",
-                    backgroundColor: "transparent",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = "var(--color-primary)";
-                    e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActivePath("/account")) {
-                      e.currentTarget.style.color = "var(--text-secondary)";
-                    }
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }}
-                  aria-label="My Account"
+              {/* Account dropdown (when logged in) */}
+              {isAuthenticated && (
+                <div
+                  className="relative"
+                  onMouseEnter={() => setAccountMenuOpen(true)}
+                  onMouseLeave={() => setAccountMenuOpen(false)}
                 >
-                  <FiUser size={20} />
-                </motion.button>
-              </Link>
+                  <Link to="/account" className="flex items-center gap-1">
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="flex items-center gap-1.5 px-2 py-2 rounded-lg transition-colors"
+                      style={{
+                        color: isActivePath("/account") ? "var(--color-primary)" : "var(--text-secondary)",
+                        backgroundColor: accountMenuOpen ? "var(--bg-secondary)" : "transparent",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = "var(--color-primary)";
+                        e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActivePath("/account")) e.currentTarget.style.color = "var(--text-secondary)";
+                      }}
+                      aria-label="My Account"
+                      aria-expanded={accountMenuOpen}
+                    >
+                      <FiUser size={20} />
+                      <span className="text-sm font-medium hidden xl:inline">Account</span>
+                      <FiChevronDown size={14} className={accountMenuOpen ? "rotate-180" : ""} style={{ transition: "transform 0.2s" }} />
+                    </motion.button>
+                  </Link>
+                  <AnimatePresence>
+                    {accountMenuOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute top-full right-0 mt-1 min-w-[200px] py-2 rounded-xl shadow-lg z-50"
+                        style={{
+                          backgroundColor: "var(--bg-primary)",
+                          border: "1px solid var(--border-primary)",
+                        }}
+                      >
+                        <div className="px-3 py-2 border-b" style={{ borderColor: "var(--border-primary)" }}>
+                          <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>
+                            {user?.name}
+                          </p>
+                          <p className="text-xs truncate" style={{ color: "var(--text-tertiary)" }}>
+                            {user?.email}
+                          </p>
+                        </div>
+                        <nav className="py-1">
+                          {[
+                            { path: "/account", label: "Dashboard", icon: FiLayout },
+                            { path: "/account/profile", label: "Profile", icon: FiUser },
+                            { path: "/account/orders", label: "Orders", icon: FiPackage },
+                            { path: "/account/addresses", label: "Addresses", icon: FiMapPin },
+                            { path: "/account/wishlist", label: "Wishlist", icon: FiHeart },
+                            { path: "/account/security", label: "Security", icon: FiShield },
+                            { path: "/account/settings", label: "Settings", icon: FiSliders },
+                          ].map((item) => {
+                            const Icon = item.icon;
+                            const isActive = location.pathname === item.path || (item.path === "/account" && location.pathname === "/account");
+                            return (
+                              <Link
+                                key={item.path}
+                                to={item.path}
+                                onClick={() => setAccountMenuOpen(false)}
+                                className="flex items-center gap-2 px-3 py-2 text-sm transition-colors"
+                                style={{
+                                  color: isActive ? "var(--color-primary)" : "var(--text-secondary)",
+                                  backgroundColor: isActive ? "var(--bg-secondary)" : "transparent",
+                                }}
+                              >
+                                <Icon size={16} />
+                                {item.label}
+                              </Link>
+                            );
+                          })}
+                        </nav>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
 
-              {/* Login Button */}
-              <Link to="/login">
+              {/* Logout (when logged in) */}
+              {isAuthenticated && (
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm uppercase tracking-wide transition-all"
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm uppercase tracking-wide transition-all border"
                   style={{
-                    backgroundColor: "var(--color-primary)",
-                    color: "white",
+                    borderColor: "var(--border-primary)",
+                    color: "var(--text-primary)",
+                    backgroundColor: "transparent",
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--active-color)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "var(--color-primary)";
-                  }}
-                  aria-label="Sign In"
+                  aria-label="Log out"
                 >
-                  <FiLogIn size={16} />
-                  <span>Sign In</span>
+                  <FiLogOut size={16} />
+                  <span>Logout</span>
                 </motion.button>
-              </Link>
+              )}
+
+              {/* Login / Register (when not logged in) */}
+              {!isAuthenticated && (
+                <>
+                  <Link to="/register">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm uppercase tracking-wide transition-colors border"
+                      style={{
+                        borderColor: "var(--color-primary)",
+                        color: "var(--color-primary)",
+                        backgroundColor: "transparent",
+                      }}
+                      aria-label="Register"
+                    >
+                      <FiUserPlus size={16} />
+                      <span>Register</span>
+                    </motion.button>
+                  </Link>
+                  <Link to="/login">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm uppercase tracking-wide transition-all"
+                      style={{
+                        backgroundColor: "var(--color-primary)",
+                        color: "white",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "var(--active-color)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "var(--color-primary)";
+                      }}
+                      aria-label="Sign In"
+                    >
+                      <FiLogIn size={16} />
+                      <span>Sign In</span>
+                    </motion.button>
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -590,50 +709,129 @@ const Navbar = () => {
                   })}
                 </nav>
 
-                {/* Mobile Admin Button */}
-                <Link
-                  to="/admin"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block mb-3"
-                >
-                  <motion.button
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide border-2 relative"
-                    style={{
-                      borderColor: "var(--color-primary)",
-                      backgroundColor: "transparent",
-                      color: "var(--color-primary)",
-                    }}
-                  >
-                    <FiGrid size={18} />
-                    <span>Admin Panel</span>
-                    {isActivePath("/admin") && (
-                      <span 
-                        className="absolute bottom-1 left-6 right-6 h-0.5"
-                        style={{ backgroundColor: "var(--color-primary)" }}
-                      />
-                    )}
-                  </motion.button>
-                </Link>
+                {/* Mobile Account / Profile routes (when logged in) */}
+                {isAuthenticated && (
+                  <div className="mb-4 py-3 border-t border-b" style={{ borderColor: "var(--border-primary)" }}>
+                    <p className="px-4 text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--text-tertiary)" }}>
+                      My Account
+                    </p>
+                    <div className="space-y-1">
+                      {[
+                        { path: "/account", label: "Dashboard", icon: FiLayout },
+                        { path: "/account/profile", label: "Profile", icon: FiUser },
+                        { path: "/account/orders", label: "Orders", icon: FiPackage },
+                        { path: "/account/addresses", label: "Addresses", icon: FiMapPin },
+                        { path: "/account/wishlist", label: "Wishlist", icon: FiHeart },
+                        { path: "/account/security", label: "Security", icon: FiShield },
+                        { path: "/account/settings", label: "Settings", icon: FiSliders },
+                      ].map((item) => {
+                        const Icon = item.icon;
+                        const isActive = location.pathname === item.path || (item.path === "/account" && location.pathname === "/account");
+                        return (
+                          <Link
+                            key={item.path}
+                            to={item.path}
+                            onClick={() => setMobileMenuOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors"
+                            style={{
+                              color: isActive ? "var(--color-primary)" : "var(--text-secondary)",
+                              backgroundColor: isActive ? "var(--bg-secondary)" : "transparent",
+                            }}
+                          >
+                            <Icon size={18} />
+                            {item.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-                {/* Mobile Login Button */}
-                <Link
-                  to="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block mb-4"
-                >
+                {/* Mobile Admin (only when authenticated and admin) */}
+                {isAuthenticated && user?.role === "admin" && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block mb-3"
+                  >
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide border-2 relative"
+                      style={{
+                        borderColor: "var(--color-primary)",
+                        backgroundColor: "transparent",
+                        color: "var(--color-primary)",
+                      }}
+                    >
+                      <FiGrid size={18} />
+                      <span>Admin Panel</span>
+                      {isActivePath("/admin") && (
+                        <span 
+                          className="absolute bottom-1 left-6 right-6 h-0.5"
+                          style={{ backgroundColor: "var(--color-primary)" }}
+                        />
+                      )}
+                    </motion.button>
+                  </Link>
+                )}
+
+                {/* Mobile Login / Register (when not logged in) */}
+                {!isAuthenticated && (
+                  <>
+                    <Link
+                      to="/register"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block mb-3"
+                    >
+                      <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide border-2"
+                        style={{
+                          borderColor: "var(--color-primary)",
+                          backgroundColor: "transparent",
+                          color: "var(--color-primary)",
+                        }}
+                      >
+                        <FiUserPlus size={18} />
+                        <span>Register</span>
+                      </motion.button>
+                    </Link>
+                    <Link
+                      to="/login"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block mb-4"
+                    >
+                      <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide"
+                        style={{
+                          backgroundColor: "var(--color-primary)",
+                          color: "white",
+                        }}
+                      >
+                        <FiLogIn size={18} />
+                        <span>Sign In</span>
+                      </motion.button>
+                    </Link>
+                  </>
+                )}
+
+                {/* Mobile Logout (when logged in) */}
+                {isAuthenticated && (
                   <motion.button
                     whileTap={{ scale: 0.98 }}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide"
+                    onClick={handleLogout}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide border-2 mb-4"
                     style={{
-                      backgroundColor: "var(--color-primary)",
-                      color: "white",
+                      borderColor: "var(--border-primary)",
+                      color: "var(--text-primary)",
+                      backgroundColor: "transparent",
                     }}
                   >
-                    <FiLogIn size={18} />
-                    <span>Sign In</span>
+                    <FiLogOut size={18} />
+                    <span>Logout</span>
                   </motion.button>
-                </Link>
+                )}
 
                 <div
                   className="flex items-center justify-around pt-6 border-t space-x-4"
@@ -675,16 +873,18 @@ const Navbar = () => {
                       </span>
                     )}
                   </Link>
-                  <Link
-                    to="/account"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="p-3 rounded-lg transition-colors"
-                    style={{
-                      color: isActivePath("/account") ? "var(--color-primary)" : "var(--text-secondary)",
-                    }}
-                  >
-                    <FiUser size={24} />
-                  </Link>
+                  {isAuthenticated && (
+                    <Link
+                      to="/account"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="p-3 rounded-lg transition-colors"
+                      style={{
+                        color: isActivePath("/account") ? "var(--color-primary)" : "var(--text-secondary)",
+                      }}
+                    >
+                      <FiUser size={24} />
+                    </Link>
+                  )}
                 </div>
               </div>
             </motion.div>

@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useLocation } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiMail, FiLock, FiAlertCircle, FiCheck } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
 import { AuthLayout, FormInput, FormButton, FormCheckbox } from "../../components/Form";
 import toast from "react-hot-toast";
+import { useAuth } from "../../context/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -60,23 +63,19 @@ const Login = () => {
       return;
     }
 
-    // Mock login
     setIsLoading(true);
+    setErrors({});
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const result = await login(formData.email.trim(), formData.password);
 
-    // Mock validation - demo@example.com with any password succeeds
-    if (formData.email === "demo@example.com") {
+    if (result.success) {
       setShowSuccess(true);
       toast.success("Login successful! Welcome back.");
-      setTimeout(() => {
-        navigate("/");
-      }, 1000);
+      const from = location.state?.from?.pathname || "/";
+      setTimeout(() => navigate(from, { replace: true }), 800);
     } else {
-      // For demo: show error for other emails
-      setErrors({ general: "Invalid email or password. Try demo@example.com" });
-      toast.error("Invalid credentials");
+      setErrors({ general: result.message || "Invalid email or password" });
+      toast.error(result.message || "Invalid credentials");
     }
 
     setIsLoading(false);
@@ -226,17 +225,7 @@ const Login = () => {
           </Link>
         </p>
 
-        {/* Demo hint */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="text-center text-xs p-3 rounded-lg"
-          style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-tertiary)" }}
-        >
-          Demo: Use <strong>demo@example.com</strong> with any password
-        </motion.p>
-      </form>
+              </form>
     </AuthLayout>
   );
 };
