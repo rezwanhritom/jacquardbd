@@ -5,10 +5,13 @@ import { FiHeart, FiShoppingBag, FiChevronLeft, FiChevronRight, FiEye } from "re
 import toast from "react-hot-toast";
 import { getDisplayCategory } from "../../utils/productUtils";
 import { useWishlist } from "../../context/WishlistContext";
+import { useCart } from "../../context/CartContext";
 
 const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => {
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+  const { addToCart } = useCart();
   const inWishlist = isInWishlist(product);
+  const outOfStock = (product?.stockQuantity ?? 1) <= 0;
   const displayCategory = getDisplayCategory(product);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -45,10 +48,13 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
     }
   };
 
-  const handleAddToCart = (e) => {
+  const handleAddToCart = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    toast.success("Added to cart!");
+    if (outOfStock) return;
+    const { success, message } = await addToCart(product, 1);
+    if (success) toast.success("Added to cart!");
+    else if (message) toast.error(message);
   };
 
   if (viewMode === "list") {
@@ -143,22 +149,25 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
                   {inWishlist ? "In Wishlist" : "Wishlist"}
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ scale: outOfStock ? 1 : 1.05 }}
+                  whileTap={{ scale: outOfStock ? 1 : 0.95 }}
                   onClick={handleAddToCart}
-                  className="px-6 py-2.5 rounded-lg text-sm font-semibold uppercase tracking-wider text-white transition-colors"
-                  style={{ backgroundColor: "var(--color-primary)" }}
+                  disabled={outOfStock}
+                  className="px-6 py-2.5 rounded-lg text-sm font-semibold uppercase tracking-wider text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: outOfStock ? "var(--bg-tertiary)" : "var(--color-primary)" }}
                   onFocus={(e) => {
-                    e.currentTarget.style.outline = "2px solid var(--color-primary)";
-                    e.currentTarget.style.outlineOffset = "2px";
+                    if (!outOfStock) {
+                      e.currentTarget.style.outline = "2px solid var(--color-primary)";
+                      e.currentTarget.style.outlineOffset = "2px";
+                    }
                   }}
                   onBlur={(e) => {
                     e.currentTarget.style.outline = "none";
                   }}
-                  aria-label={`Add ${product.name} to cart`}
+                  aria-label={outOfStock ? "Out of stock" : `Add ${product.name} to cart`}
                 >
                   <FiShoppingBag size={16} className="inline mr-2" />
-                  Add to Cart
+                  {outOfStock ? "Out of Stock" : "Add to Cart"}
                 </motion.button>
               </div>
             </div>
@@ -345,20 +354,23 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
                     <FiHeart size={18} className={inWishlist ? "fill-current" : ""} style={{ color: "var(--color-primary)" }} />
                   </motion.button>
                   <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: outOfStock ? 1 : 1.1 }}
+                    whileTap={{ scale: outOfStock ? 1 : 0.95 }}
                     onClick={handleAddToCart}
-                    className="p-3 rounded-full shadow-lg text-white transition-all"
-                    style={{ backgroundColor: "var(--color-primary)" }}
+                    disabled={outOfStock}
+                    className="p-3 rounded-full shadow-lg text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: outOfStock ? "var(--bg-tertiary)" : "var(--color-primary)" }}
                     onFocus={(e) => {
-                      e.currentTarget.style.outline = "2px solid white";
-                      e.currentTarget.style.outlineOffset = "2px";
+                      if (!outOfStock) {
+                        e.currentTarget.style.outline = "2px solid white";
+                        e.currentTarget.style.outlineOffset = "2px";
+                      }
                     }}
                     onBlur={(e) => {
                       e.currentTarget.style.outline = "none";
                     }}
-                    aria-label={`Add ${product.name} to cart`}
-                    title="Add to Cart"
+                    aria-label={outOfStock ? "Out of stock" : `Add ${product.name} to cart`}
+                    title={outOfStock ? "Out of stock" : "Add to Cart"}
                   >
                     <FiShoppingBag size={18} />
                   </motion.button>

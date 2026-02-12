@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import "./index.css";
 import { AuthProvider } from "./context/AuthContext";
 import { WishlistProvider } from "./context/WishlistContext";
+import { CartProvider } from "./context/CartContext";
 import { router } from "./Routes/Routes.jsx";
 import { RouterProvider } from "react-router";
 
@@ -11,7 +12,8 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <AuthProvider>
       <WishlistProvider>
-        <RouterProvider router={router} />
+        <CartProvider>
+          <RouterProvider router={router} />
     <Toaster
       position="top-right"
       toastOptions={{
@@ -35,6 +37,7 @@ createRoot(document.getElementById("root")).render(
         },
       }}
     />
+        </CartProvider>
       </WishlistProvider>
     </AuthProvider>
   </StrictMode>

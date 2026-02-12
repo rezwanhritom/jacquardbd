@@ -6,6 +6,7 @@ import { parseCategoryPath } from "../utils/categoryUtils.js";
 import { DEFAULT_PRODUCT_IMAGE_URL } from "../constants/defaults.js";
 
 const MONGO_ID_REGEX = /^[a-fA-F0-9]{24}$/;
+const ALLOWED_COLLECTIONS = ["regular", "new-arrivals", "sale", "featured"];
 
 /**
  * GET /api/products/:identifier
@@ -28,6 +29,29 @@ export async function getProductById(req, res, next) {
     }
 
     res.json({ success: true, product });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * GET /api/products/collection/:collectionName
+ * Returns active products where collection matches. Sorted by createdAt desc.
+ */
+export async function getProductsByCollection(req, res, next) {
+  try {
+    const collectionName = (req.params.collectionName || "").toLowerCase().replace(/\s+/g, "-");
+    if (!ALLOWED_COLLECTIONS.includes(collectionName)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid collection name",
+        allowed: ALLOWED_COLLECTIONS,
+      });
+    }
+    const products = await Product.find({ status: "active", collection: collectionName })
+      .lean()
+      .sort({ createdAt: -1 });
+    res.json({ success: true, products });
   } catch (err) {
     next(err);
   }
@@ -87,6 +111,9 @@ export async function createProduct(req, res, next) {
     const categoryStr = (body.category || "").trim();
     const categoryPath = parseCategoryPath(categoryStr);
 
+    const collectionValue = (body.collection || "regular").toLowerCase().trim();
+    const collection = ALLOWED_COLLECTIONS.includes(collectionValue) ? collectionValue : "regular";
+
     const product = new Product({
       name,
       slug,
@@ -98,6 +125,7 @@ export async function createProduct(req, res, next) {
       finalPrice: finalPrice != null ? finalPrice : undefined,
       category: categoryStr,
       categoryPath,
+      collection,
       collections: Array.isArray(body.collections) ? body.collections : [],
       tags: Array.isArray(body.tags) ? body.tags : [],
       variants: {

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -18,20 +18,19 @@ import {
   ProductSort,
   Pagination,
   QuickView,
+  Loading,
 } from "../../components";
-import { productsData } from "../../data/products";
+import { getProductsByCollection } from "../../services/productApi";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { filterProducts, sortProducts, paginateProducts } from "../../utils/productUtils";
+import { mapApiProduct } from "../../utils/productUtils";
 
-// Mark all products as "New" for the new arrivals page
-const newArrivalsProducts = productsData.map((product) => ({
-  ...product,
-  badge: "New",
-  // Add a fake "arrived" date for sorting
-  arrivedDate: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
-}));
+const COLLECTION_NAME = "new-arrivals";
 
 const NewArrivals = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
     priceRange: { min: 0, max: 1000 },
     sizes: [],
@@ -45,24 +44,49 @@ const NewArrivals = () => {
   const [viewMode, setViewMode] = useState("grid");
   const itemsPerPage = 8;
 
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    getProductsByCollection(COLLECTION_NAME)
+      .then((res) => {
+        if (res.success && Array.isArray(res.products)) {
+          setProducts(res.products.map(mapApiProduct).map((p) => ({ ...p, badge: "New" })));
+        } else {
+          setProducts([]);
+        }
+      })
+      .catch(() => {
+        setError("Failed to load new arrivals.");
+        setProducts([]);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const normalizedProducts = useMemo(() => products, [products]);
+
   // Apply filters
   const filteredProducts = useMemo(() => {
-    let result = filterProducts(newArrivalsProducts, filters);
-    
-    // Filter by category if selected
+    let result = filterProducts(normalizedProducts, filters);
     if (filters.categories && filters.categories.length > 0) {
       result = result.filter((product) =>
-        filters.categories.includes(product.category)
+        filters.categories.some(
+          (cat) =>
+            product.category === cat ||
+            (typeof product.category === "string" && product.category.includes(cat))
+        )
       );
     }
-    
     return result;
-  }, [filters]);
+  }, [normalizedProducts, filters]);
 
-  // Apply sorting
+  // Apply sorting (newest: by createdAt desc; backend already sends newest first)
   const sortedProducts = useMemo(() => {
     if (sortOption === "newest") {
-      return [...filteredProducts].sort((a, b) => b.arrivedDate - a.arrivedDate);
+      return [...filteredProducts].sort((a, b) => {
+        const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tB - tA;
+      });
     }
     return sortProducts(filteredProducts, sortOption);
   }, [filteredProducts, sortOption]);
@@ -246,170 +270,195 @@ const NewArrivals = () => {
             variants={staggerContainer}
             className="space-y-8"
           >
-            {/* Toolbar */}
-            <motion.div
-              variants={fadeInUp}
-              className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b"
-              style={{ borderColor: "var(--border-primary)" }}
-            >
-              <div className="flex items-center gap-4">
-                {/* Mobile Filter Button */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setMobileFiltersOpen(true)}
-                  className="lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors"
-                  style={{
-                    backgroundColor: "var(--bg-secondary)",
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  <FiFilter size={18} />
-                  Filters
-                  {hasActiveFilters && (
-                    <span
-                      className="w-5 h-5 rounded-full text-xs flex items-center justify-center text-white"
-                      style={{ backgroundColor: "var(--color-primary)" }}
-                    >
-                      {(filters.categories?.length || 0) +
-                        (filters.sizes?.length || 0) +
-                        (filters.colors?.length || 0)}
-                    </span>
-                  )}
-                </motion.button>
-
-                {/* Results Count */}
-                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                  <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
-                    {sortedProducts.length}
-                  </span>{" "}
-                  new {sortedProducts.length === 1 ? "arrival" : "arrivals"}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-3">
-                {/* View Mode Toggle */}
-                <div
-                  className="hidden sm:flex items-center rounded-lg p-1"
-                  style={{ backgroundColor: "var(--bg-secondary)" }}
-                >
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setViewMode("grid")}
-                    className="p-2 rounded-lg transition-colors"
-                    style={{
-                      backgroundColor:
-                        viewMode === "grid" ? "var(--bg-primary)" : "transparent",
-                      color:
-                        viewMode === "grid"
-                          ? "var(--color-primary)"
-                          : "var(--text-tertiary)",
-                    }}
-                  >
-                    <FiGrid size={18} />
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setViewMode("list")}
-                    className="p-2 rounded-lg transition-colors"
-                    style={{
-                      backgroundColor:
-                        viewMode === "list" ? "var(--bg-primary)" : "transparent",
-                      color:
-                        viewMode === "list"
-                          ? "var(--color-primary)"
-                          : "var(--text-tertiary)",
-                    }}
-                  >
-                    <FiList size={18} />
-                  </motion.button>
-                </div>
-
-                {/* Sort */}
-                <ProductSort
-                  currentSort={sortOption}
-                  onSortChange={handleSortChange}
-                />
-              </div>
-            </motion.div>
-
-            {/* Active Filters */}
-            <AnimatePresence>
-              {hasActiveFilters && (
+            {/* Toolbar & filters: only when we have products */}
+            {!loading && !error && products.length > 0 && (
+              <>
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="flex flex-wrap items-center gap-2"
+                  variants={fadeInUp}
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b"
+                  style={{ borderColor: "var(--border-primary)" }}
                 >
-                  <span
-                    className="text-sm font-medium"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    Active filters:
-                  </span>
-                  {filters.categories?.map((cat) => (
+                  <div className="flex items-center gap-4">
                     <motion.button
-                      key={cat}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      whileHover={{ scale: 1.05 }}
-                      onClick={() => handleCategoryToggle(cat)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setMobileFiltersOpen(true)}
+                      className="lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors"
                       style={{
                         backgroundColor: "var(--bg-secondary)",
                         color: "var(--text-primary)",
                       }}
                     >
-                      {cat}
-                      <FiX size={14} />
+                      <FiFilter size={18} />
+                      Filters
+                      {hasActiveFilters && (
+                        <span
+                          className="w-5 h-5 rounded-full text-xs flex items-center justify-center text-white"
+                          style={{ backgroundColor: "var(--color-primary)" }}
+                        >
+                          {(filters.categories?.length || 0) +
+                            (filters.sizes?.length || 0) +
+                            (filters.colors?.length || 0)}
+                        </span>
+                      )}
                     </motion.button>
-                  ))}
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleClearFilters}
-                    className="text-xs font-medium underline"
-                    style={{ color: "var(--color-primary)" }}
-                  >
-                    Clear all
-                  </motion.button>
+                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                      <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                        {sortedProducts.length}
+                      </span>{" "}
+                      new {sortedProducts.length === 1 ? "arrival" : "arrivals"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="hidden sm:flex items-center rounded-lg p-1"
+                      style={{ backgroundColor: "var(--bg-secondary)" }}
+                    >
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setViewMode("grid")}
+                        className="p-2 rounded-lg transition-colors"
+                        style={{
+                          backgroundColor:
+                            viewMode === "grid" ? "var(--bg-primary)" : "transparent",
+                          color:
+                            viewMode === "grid"
+                              ? "var(--color-primary)"
+                              : "var(--text-tertiary)",
+                        }}
+                      >
+                        <FiGrid size={18} />
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setViewMode("list")}
+                        className="p-2 rounded-lg transition-colors"
+                        style={{
+                          backgroundColor:
+                            viewMode === "list" ? "var(--bg-primary)" : "transparent",
+                          color:
+                            viewMode === "list"
+                              ? "var(--color-primary)"
+                              : "var(--text-tertiary)",
+                        }}
+                      >
+                        <FiList size={18} />
+                      </motion.button>
+                    </div>
+                    <ProductSort
+                      currentSort={sortOption}
+                      onSortChange={handleSortChange}
+                    />
+                  </div>
                 </motion.div>
-              )}
-            </AnimatePresence>
+                <AnimatePresence>
+                  {hasActiveFilters && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="flex flex-wrap items-center gap-2"
+                    >
+                      <span
+                        className="text-sm font-medium"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        Active filters:
+                      </span>
+                      {filters.categories?.map((cat) => (
+                        <motion.button
+                          key={cat}
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          whileHover={{ scale: 1.05 }}
+                          onClick={() => handleCategoryToggle(cat)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+                          style={{
+                            backgroundColor: "var(--bg-secondary)",
+                            color: "var(--text-primary)",
+                          }}
+                        >
+                          {cat}
+                          <FiX size={14} />
+                        </motion.button>
+                      ))}
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleClearFilters}
+                        className="text-xs font-medium underline"
+                        style={{ color: "var(--color-primary)" }}
+                      >
+                        Clear all
+                      </motion.button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </>
+            )}
 
             {/* Products Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              {/* Desktop Sidebar Filters */}
-              <motion.aside
-                variants={fadeInUp}
-                className="hidden lg:block lg:col-span-1"
-              >
-                <div className="sticky top-24">
-                  <DesktopFilters
-                    filters={filters}
-                    onFilterChange={handleFilterChange}
-                    onClearFilters={handleClearFilters}
-                    categories={categories}
-                    onCategoryToggle={handleCategoryToggle}
-                  />
-                </div>
-              </motion.aside>
+              {/* Desktop Sidebar Filters: only when we have products */}
+              {!loading && !error && products.length > 0 && (
+                <motion.aside
+                  variants={fadeInUp}
+                  className="hidden lg:block lg:col-span-1"
+                >
+                  <div className="sticky top-24">
+                    <DesktopFilters
+                      filters={filters}
+                      onFilterChange={handleFilterChange}
+                      onClearFilters={handleClearFilters}
+                      categories={categories}
+                      onCategoryToggle={handleCategoryToggle}
+                    />
+                  </div>
+                </motion.aside>
+              )}
 
               {/* Products */}
-              <div className="lg:col-span-3">
-                {paginatedProducts.length > 0 ? (
+              <div
+                className={
+                  !loading && !error && products.length > 0 ? "lg:col-span-3" : "lg:col-span-4"
+                }
+              >
+                {loading ? (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex justify-center items-center py-24"
+                  >
+                    <Loading />
+                  </motion.div>
+                ) : error ? (
+                  <NewArrivalsErrorState
+                    message={error}
+                    onRetry={() => {
+                      setError(null);
+                      setLoading(true);
+                      getProductsByCollection(COLLECTION_NAME)
+                        .then((res) => {
+                          if (res.success && Array.isArray(res.products)) {
+                            setProducts(res.products.map(mapApiProduct).map((p) => ({ ...p, badge: "New" })));
+                          } else setProducts([]);
+                        })
+                        .catch(() => setError("Failed to load new arrivals."))
+                        .finally(() => setLoading(false));
+                    }}
+                  />
+                ) : products.length === 0 ? (
+                  <NewArrivalsEmptyState />
+                ) : paginatedProducts.length > 0 ? (
                   <>
                     <ProductGrid
                       products={paginatedProducts}
                       viewMode={viewMode}
                       onQuickView={setQuickViewProduct}
                     />
-
-                    {/* Pagination */}
                     {totalPages > 1 && (
                       <div className="mt-12">
                         <Pagination
@@ -1019,7 +1068,70 @@ const MobileFiltersPanel = ({
   );
 };
 
-// Empty Results Component
+// Error state: API failed
+const NewArrivalsErrorState = ({ message, onRetry }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3 }}
+    className="text-center py-16"
+  >
+    <div
+      className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center"
+      style={{ backgroundColor: "var(--bg-secondary)" }}
+    >
+      <FiRefreshCw size={32} style={{ color: "var(--text-tertiary)" }} />
+    </div>
+    <h3 className="text-xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+      Something went wrong
+    </h3>
+    <p className="text-sm mb-6 max-w-md mx-auto" style={{ color: "var(--text-secondary)" }}>
+      {message}
+    </p>
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onRetry}
+      className="px-6 py-3 rounded-lg font-semibold text-sm text-white transition-colors"
+      style={{ backgroundColor: "var(--color-primary)" }}
+    >
+      Try again
+    </motion.button>
+  </motion.div>
+);
+
+// Empty state: collection has no products
+const NewArrivalsEmptyState = () => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3 }}
+    className="text-center py-16"
+  >
+    <div
+      className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center"
+      style={{ backgroundColor: "var(--bg-secondary)" }}
+    >
+      <FiGrid size={32} style={{ color: "var(--text-tertiary)" }} />
+    </div>
+    <h3 className="text-xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+      No new arrivals yet
+    </h3>
+    <p className="text-sm mb-6 max-w-md mx-auto" style={{ color: "var(--text-secondary)" }}>
+      Check back soon or explore our full collection.
+    </p>
+    <Link
+      to="/"
+      className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm text-white transition-colors"
+      style={{ backgroundColor: "var(--color-primary)" }}
+    >
+      Shop all products
+      <FiArrowRight size={18} />
+    </Link>
+  </motion.div>
+);
+
+// Empty results: filters returned no products
 const EmptyResults = ({ onClearFilters }) => {
   return (
     <motion.div

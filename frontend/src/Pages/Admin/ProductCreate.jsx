@@ -22,13 +22,12 @@ import { createProduct as createProductApi } from "../../services/productApi";
 import { categoryTree } from "../../data/categoryTree";
 
 const availableSizes = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
-const collections = [
-  "New Arrivals",
-  "Best Sellers",
-  "Summer Collection",
-  "Winter Collection",
-  "Limited Edition",
-  "Sale",
+/** Single collection for filtering (e.g. New Arrivals page). Values match backend enum. */
+const collectionOptions = [
+  { value: "regular", label: "Regular" },
+  { value: "new-arrivals", label: "New Arrivals" },
+  { value: "sale", label: "Sale" },
+  { value: "featured", label: "Featured" },
 ];
 
 const ProductCreate = () => {
@@ -51,6 +50,7 @@ const ProductCreate = () => {
     material: "",
     fit: "",
     category: "",
+    collection: "regular",
     collections: [],
     tags: [],
     isActive: true,
@@ -89,13 +89,8 @@ const ProductCreate = () => {
     }));
   };
 
-  const toggleCollection = (collection) => {
-    setFormData((prev) => ({
-      ...prev,
-      collections: prev.collections.includes(collection)
-        ? prev.collections.filter((c) => c !== collection)
-        : [...prev.collections, collection],
-    }));
+  const handleCollectionChange = (e) => {
+    setFormData((prev) => ({ ...prev, collection: e.target.value }));
   };
 
   // Final price = Original Price - (Original Price * Discount / 100)
@@ -139,6 +134,7 @@ const ProductCreate = () => {
     originalPrice: formData.originalPrice || undefined,
     discount: formData.discount !== "" ? formData.discount : undefined,
     category: formData.category || undefined,
+    collection: formData.collection || "regular",
     collections: formData.collections,
     tags: formData.tags,
     variants: { size: formData.sizes, color: formData.colors },
@@ -819,33 +815,31 @@ const ProductCreate = () => {
                 />
               </div>
 
-              {/* Collections */}
+              {/* Collection (for New Arrivals / Sale / Featured filtering) */}
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-                  Collections
+                  Collection
                 </label>
-                <div className="flex flex-wrap gap-2">
-                  {collections.map((collection) => {
-                    const isSelected = formData.collections.includes(collection);
-                    return (
-                      <motion.button
-                        key={collection}
-                        type="button"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => toggleCollection(collection)}
-                        className="px-3 py-1.5 rounded-full text-xs font-medium border transition-colors"
-                        style={{
-                          borderColor: isSelected ? "var(--color-primary)" : "var(--border-primary)",
-                          backgroundColor: isSelected ? "var(--color-primary)" : "transparent",
-                          color: isSelected ? "white" : "var(--text-secondary)",
-                        }}
-                      >
-                        {collection}
-                      </motion.button>
-                    );
-                  })}
-                </div>
+                <select
+                  name="collection"
+                  value={formData.collection}
+                  onChange={handleCollectionChange}
+                  className="w-full max-w-xs px-4 py-2.5 rounded-lg border-2 text-sm font-medium transition-colors"
+                  style={{
+                    borderColor: "var(--border-primary)",
+                    backgroundColor: "var(--bg-primary)",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  {collectionOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>
+                  e.g. &quot;New Arrivals&quot; shows this product on /new-arrivals
+                </p>
               </div>
 
               {/* Tags */}

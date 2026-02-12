@@ -61,6 +61,32 @@ export async function getProductsByGender(gender) {
 }
 
 /**
+ * Fetch products by collection (GET /api/products/collection/:collectionName).
+ * @param {string} collectionName - e.g. "new-arrivals", "sale", "featured"
+ * @returns {Promise<{ success: boolean, products?: Array, message?: string }>}
+ */
+export async function getProductsByCollection(collectionName) {
+  const baseUrl = getBaseUrl();
+  const slug = encodeURIComponent(String(collectionName).toLowerCase().replace(/\s+/g, "-"));
+  const response = await fetch(`${baseUrl}/api/products/collection/${slug}`);
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    return {
+      success: false,
+      message: data.message || "Failed to load products",
+      products: [],
+    };
+  }
+
+  return {
+    success: true,
+    products: Array.isArray(data.products) ? data.products : [],
+  };
+}
+
+/**
  * Create a product via POST /api/products (JSON body).
  * @param {Object} payload - Product data (name, price, category, etc.)
  * @returns {Promise<{ success: boolean, product?: Object, message?: string, errors?: string[] }>}

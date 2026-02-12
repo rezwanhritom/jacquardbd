@@ -17,6 +17,12 @@ const productSchema = new mongoose.Schema(
     category: { type: String, default: "" }, // full path e.g. "Male > Winter Wear > Jackets > Leather Jacket"
     categoryPath: [{ type: String }], // parsed path for filtering e.g. ["Male", "Winter Wear", "Jackets", "Leather Jacket"]
     collections: [{ type: String }],
+    /** Single collection for filtering (e.g. new-arrivals page). Values: regular | new-arrivals | sale | featured */
+    collection: {
+      type: String,
+      enum: ["regular", "new-arrivals", "sale", "featured"],
+      default: "regular",
+    },
     tags: [{ type: String }],
     variants: {
       size: [{ type: String }],
