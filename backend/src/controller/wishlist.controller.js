@@ -48,10 +48,16 @@ export async function addToWishlist(req, res, next) {
       (id) => id.toString() === productId
     );
     if (alreadyAdded) {
+      const populated = await User.findById(req.user._id)
+        .populate({
+          path: "wishlist",
+          select: "name price images category slug _id originalPrice discount finalPrice stockQuantity",
+        })
+        .lean();
       return res.status(200).json({
         success: true,
         message: "Already in wishlist",
-        wishlist: user.wishlist,
+        wishlist: populated?.wishlist ?? user.wishlist,
       });
     }
 

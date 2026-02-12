@@ -1,16 +1,20 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiHeart, FiShoppingBag, FiChevronLeft, FiChevronRight, FiEye } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { getDisplayCategory } from "../../utils/productUtils";
+import { useAuth } from "../../context/AuthContext";
 import { useWishlist } from "../../context/WishlistContext";
 import { useCart } from "../../context/CartContext";
 
 const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
-  const { addToCart } = useCart();
+  const { addToCart, isInCart } = useCart();
   const inWishlist = isInWishlist(product);
+  const inCart = isInCart(product);
   const outOfStock = (product?.stockQuantity ?? 1) <= 0;
   const displayCategory = getDisplayCategory(product);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -52,6 +56,15 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
     e.preventDefault();
     e.stopPropagation();
     if (outOfStock) return;
+    if (!isAuthenticated) {
+      toast.error("Please login to add items to cart");
+      navigate("/login");
+      return;
+    }
+    if (inCart) {
+      toast.error("Product already in cart");
+      return;
+    }
     const { success, message } = await addToCart(product, 1);
     if (success) toast.success("Added to cart!");
     else if (message) toast.error(message);
@@ -149,14 +162,17 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
                   {inWishlist ? "In Wishlist" : "Wishlist"}
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: outOfStock ? 1 : 1.05 }}
-                  whileTap={{ scale: outOfStock ? 1 : 0.95 }}
+                  whileHover={outOfStock || inCart ? 1 : { scale: 1.05 }}
+                  whileTap={outOfStock || inCart ? 1 : { scale: 0.95 }}
                   onClick={handleAddToCart}
-                  disabled={outOfStock}
+                  disabled={outOfStock || inCart}
                   className="px-6 py-2.5 rounded-lg text-sm font-semibold uppercase tracking-wider text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: outOfStock ? "var(--bg-tertiary)" : "var(--color-primary)" }}
+                  style={{
+                    backgroundColor:
+                      outOfStock ? "var(--bg-tertiary)" : inCart ? "var(--bg-tertiary)" : "var(--color-primary)",
+                  }}
                   onFocus={(e) => {
-                    if (!outOfStock) {
+                    if (!outOfStock && !inCart) {
                       e.currentTarget.style.outline = "2px solid var(--color-primary)";
                       e.currentTarget.style.outlineOffset = "2px";
                     }
@@ -164,10 +180,12 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
                   onBlur={(e) => {
                     e.currentTarget.style.outline = "none";
                   }}
-                  aria-label={outOfStock ? "Out of stock" : `Add ${product.name} to cart`}
+                  aria-label={
+                    outOfStock ? "Out of stock" : inCart ? "Already in cart" : `Add ${product.name} to cart`
+                  }
                 >
                   <FiShoppingBag size={16} className="inline mr-2" />
-                  {outOfStock ? "Out of Stock" : "Add to Cart"}
+                  {outOfStock ? "Out of Stock" : inCart ? "Already in Cart" : "Add to Cart"}
                 </motion.button>
               </div>
             </div>
@@ -354,14 +372,17 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
                     <FiHeart size={18} className={inWishlist ? "fill-current" : ""} style={{ color: "var(--color-primary)" }} />
                   </motion.button>
                   <motion.button
-                    whileHover={{ scale: outOfStock ? 1 : 1.1 }}
-                    whileTap={{ scale: outOfStock ? 1 : 0.95 }}
+                    whileHover={outOfStock || inCart ? 1 : { scale: 1.1 }}
+                    whileTap={outOfStock || inCart ? 1 : { scale: 0.95 }}
                     onClick={handleAddToCart}
-                    disabled={outOfStock}
+                    disabled={outOfStock || inCart}
                     className="p-3 rounded-full shadow-lg text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: outOfStock ? "var(--bg-tertiary)" : "var(--color-primary)" }}
+                    style={{
+                      backgroundColor:
+                        outOfStock || inCart ? "var(--bg-tertiary)" : "var(--color-primary)",
+                    }}
                     onFocus={(e) => {
-                      if (!outOfStock) {
+                      if (!outOfStock && !inCart) {
                         e.currentTarget.style.outline = "2px solid white";
                         e.currentTarget.style.outlineOffset = "2px";
                       }
@@ -369,8 +390,10 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
                     onBlur={(e) => {
                       e.currentTarget.style.outline = "none";
                     }}
-                    aria-label={outOfStock ? "Out of stock" : `Add ${product.name} to cart`}
-                    title={outOfStock ? "Out of stock" : "Add to Cart"}
+                    aria-label={
+                      outOfStock ? "Out of stock" : inCart ? "Already in cart" : `Add ${product.name} to cart`
+                    }
+                    title={outOfStock ? "Out of stock" : inCart ? "Already in Cart" : "Add to Cart"}
                   >
                     <FiShoppingBag size={18} />
                   </motion.button>

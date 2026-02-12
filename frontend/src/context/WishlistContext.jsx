@@ -95,19 +95,23 @@ export function WishlistProvider({ children }) {
       const id = productId(product);
       if (!id) return { success: false, message: "Invalid product" };
 
+      const alreadyIn = wishlistItems.some(
+        (p) => productId(p) === id || String(productId(p)) === String(id)
+      );
+      if (alreadyIn) return { success: true, message: "Already in wishlist" };
+
       if (isAuthenticated) {
         const prev = [...wishlistItems];
-        setWishlistItems((curr) => (curr.some((p) => productId(p) === id) ? curr : [...curr, normalizeItem(product)]));
+        setWishlistItems((curr) => [...curr, normalizeItem(product)]);
         const { success, wishlist, message } = await wishlistApi.addToWishlist(id);
         if (success && Array.isArray(wishlist)) {
           setWishlistItems(wishlist.map(normalizeItem));
         } else {
           setWishlistItems(prev);
         }
-        return { success, message };
+        return { success: success !== false, message };
       } else {
         const guest = getGuestWishlist();
-        if (guest.some((p) => productId(p) === id)) return { success: true, message: "Already in wishlist" };
         guest.push({
           _id: id,
           id,

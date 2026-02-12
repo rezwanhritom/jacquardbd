@@ -26,8 +26,9 @@ export async function getCart(req, res, next) {
 
 /**
  * POST /api/cart/:productId
- * Add to cart or increase quantity. Body optional: { quantity: number }.
- * Checks stock before increasing.
+ * Add to cart. A product can only be added once.
+ * If product already in cart → 400 "Product already in cart" (do not increase quantity).
+ * Body optional: { quantity: number } for the initial add.
  */
 export async function addToCart(req, res, next) {
   try {
@@ -47,13 +48,12 @@ export async function addToCart(req, res, next) {
     if (!user) return res.status(401).json({ success: false, message: "User not found" });
 
     const entry = user.cart.find((e) => e.product.toString() === productId);
-    const stock = product.stockQuantity ?? 0;
     if (entry) {
-      const newQty = Math.min(entry.quantity + qty, Math.max(1, stock));
-      entry.quantity = newQty;
-    } else {
-      user.cart.push({ product: productId, quantity: Math.min(qty, Math.max(1, stock)) });
+      return res.status(400).json({ success: false, message: "Product already in cart" });
     }
+
+    const stock = product.stockQuantity ?? 0;
+    user.cart.push({ product: productId, quantity: Math.min(qty, Math.max(1, stock)) });
     await user.save();
 
     const cart = await getPopulatedCart(req.user._id);
@@ -125,7 +125,7 @@ export async function removeFromCart(req, res, next) {
 /**
  * POST /api/cart/merge
  * Body: { items: [{ productId: string, quantity: number }] }.
- * Merge guest cart: add or combine quantities. Validates productId and stock.
+ * Merge guest cart: add only products not already in cart (no duplicates, no quantity bump).
  */
 export async function mergeCart(req, res, next) {
   try {
@@ -145,19 +145,15 @@ export async function mergeCart(req, res, next) {
     for (const i of validItems) {
       const id = i.productId;
       const q = Math.max(1, Math.floor(Number(i.quantity)));
-      qtyByProduct.set(id, (qtyByProduct.get(id) || 0) + q);
+      if (!qtyByProduct.has(id)) qtyByProduct.set(id, q);
     }
 
     for (const [productId, addQty] of qtyByProduct) {
+      const entry = user.cart.find((e) => e.product.toString() === productId);
+      if (entry) continue;
       const product = await Product.findById(productId).select("stockQuantity");
       const stock = product?.stockQuantity ?? 0;
-      const maxQty = Math.max(1, stock);
-      const entry = user.cart.find((e) => e.product.toString() === productId);
-      if (entry) {
-        entry.quantity = Math.min(entry.quantity + addQty, maxQty);
-      } else {
-        user.cart.push({ product: productId, quantity: Math.min(addQty, maxQty) });
-      }
+      user.cart.push({ product: productId, quantity: Math.min(addQty, Math.max(1, stock)) });
     }
     await user.save();
 
