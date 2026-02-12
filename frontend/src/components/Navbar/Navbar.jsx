@@ -15,7 +15,6 @@ import {
   FiLogOut,
   FiUserPlus,
   FiGrid,
-  FiChevronDown,
   FiLayout,
   FiPackage,
   FiMapPin,
@@ -33,6 +32,7 @@ const Navbar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const { isDark, toggleDarkMode } = useDarkMode();
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
@@ -84,8 +84,9 @@ const Navbar = () => {
     setActiveMegaMenu(null);
   };
 
-  const handleLogout = async () => {
+  const handleLogoutConfirm = async () => {
     await logout();
+    setLogoutModalOpen(false);
     setMobileMenuOpen(false);
     navigate("/");
   };
@@ -431,11 +432,11 @@ const Navbar = () => {
                   onMouseEnter={() => setAccountMenuOpen(true)}
                   onMouseLeave={() => setAccountMenuOpen(false)}
                 >
-                  <Link to="/account" className="flex items-center gap-1">
+                  <Link to="/account" className="flex items-center">
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
-                      className="flex items-center gap-1.5 px-2 py-2 rounded-lg transition-colors"
+                      className="p-2 rounded-lg transition-colors"
                       style={{
                         color: isActivePath("/account") ? "var(--color-primary)" : "var(--text-secondary)",
                         backgroundColor: accountMenuOpen ? "var(--bg-secondary)" : "transparent",
@@ -451,8 +452,6 @@ const Navbar = () => {
                       aria-expanded={accountMenuOpen}
                     >
                       <FiUser size={20} />
-                      <span className="text-sm font-medium hidden xl:inline">Account</span>
-                      <FiChevronDown size={14} className={accountMenuOpen ? "rotate-180" : ""} style={{ transition: "transform 0.2s" }} />
                     </motion.button>
                   </Link>
                   <AnimatePresence>
@@ -516,7 +515,7 @@ const Navbar = () => {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={handleLogout}
+                  onClick={() => setLogoutModalOpen(true)}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm uppercase tracking-wide transition-all border"
                   style={{
                     borderColor: "var(--border-primary)",
@@ -816,7 +815,7 @@ const Navbar = () => {
                 {isAuthenticated && (
                   <motion.button
                     whileTap={{ scale: 0.98 }}
-                    onClick={handleLogout}
+                    onClick={() => setLogoutModalOpen(true)}
                     className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide border-2 mb-4"
                     style={{
                       borderColor: "var(--border-primary)",
@@ -885,6 +884,72 @@ const Navbar = () => {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Logout confirmation modal - centered on page */}
+      <AnimatePresence>
+        {logoutModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="logout-modal-title"
+          >
+            <div
+              className="absolute inset-0 bg-black/50"
+              onClick={() => setLogoutModalOpen(false)}
+              aria-hidden="true"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ type: "tween", duration: 0.2 }}
+              className="relative w-full max-w-sm p-6 rounded-2xl shadow-xl"
+              style={{
+                backgroundColor: "var(--bg-primary)",
+                border: "1px solid var(--border-primary)",
+              }}
+            >
+              <h2 id="logout-modal-title" className="text-lg font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
+                Log out?
+              </h2>
+              <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>
+                Are you sure you want to log out?
+              </p>
+              <div className="flex gap-3 justify-end">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setLogoutModalOpen(false)}
+                  className="px-4 py-2.5 rounded-lg font-medium text-sm border"
+                  style={{
+                    borderColor: "var(--border-primary)",
+                    color: "var(--text-primary)",
+                    backgroundColor: "transparent",
+                  }}
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleLogoutConfirm}
+                  className="px-4 py-2.5 rounded-lg font-medium text-sm"
+                  style={{
+                    backgroundColor: "var(--color-primary)",
+                    color: "white",
+                  }}
+                >
+                  Log out
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </>
