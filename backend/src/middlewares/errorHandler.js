@@ -22,6 +22,12 @@ export function errorHandler(err, req, res, next) {
       errors: [field === "email" ? "Email already registered" : "A product with this slug already exists"],
     });
   }
+  if (err.code === "LIMIT_FILE_SIZE" || err.message?.includes("File too large")) {
+    return res.status(400).json({ success: false, message: "File too large. Max 5MB allowed." });
+  }
+  if (err.message?.includes("Invalid file type")) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
 
   res.status(status).json({
     success: false,
