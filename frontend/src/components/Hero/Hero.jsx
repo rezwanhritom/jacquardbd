@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { heroData } from "../../data/hero";
-import { fadeInUp } from "../../utils/animations";
-import { FiChevronLeft, FiChevronRight, FiArrowRight } from "react-icons/fi";
+import { FiArrowRight } from "react-icons/fi";
 
 const Hero = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -20,26 +21,38 @@ const Hero = () => {
     setCurrentSlide(index);
   };
 
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % heroData.length);
-  };
-
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + heroData.length) % heroData.length);
+  const minSwipeDistance = 50;
+  const onTouchStart = (e) => setTouchStart(e.targetTouches[0].clientX);
+  const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
+  const onTouchEnd = () => {
+    if (touchStart == null || touchEnd == null) return;
+    const distance = touchStart - touchEnd;
+    if (distance > minSwipeDistance) {
+      setCurrentSlide((prev) => (prev + 1) % heroData.length);
+    } else if (distance < -minSwipeDistance) {
+      setCurrentSlide((prev) => (prev - 1 + heroData.length) % heroData.length);
+    }
+    setTouchStart(null);
+    setTouchEnd(null);
   };
 
   return (
-    <section className="relative h-screen overflow-hidden">
+    <section
+      className="relative h-[55vh] sm:h-[60vh] lg:h-[75vh] overflow-hidden touch-pan-y"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
       <AnimatePresence mode="wait">
         {heroData.map(
           (slide, index) =>
             index === currentSlide && (
               <motion.div
                 key={slide.id}
-                initial={{ opacity: 0, scale: 1.1 }}
+                initial={{ opacity: 0, scale: 1.02 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 1, ease: "easeInOut" }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.35, ease: "easeInOut" }}
                 className="absolute inset-0"
                 style={{ backgroundColor: slide.backgroundColor }}
               >
@@ -52,12 +65,12 @@ const Hero = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
                 
-                <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
+                <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center text-center">
                   <motion.div
-                    initial={{ opacity: 0, x: -100 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.3 }}
-                    className="max-w-2xl space-y-6 text-white"
+                    className="max-w-2xl mx-auto space-y-6 text-white"
                   >
                     <motion.p
                       initial={{ opacity: 0, y: 20 }}
@@ -79,7 +92,7 @@ const Hero = () => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.6 }}
-                      className="text-lg md:text-xl max-w-lg text-white/90"
+                      className="text-lg md:text-xl max-w-lg mx-auto text-white/90"
                     >
                       {slide.description}
                     </motion.p>
@@ -87,6 +100,7 @@ const Hero = () => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.7 }}
+                      className="flex justify-center"
                     >
                       <Link to={slide.ctaLink}>
                         <motion.button
@@ -112,34 +126,6 @@ const Hero = () => {
             )
         )}
       </AnimatePresence>
-
-      {/* Navigation Arrows */}
-      <motion.button
-        onClick={prevSlide}
-        className="absolute left-4 top-1/2 -translate-y-1/2 p-4 rounded-full shadow-lg backdrop-blur-sm transition-all z-10"
-        style={{
-          backgroundColor: "rgba(255, 255, 255, 0.1)",
-          color: "white",
-        }}
-        whileHover={{ scale: 1.1, backgroundColor: "rgba(255, 255, 255, 0.2)" }}
-        whileTap={{ scale: 0.9 }}
-        aria-label="Previous slide"
-      >
-        <FiChevronLeft size={24} />
-      </motion.button>
-      <motion.button
-        onClick={nextSlide}
-        className="absolute right-4 top-1/2 -translate-y-1/2 p-4 rounded-full shadow-lg backdrop-blur-sm transition-all z-10"
-        style={{
-          backgroundColor: "rgba(255, 255, 255, 0.1)",
-          color: "white",
-        }}
-        whileHover={{ scale: 1.1, backgroundColor: "rgba(255, 255, 255, 0.2)" }}
-        whileTap={{ scale: 0.9 }}
-        aria-label="Next slide"
-      >
-        <FiChevronRight size={24} />
-      </motion.button>
 
       {/* Dots Indicator */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex space-x-2 z-10">
