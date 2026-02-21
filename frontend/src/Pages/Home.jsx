@@ -1,4 +1,4 @@
-import { Hero, Categories, Trust, Newsletter, FeaturedBanner, ProductCarousel, Membership } from "../components";
+import { Hero, Trust, Newsletter, FeaturedBanner, ProductCarousel, Membership } from "../components";
 import { productsData } from "../data/products";
 
 const Home = () => {
@@ -10,9 +10,6 @@ const Home = () => {
     <>
       {/* Hero Section with Animated Entrance */}
       <Hero />
-
-      {/* Category Grid */}
-      <Categories />
 
       {/* Featured Collection Banner */}
       <FeaturedBanner />
