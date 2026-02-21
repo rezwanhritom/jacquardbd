@@ -1,4 +1,4 @@
-import { Hero, Trust, Newsletter, FeaturedBanner, ProductCarousel, Membership } from "../components";
+import { Hero, Newsletter, FeaturedBanner, ProductCarousel, Membership } from "../components";
 import { productsData } from "../data/products";
 
 const Home = () => {
@@ -21,9 +21,6 @@ const Home = () => {
         products={newArrivals}
         showViewAll={true}
       />
-
-      {/* Trust Section */}
-      <Trust />
 
       {/* Best Sellers Carousel */}
       <ProductCarousel
