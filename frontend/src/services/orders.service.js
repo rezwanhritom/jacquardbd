@@ -1,5 +1,7 @@
 /**
- * Admin orders API. Uses credentials (cookies). Requires admin role.
+ * Orders API. Uses credentials (cookies).
+ * - getMyOrders / getMyOrderById: authenticated user (own orders).
+ * - getAdminOrders / updateOrderStatus: admin only.
  */
 
 const getBaseUrl = () => {
@@ -7,6 +9,32 @@ const getBaseUrl = () => {
   if (url) return url.replace(/\/$/, "");
   return "http://localhost:5001";
 };
+
+/**
+ * GET /api/orders/me — current user's orders (newest first).
+ */
+export async function getMyOrders() {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(`${baseUrl}/api/orders/me`, { credentials: "include" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, orders: [], message: data.message || "Failed to load orders" };
+  }
+  return { success: true, orders: Array.isArray(data.orders) ? data.orders : [] };
+}
+
+/**
+ * GET /api/orders/me/:orderId — single order for current user.
+ */
+export async function getMyOrderById(orderId) {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(`${baseUrl}/api/orders/me/${orderId}`, { credentials: "include" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, order: null, message: data.message || "Order not found" };
+  }
+  return { success: true, order: data.order };
+}
 
 export async function getAdminOrders() {
   const baseUrl = getBaseUrl();

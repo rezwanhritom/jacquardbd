@@ -4,6 +4,71 @@ import { ORDER_STATUS } from "../models/Order.js";
 const ALLOWED_STATUSES = Object.values(ORDER_STATUS);
 
 /**
+ * GET /api/orders/me
+ * Authenticated user only. Returns current user's orders, newest first.
+ */
+export async function getMyOrders(req, res, next) {
+  try {
+    const userId = req.user._id;
+    const orders = await Order.find({ user: userId })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const list = orders.map((o) => ({
+      _id: o._id,
+      orderId: `ORD-${String(o._id).slice(-10).toUpperCase()}`,
+      date: o.createdAt,
+      status: o.status,
+      total: o.amount,
+      currency: o.currency ?? "BDT",
+      items: (o.items || []).map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+      shippingAddress: o.shippingAddress,
+    }));
+
+    res.json({ success: true, orders: list });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * GET /api/orders/me/:orderId
+ * Authenticated user only. Returns single order if it belongs to current user.
+ */
+export async function getMyOrderById(req, res, next) {
+  try {
+    const { orderId } = req.params;
+    const userId = req.user._id;
+
+    const order = await Order.findOne({ _id: orderId, user: userId }).lean();
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    res.json({
+      success: true,
+      order: {
+        _id: order._id,
+        orderId: `ORD-${String(order._id).slice(-10).toUpperCase()}`,
+        date: order.createdAt,
+        status: order.status,
+        total: order.amount,
+        currency: order.currency ?? "BDT",
+        items: order.items || [],
+        shippingAddress: order.shippingAddress,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * GET /api/orders/admin/list
  * Admin only. Returns all orders with user populated, newest first.
  */

@@ -378,14 +378,10 @@ const Users = () => {
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
-                        style={{ backgroundColor: "var(--bg-tertiary)" }}
+                        className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: "var(--bg-tertiary)", color: "var(--color-primary)" }}
                       >
-                        {customer.avatar ? (
-                          <img src={customer.avatar} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <FiUser size={24} style={{ color: "var(--color-primary)" }} />
-                        )}
+                        <FiUser size={24} />
                       </div>
                       <div>
                         <p className="font-semibold" style={{ color: "var(--text-primary)" }}>

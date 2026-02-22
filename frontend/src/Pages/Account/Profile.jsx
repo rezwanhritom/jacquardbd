@@ -1,13 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { FiUser, FiMail, FiPhone, FiMapPin, FiCamera, FiSave } from "react-icons/fi";
+import { FiUser, FiMail, FiPhone, FiMapPin, FiSave } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
-import { getProfile, updateProfile, uploadProfileImage } from "../../services/user.service";
+import { getProfile, updateProfile } from "../../services/user.service";
 import Loading from "../../components/Loading";
-
-const defaultAvatar = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&q=80";
 
 const Profile = () => {
   const { user: authUser, isAuthenticated } = useAuth();
@@ -27,8 +25,6 @@ const Profile = () => {
   });
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const avatarInputRef = useRef(null);
 
   useEffect(() => {
     if (!isAuthenticated || !authUser?._id) {
@@ -68,24 +64,6 @@ const Profile = () => {
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setSaved(false);
-  };
-
-  const handleAvatarChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file || !authUser?._id) return;
-    e.target.value = "";
-    setUploadingAvatar(true);
-    uploadProfileImage(file)
-      .then(({ success, url, message }) => {
-        if (success && url) {
-          setProfile((prev) => (prev ? { ...prev, avatar: url } : prev));
-          toast.success("Profile photo updated!");
-        } else {
-          toast.error(message || "Failed to upload photo");
-        }
-      })
-      .catch(() => toast.error("Failed to upload photo"))
-      .finally(() => setUploadingAvatar(false));
   };
 
   const handleSave = () => {
@@ -146,14 +124,13 @@ const Profile = () => {
   }
 
   const displayName = [formData.firstName, formData.lastName].filter(Boolean).join(" ") || profile?.name || "User";
-  const avatarUrl = profile?.avatar?.trim() || defaultAvatar;
   const memberSince = profile?.createdAt
     ? new Date(profile.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long" })
     : "";
 
   return (
     <div className="space-y-6">
-      {/* Profile Picture Section */}
+      {/* Profile identity (icon + name) */}
       <motion.div
         initial="initial"
         animate="animate"
@@ -162,33 +139,11 @@ const Profile = () => {
         style={{ backgroundColor: "var(--bg-secondary)" }}
       >
         <div className="flex items-center gap-6">
-          <div className="relative">
-            <div className="w-24 h-24 rounded-full overflow-hidden border-4" style={{ borderColor: "var(--border-primary)" }}>
-              <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
-            </div>
-            <input
-              ref={avatarInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              className="hidden"
-              onChange={handleAvatarChange}
-            />
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              disabled={uploadingAvatar}
-              onClick={() => avatarInputRef.current?.click()}
-              className="absolute bottom-0 right-0 p-2 rounded-full border-2 disabled:opacity-60"
-              style={{
-                borderColor: "var(--border-primary)",
-                backgroundColor: "var(--bg-primary)",
-                color: "var(--text-primary)",
-              }}
-              title="Change profile photo"
-            >
-              <FiCamera size={18} />
-            </motion.button>
+          <div
+            className="w-24 h-24 rounded-full flex items-center justify-center border-4 flex-shrink-0"
+            style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-primary)", color: "var(--color-primary)" }}
+          >
+            <FiUser size={40} />
           </div>
           <div>
             <h3 className="text-xl font-bold mb-1" style={{ color: "var(--text-primary)" }}>

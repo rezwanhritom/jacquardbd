@@ -1,6 +1,7 @@
 import express from "express";
 import { protect, sameUser, requireRole } from "../middlewares/auth.middleware.js";
 import {
+  getAccountDashboard,
   getProfile,
   updateProfile,
   getWishlist,
@@ -21,6 +22,7 @@ router.post("/admin", requireRole(["admin"]), createUserAdmin);
 router.put("/admin/:userId", requireRole(["admin"]), updateUserAdmin);
 router.delete("/admin/:userId", requireRole(["admin"]), deleteUserAdmin);
 
+router.get("/:userId/dashboard", sameUser, getAccountDashboard);
 router.get("/:userId", sameUser, getProfile);
 router.put("/:userId", sameUser, updateProfile);
 router.get("/:userId/wishlist", sameUser, getWishlist);

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import User from "../models/User.js";
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
@@ -163,6 +164,86 @@ export async function deleteUserAdmin(req, res, next) {
 
     await User.findByIdAndDelete(userId);
     res.json({ success: true, message: "User deleted successfully" });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * GET /api/users/:userId/dashboard
+ * Same-user only. Returns dashboard stats: user, totalOrders, totalSpent, wishlistCount, avgOrderValue, recentOrders.
+ */
+export async function getAccountDashboard(req, res, next) {
+  try {
+    const { userId } = req.params;
+    if (!userId || !MONGO_ID_REGEX.test(userId)) {
+      return res.status(400).json({ success: false, message: "Invalid user ID" });
+    }
+
+    const [userDoc, orderStats, wishlistCount, recentOrdersList] = await Promise.all([
+      User.findById(userId).select("name email avatar role createdAt").lean(),
+      Order.aggregate([
+        { $match: { user: new mongoose.Types.ObjectId(userId) } },
+        {
+          $facet: {
+            all: [{ $count: "total" }],
+            paid: [
+              { $match: { status: ORDER_STATUS.PAID } },
+              { $group: { _id: null, count: { $sum: 1 }, totalSpent: { $sum: "$amount" } } },
+            ],
+          },
+        },
+      ]).then((r) => r[0] || {}),
+      User.findById(userId).select("wishlist").lean().then((u) => (u?.wishlist?.length ?? 0)),
+      Order.find({ user: userId })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
+    ]);
+
+    if (!userDoc) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const totalOrders = orderStats.all?.[0]?.total ?? 0;
+    const paidFacet = orderStats.paid?.[0];
+    const paidCount = paidFacet?.count ?? 0;
+    const totalSpent = paidFacet?.totalSpent ?? 0;
+    const avgOrderValue = paidCount > 0 ? totalSpent / paidCount : 0;
+
+    const recentOrders = recentOrdersList.map((o) => ({
+      _id: o._id,
+      orderId: `ORD-${String(o._id).slice(-10).toUpperCase()}`,
+      date: o.createdAt,
+      status: o.status,
+      total: o.amount,
+      currency: o.currency ?? "BDT",
+      items: (o.items || []).map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          _id: userDoc._id,
+          name: userDoc.name,
+          email: userDoc.email,
+          avatar: userDoc.avatar ?? "",
+          role: userDoc.role ?? "user",
+          createdAt: userDoc.createdAt,
+        },
+        totalOrders,
+        totalSpent,
+        wishlistCount,
+        avgOrderValue,
+        recentOrders,
+      },
+    });
   } catch (err) {
     next(err);
   }

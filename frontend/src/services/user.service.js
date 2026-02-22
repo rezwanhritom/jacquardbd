@@ -22,6 +22,18 @@ const userFetch = (path, options = {}) => {
 };
 
 /**
+ * GET /api/users/:userId/dashboard — fetch account dashboard (user, totalOrders, totalSpent, wishlistCount, avgOrderValue, recentOrders).
+ */
+export async function getAccountDashboard(userId) {
+  const res = await userFetch(`/${userId}/dashboard`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, data: null, message: data.message || "Failed to load dashboard" };
+  }
+  return { success: true, data: data.data, message: data.message };
+}
+
+/**
  * GET /api/users/:userId — fetch profile (name, email, avatar, createdAt, updatedAt).
  */
 export async function getProfile(userId) {
