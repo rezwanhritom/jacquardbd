@@ -10,6 +10,8 @@ export { default as Container } from "./Container";
 export { default as Section } from "./Section";
 export { default as Loading } from "./Loading";
 export { default as FeaturedBanner } from "./FeaturedBanner";
+export { default as SectionBar } from "./SectionBar";
+export { default as HomeProductShowcase } from "./HomeProductShowcase";
 export { default as ProductCarousel } from "./ProductCarousel";
 export { default as Membership } from "./Membership";
 export { default as ProductCard } from "./ProductCard";

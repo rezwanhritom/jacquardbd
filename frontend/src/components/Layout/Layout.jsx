@@ -23,7 +23,7 @@ const Layout = () => {
       <header className="sticky top-0 z-50 w-full">
         <Navbar />
       </header>
-      <main id="main-content" className="flex-1 w-full overflow-x-hidden" tabIndex={-1}>
+      <main id="main-content" className="flex-1 w-full min-w-0" tabIndex={-1}>
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}

@@ -19,7 +19,7 @@ const FeaturedBanner = () => {
       whileInView="animate"
       viewport={{ once: true, amount: 0.3 }}
       variants={fadeInUp}
-      className="relative h-[500px] md:h-[600px] overflow-hidden rounded-2xl my-20 mx-4 sm:mx-6 lg:mx-8"
+      className="relative h-[500px] md:h-[600px] overflow-hidden rounded-none mx-0 mt-0 mb-0"
       style={{ backgroundColor: "var(--bg-secondary)" }}
     >
       <div
@@ -29,15 +29,15 @@ const FeaturedBanner = () => {
           opacity: 0.4,
         }}
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black/40" />
       
-      <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center">
+      <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center text-center">
         <motion.div
-          initial={{ opacity: 0, x: -50 }}
-          whileInView={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="max-w-2xl space-y-6 text-white"
+          className="max-w-2xl mx-auto space-y-6 text-white"
         >
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -62,7 +62,7 @@ const FeaturedBanner = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.5 }}
-            className="text-lg md:text-xl text-white/80 max-w-lg"
+            className="text-lg md:text-xl text-white/80 max-w-lg mx-auto"
           >
             {bannerData.description}
           </motion.p>
@@ -71,6 +71,7 @@ const FeaturedBanner = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.6 }}
+            className="flex justify-center"
           >
             <Link to={bannerData.ctaLink}>
               <motion.button

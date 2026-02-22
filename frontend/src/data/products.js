@@ -50,6 +50,7 @@ export const productsData = [
       "https://images.unsplash.com/photo-1576871337622-98d48d1cf531?w=600&q=80",
     ],
     badge: "Sale",
+    description: "Timeless denim jacket with premium finish. A versatile layer for any wardrobe.",
     inStock: true,
   },
   {
@@ -85,6 +86,7 @@ export const productsData = [
       "https://images.unsplash.com/photo-1576871337622-98d48d1cf531?w=600&q=80",
     ],
     badge: "Limited",
+    description: "Hand-finished silk scarf in seasonal colors. A refined accessory for any occasion.",
     inStock: true,
   },
   {
@@ -102,6 +104,7 @@ export const productsData = [
       "https://images.unsplash.com/photo-1571945153237-4929e783af4a?w=600&q=80",
     ],
     badge: null,
+    description: "Craft leather belt with polished hardware. Essential everyday accessory.",
     inStock: true,
   },
   {
@@ -119,6 +122,7 @@ export const productsData = [
       "https://images.unsplash.com/photo-1605348532760-6753d2c43329?w=600&q=80",
     ],
     badge: "Sale",
+    description: "Lightweight sneakers for all-day comfort. Clean, sporty look.",
     inStock: true,
   },
   {
@@ -136,6 +140,7 @@ export const productsData = [
       "https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=600&q=80",
     ],
     badge: null,
+    description: "Crisp oxford shirt in premium cotton. A wardrobe staple for work and weekend.",
     inStock: true,
   },
 ];

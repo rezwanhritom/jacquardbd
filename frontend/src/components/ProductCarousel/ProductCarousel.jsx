@@ -5,7 +5,7 @@ import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiChevronLeft, FiChevronRight, FiShoppingBag, FiHeart } from "react-icons/fi";
 import { getDisplayCategory } from "../../utils/productUtils";
 
-const ProductCarousel = ({ title, subtitle, products, showViewAll = true }) => {
+const ProductCarousel = ({ title, subtitle, products, showViewAll = true, compact = false }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollContainerRef = useRef(null);
 
@@ -29,44 +29,49 @@ const ProductCarousel = ({ title, subtitle, products, showViewAll = true }) => {
   const canScrollNext = currentIndex < products.length - 3;
 
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 transition-colors duration-300" style={{ backgroundColor: "var(--bg-primary)" }}>
+    <section
+      className={`px-4 sm:px-6 lg:px-8 transition-colors duration-300 ${compact ? "py-6" : "py-20"}`}
+      style={{ backgroundColor: "var(--bg-primary)" }}
+    >
       <div className="max-w-7xl mx-auto">
-        <motion.div
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, amount: 0.2 }}
-          variants={staggerContainer}
-          className="flex items-center justify-between mb-12"
-        >
-          <motion.div variants={fadeInUp}>
-            <h2 className="text-4xl md:text-5xl font-bold mb-3" style={{ color: "var(--color-primary)" }}>
-              {title}
-            </h2>
-            {subtitle && (
-              <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
-                {subtitle}
-              </p>
+        {!compact && (
+          <motion.div
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={staggerContainer}
+            className="flex items-center justify-between mb-12"
+          >
+            <motion.div variants={fadeInUp}>
+              <h2 className="text-4xl md:text-5xl font-bold mb-3" style={{ color: "var(--color-primary)" }}>
+                {title}
+              </h2>
+              {subtitle && (
+                <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
+                  {subtitle}
+                </p>
+              )}
+            </motion.div>
+            {showViewAll && (
+              <motion.div variants={fadeInUp}>
+                <Link
+                  to="/collection/new-arrivals"
+                  className="text-sm uppercase tracking-wider font-semibold flex items-center gap-2 transition-colors"
+                  style={{ color: "var(--color-primary)" }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--active-color)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--color-primary)";
+                  }}
+                >
+                  View All
+                  <FiChevronRight size={16} />
+                </Link>
+              </motion.div>
             )}
           </motion.div>
-          {showViewAll && (
-            <motion.div variants={fadeInUp}>
-              <Link
-                to="/collection/new-arrivals"
-                className="text-sm uppercase tracking-wider font-semibold flex items-center gap-2 transition-colors"
-                style={{ color: "var(--color-primary)" }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "var(--active-color)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--color-primary)";
-                }}
-              >
-                View All
-                <FiChevronRight size={16} />
-              </Link>
-            </motion.div>
-          )}
-        </motion.div>
+        )}
 
         <div className="relative">
           {/* Navigation Buttons */}
