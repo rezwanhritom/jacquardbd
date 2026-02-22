@@ -72,6 +72,10 @@ export async function register(req, res, next) {
       password,
     });
 
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[Auth] User registered and saved to DB:", user.email, "| _id:", user._id?.toString());
+    }
+
     res.status(201).json({
       success: true,
       message: "Registration successful",
