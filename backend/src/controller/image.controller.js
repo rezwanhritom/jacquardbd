@@ -91,14 +91,14 @@ export async function uploadProfileImage(req, res, next) {
       folder,
     });
     if (!result?.url) return res.status(500).json({ success: false, message: "Upload failed" });
-    const oldUrl = req.user.profileImage;
+    const oldUrl = req.user.avatar;
     if (oldUrl) {
       try {
         const fileId = oldUrl.split("/").pop()?.split("?")[0];
         if (fileId) await imagekit.deleteFile(fileId);
       } catch (_) {}
     }
-    await User.updateOne({ _id: userId }, { $set: { profileImage: result.url } });
+    await User.updateOne({ _id: userId }, { $set: { avatar: result.url } });
     res.status(201).json({ success: true, message: "Profile image uploaded", url: result.url });
   } catch (err) {
     next(err);

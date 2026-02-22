@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { FiPlus, FiEdit, FiTrash2, FiX, FiSave, FiCalendar, FiUsers } from "react-icons/fi";
+import { FiPlus, FiEdit, FiTrash2, FiX, FiSave, FiCalendar, FiUsers, FiPackage, FiSearch } from "react-icons/fi";
 import { EmptyState } from "../../components";
 import toast from "react-hot-toast";
 import { getCampaigns, createCampaign, updateCampaign, deleteCampaign } from "../../services/campaigns.service";
+import { getAdminProducts } from "../../services/productApi";
 
 const toDateInput = (date) => {
   if (!date) return "";
@@ -27,7 +28,10 @@ const Campaigns = () => {
     endDate: "",
     discount: "",
     targetAudience: "All Customers",
+    products: [],
   });
+  const [allProducts, setAllProducts] = useState([]);
+  const [productSearch, setProductSearch] = useState("");
 
   const fetchCampaigns = async () => {
     setLoading(true);
@@ -44,6 +48,17 @@ const Campaigns = () => {
   useEffect(() => {
     fetchCampaigns();
   }, []);
+
+  useEffect(() => {
+    if (showForm) {
+      getAdminProducts()
+        .then((res) => {
+          if (res.success && Array.isArray(res.products)) setAllProducts(res.products);
+          else setAllProducts([]);
+        })
+        .catch(() => setAllProducts([]));
+    }
+  }, [showForm]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -85,6 +100,7 @@ const Campaigns = () => {
       endDate: toDateInput(campaign.endDate),
       discount: (campaign.discount != null ? campaign.discount : "").toString(),
       targetAudience: campaign.targetAudience || "All Customers",
+      products: Array.isArray(campaign.products) ? campaign.products : [],
     });
     setShowForm(true);
   };
@@ -111,6 +127,7 @@ const Campaigns = () => {
       endDate: formData.endDate,
       discount: formData.discount ? parseFloat(formData.discount) : 0,
       targetAudience: formData.targetAudience,
+      products: Array.isArray(formData.products) ? formData.products : [],
     };
 
     if (editingCampaign) {
@@ -138,6 +155,7 @@ const Campaigns = () => {
   const handleCancel = () => {
     setShowForm(false);
     setEditingCampaign(null);
+    setProductSearch("");
     setFormData({
       name: "",
       type: "Discount",
@@ -146,8 +164,25 @@ const Campaigns = () => {
       endDate: "",
       discount: "",
       targetAudience: "All Customers",
+      products: [],
     });
   };
+
+  const toggleProduct = (productId) => {
+    const id = String(productId);
+    setFormData((prev) => ({
+      ...prev,
+      products: prev.products.includes(id)
+        ? prev.products.filter((p) => p !== id)
+        : [...prev.products, id],
+    }));
+  };
+
+  const filteredProducts = allProducts.filter((p) => {
+    const name = (p.name || "").toLowerCase();
+    const search = productSearch.toLowerCase().trim();
+    return !search || name.includes(search);
+  });
 
   if (loading) {
     return (
@@ -171,18 +206,19 @@ const Campaigns = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => {
-            setEditingCampaign(null);
-            setFormData({
-              name: "",
-              type: "Discount",
-              status: "Scheduled",
-              startDate: "",
-              endDate: "",
-              discount: "",
-              targetAudience: "All Customers",
-            });
-            setShowForm(true);
-          }}
+    setEditingCampaign(null);
+    setFormData({
+      name: "",
+      type: "Discount",
+      status: "Scheduled",
+      startDate: "",
+      endDate: "",
+      discount: "",
+      targetAudience: "All Customers",
+      products: [],
+    });
+    setShowForm(true);
+  }}
           className="flex items-center gap-2 px-4 py-2 text-white font-semibold rounded-lg"
           style={{ backgroundColor: "var(--color-primary)" }}
         >
@@ -350,6 +386,74 @@ const Campaigns = () => {
                     <option value="New Customers">New Customers</option>
                   </select>
                 </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={{ color: "var(--text-secondary)" }}>
+                    <FiPackage size={16} />
+                    Products (campaign applies to)
+                  </label>
+                  <p className="text-xs mb-2" style={{ color: "var(--text-tertiary)" }}>
+                    Leave empty to apply to all products. Select specific products to apply this campaign only to them.
+                  </p>
+                  <div className="relative mb-2">
+                    <FiSearch size={18} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-tertiary)" }} />
+                    <input
+                      type="text"
+                      placeholder="Search products..."
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border-2 rounded-lg outline-none text-sm"
+                      style={{
+                        borderColor: "var(--border-primary)",
+                        backgroundColor: "var(--bg-primary)",
+                        color: "var(--text-primary)",
+                      }}
+                    />
+                  </div>
+                  <div
+                    className="border-2 rounded-lg overflow-y-auto max-h-48"
+                    style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-primary)" }}
+                  >
+                    {filteredProducts.length === 0 ? (
+                      <p className="p-3 text-sm" style={{ color: "var(--text-tertiary)" }}>
+                        {allProducts.length === 0 ? "Loading products…" : "No products match your search."}
+                      </p>
+                    ) : (
+                      <ul className="p-2 space-y-1">
+                        {filteredProducts.map((product) => {
+                          const id = product._id || product.id;
+                          const checked = formData.products.includes(String(id));
+                          return (
+                            <li key={id}>
+                              <label
+                                className="flex items-center gap-3 px-3 py-2 rounded cursor-pointer hover:opacity-90"
+                                style={{ backgroundColor: checked ? "var(--color-primary)15" : "transparent" }}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => toggleProduct(id)}
+                                  className="rounded"
+                                  style={{ accentColor: "var(--color-primary)" }}
+                                />
+                                <span className="text-sm flex-1 truncate" style={{ color: "var(--text-primary)" }}>
+                                  {product.name || "—"}
+                                </span>
+                                <span className="text-xs shrink-0" style={{ color: "var(--text-tertiary)" }}>
+                                  ৳{product.price != null ? Number(product.price).toFixed(2) : "—"}
+                                </span>
+                              </label>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                  {formData.products.length > 0 && (
+                    <p className="text-xs mt-1" style={{ color: "var(--color-primary)" }}>
+                      {formData.products.length} product(s) selected — campaign will apply only to these.
+                    </p>
+                  )}
+                </div>
               </div>
               <div className="flex gap-3 pt-4">
                 <motion.button
@@ -471,6 +575,12 @@ const Campaigns = () => {
               <div className="flex items-center gap-2 text-sm">
                 <FiUsers size={14} style={{ color: "var(--text-tertiary)" }} />
                 <span style={{ color: "var(--text-secondary)" }}>{campaign.targetAudience}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <FiPackage size={14} style={{ color: "var(--text-tertiary)" }} />
+                <span style={{ color: "var(--text-secondary)" }}>
+                  {campaign.products?.length ? `${campaign.products.length} product(s)` : "All products"}
+                </span>
               </div>
               {(campaign.discount || 0) > 0 && (
                 <div className="text-sm">

@@ -7,6 +7,8 @@ import {
   addToWishlist,
   removeFromWishlist,
   getAdminCustomers,
+  createUserAdmin,
+  updateUserAdmin,
   deleteUserAdmin,
 } from "../controller/user.controller.js";
 
@@ -15,6 +17,8 @@ const router = express.Router();
 router.use(protect);
 
 router.get("/admin/list", requireRole(["admin"]), getAdminCustomers);
+router.post("/admin", requireRole(["admin"]), createUserAdmin);
+router.put("/admin/:userId", requireRole(["admin"]), updateUserAdmin);
 router.delete("/admin/:userId", requireRole(["admin"]), deleteUserAdmin);
 
 router.get("/:userId", sameUser, getProfile);
