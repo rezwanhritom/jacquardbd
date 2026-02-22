@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "fallback-dev-secret-change-in-production";
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "15m";
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "4h";
 
 /**
  * Generate a JWT access token for the given user id.

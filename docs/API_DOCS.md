@@ -96,7 +96,7 @@ CORS is configured for allowed origins; use `credentials: true` in frontend.
     "updatedAt": "..."
   },
   "accessToken": "<JWT string>",
-  "expiresIn": "15m"
+  "expiresIn": "4h"
 }
 ```
 
