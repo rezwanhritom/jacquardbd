@@ -14,7 +14,13 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
   };
 
   const handlePriceChange = (min, max) => {
-    onFilterChange({ ...filters, priceRange: { min, max } });
+    onFilterChange({
+      ...filters,
+      priceRange: {
+        min: min === "" || min == null ? "" : Number(min),
+        max: max === "" || max == null ? "" : Number(max),
+      },
+    });
   };
 
   const handleSizeToggle = (size) => {
@@ -33,20 +39,38 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
     onFilterChange({ ...filters, colors: newColors });
   };
 
-  const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
+  /** Sizes match admin Add Product category (ProductCreate). */
+  const sizes = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
+  /** Colors match admin Add Product preset colors (ProductCreate). */
   const colors = [
     { name: "Black", value: "#000000" },
     { name: "White", value: "#FFFFFF" },
-    { name: "Gray", value: "#808080" },
-    { name: "Navy", value: "#000080" },
-    { name: "Beige", value: "#F5F5DC" },
-    { name: "Brown", value: "#8B4513" },
+    { name: "Navy", value: "#1e3a5f" },
+    { name: "Red", value: "#c41e3a" },
+    { name: "Burgundy", value: "#800020" },
+    { name: "Gray", value: "#6b7280" },
+    { name: "Charcoal", value: "#36454f" },
+    { name: "Beige", value: "#f5f5dc" },
+    { name: "Brown", value: "#8b4513" },
+    { name: "Olive", value: "#808000" },
+    { name: "Blue", value: "#2563eb" },
+    { name: "Sky Blue", value: "#0ea5e9" },
+    { name: "Green", value: "#16a34a" },
+    { name: "Mustard", value: "#e4a853" },
+    { name: "Pink", value: "#ec4899" },
+    { name: "Purple", value: "#7c3aed" },
+    { name: "Orange", value: "#ea580c" },
+    { name: "Yellow", value: "#eab308" },
   ];
 
+  const hasPriceFilter =
+    filters.priceRange &&
+    ((filters.priceRange.min !== "" && filters.priceRange.min != null) ||
+      (filters.priceRange.max !== "" && filters.priceRange.max != null));
   const hasActiveFilters =
     (filters.sizes && filters.sizes.length > 0) ||
     (filters.colors && filters.colors.length > 0) ||
-    (filters.priceRange && (filters.priceRange.min > 0 || filters.priceRange.max < 1000));
+    hasPriceFilter;
 
   return (
     <motion.div
@@ -111,14 +135,13 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
                 <div className="flex items-center gap-4">
                   <input
                     type="number"
+                    min={0}
                     placeholder="Min"
-                    value={filters.priceRange?.min || ""}
-                    onChange={(e) =>
-                      handlePriceChange(
-                        parseFloat(e.target.value) || 0,
-                        filters.priceRange?.max || 1000
-                      )
-                    }
+                    value={filters.priceRange?.min === "" || filters.priceRange?.min == null ? "" : filters.priceRange.min}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      handlePriceChange(v === "" ? "" : parseFloat(v), filters.priceRange?.max ?? "");
+                    }}
                     className="w-full px-4 py-2 border rounded-lg outline-none transition-colors"
                     style={{
                       borderColor: "var(--border-primary)",
@@ -129,14 +152,13 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
                   <span style={{ color: "var(--text-secondary)" }}>to</span>
                   <input
                     type="number"
+                    min={0}
                     placeholder="Max"
-                    value={filters.priceRange?.max || ""}
-                    onChange={(e) =>
-                      handlePriceChange(
-                        filters.priceRange?.min || 0,
-                        parseFloat(e.target.value) || 1000
-                      )
-                    }
+                    value={filters.priceRange?.max === "" || filters.priceRange?.max == null ? "" : filters.priceRange.max}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      handlePriceChange(filters.priceRange?.min ?? "", v === "" ? "" : parseFloat(v));
+                    }}
                     className="w-full px-4 py-2 border rounded-lg outline-none transition-colors"
                     style={{
                       borderColor: "var(--border-primary)",
@@ -144,52 +166,6 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
                       color: "var(--text-primary)",
                     }}
                   />
-                </div>
-                <div className="flex gap-2">
-                  {[
-                    { label: "৳0-৳50", min: 0, max: 50 },
-                    { label: "৳50-৳100", min: 50, max: 100 },
-                    { label: "৳100-৳200", min: 100, max: 200 },
-                    { label: "৳200+", min: 200, max: 1000 },
-                  ].map((range) => (
-                    <motion.button
-                      key={range.label}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handlePriceChange(range.min, range.max)}
-                      className={`px-3 py-1.5 text-xs rounded-lg transition-colors ${
-                        filters.priceRange?.min === range.min &&
-                        filters.priceRange?.max === range.max
-                          ? "text-white"
-                          : ""
-                      }`}
-                      style={{
-                        backgroundColor:
-                          filters.priceRange?.min === range.min &&
-                          filters.priceRange?.max === range.max
-                            ? "var(--color-primary)"
-                            : "var(--bg-secondary)",
-                        color:
-                          filters.priceRange?.min === range.min &&
-                          filters.priceRange?.max === range.max
-                            ? "white"
-                            : "var(--text-secondary)",
-                      }}
-                      onFocus={(e) => {
-                        e.currentTarget.style.outline = "2px solid var(--color-primary)";
-                        e.currentTarget.style.outlineOffset = "2px";
-                      }}
-                      onBlur={(e) => {
-                        e.currentTarget.style.outline = "none";
-                      }}
-                      aria-pressed={
-                        filters.priceRange?.min === range.min &&
-                        filters.priceRange?.max === range.max
-                      }
-                    >
-                      {range.label}
-                    </motion.button>
-                  ))}
                 </div>
               </div>
             </motion.div>

@@ -73,7 +73,11 @@ export function filterProducts(products, filters) {
   return products.filter((product) => {
     if (filters.priceRange) {
       const { min, max } = filters.priceRange;
-      if (product.price < min || product.price > max) return false;
+      const price = product.price ?? 0;
+      const minSet = min !== "" && min != null && !Number.isNaN(Number(min));
+      const maxSet = max !== "" && max != null && !Number.isNaN(Number(max));
+      if (minSet && price < Number(min)) return false;
+      if (maxSet && price > Number(max)) return false;
     }
     return true;
   });
