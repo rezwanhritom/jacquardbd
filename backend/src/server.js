@@ -2,11 +2,12 @@
  * Express app: CORS, JSON body, API routes (notes, products), centralized error handler.
  * Connects to MongoDB before listening.
  */
+import "./load-env.js"; // Must run first so .env is loaded before any config (ImageKit, DB, etc.)
+
 import express from "express";
 import cookieParser from "cookie-parser";
 import { connectDB } from "./config/db.js";
 import cors from "cors";
-import dotenv from "dotenv";
 import authRoutes from "./routes/auth.routes.js";
 import notesRoutes from "./routes/notesRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
@@ -15,8 +16,6 @@ import cartRoutes from "./routes/cart.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import imageRoutes from "./routes/image.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
-
-dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 

@@ -4,6 +4,11 @@ const publicKey = process.env.IMAGEKIT_PUBLIC_KEY;
 const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
 const urlEndpoint = process.env.IMAGEKIT_URL_ENDPOINT;
 
+if (process.env.NODE_ENV !== "production") {
+  const ok = !!(publicKey && privateKey && urlEndpoint);
+  console.log("[ImageKit] configured:", ok, "| publicKey length:", publicKey?.length ?? 0, "| urlEndpoint:", urlEndpoint ? "set" : "missing");
+}
+
 let instance = null;
 
 export function getImageKit() {
