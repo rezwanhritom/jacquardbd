@@ -9,7 +9,7 @@ function setTokenCookie(res, token) {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? "strict" : "lax",
-    maxAge: 4 * 60 * 60 * 1000, // 4 hours in ms
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
     path: "/",
   });
 }
@@ -111,7 +111,7 @@ export async function login(req, res, next) {
     const token = generateToken(user._id.toString());
     setTokenCookie(res, token);
 
-    const expiresIn = process.env.JWT_EXPIRES_IN || "4h";
+    const expiresIn = process.env.JWT_EXPIRES_IN || "7d";
     res.json({
       success: true,
       message: "Login successful",

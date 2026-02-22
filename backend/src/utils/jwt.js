@@ -3,7 +3,7 @@ import crypto from "crypto";
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
-const ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES || "15m";
+const ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES || "7d";
 const REFRESH_EXPIRES = process.env.JWT_REFRESH_EXPIRES || "7d";
 
 export const COOKIE_NAMES = Object.freeze({

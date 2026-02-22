@@ -50,7 +50,7 @@ Auth uses an **HTTP-only cookie** named `access_token`. After **Login**, Postman
 }
 ```
 
-**Expected:** `200` – `{ "success": true, "message": "Login successful", "user": { ... }, "accessToken": "<jwt>", "expiresIn": "4h" }`  
+**Expected:** `200` – `{ "success": true, "message": "Login successful", "user": { ... }, "accessToken": "<jwt>", "expiresIn": "7d" }`  
 - The server also sets an **HTTP-only cookie** `access_token` (for browser clients).
 - **For Postman:** Copy `accessToken` from the response body. In protected requests (e.g. **Me**), add header: `Authorization` = `Bearer <paste accessToken here>`.
 - Alternatively, enable **Cookies** in Postman so the cookie is sent automatically for `localhost:5001`.
@@ -164,7 +164,7 @@ After this, **Me** should return `401` until you **Login** again.
 
 - Run **Login** again (same collection/session).
 - In Postman: **Cookies** (bottom or top) → ensure `localhost:5001` has `access_token` and that cookies are not disabled for the request.
-- Token expires in 4 hours (from `.env` `JWT_EXPIRES_IN`); log in again after expiry.
+- Token expires in 7 days (from `.env` `JWT_EXPIRES_IN`); log in again after expiry.
 
 ---
 
