@@ -167,8 +167,11 @@ const Category = () => {
   }, [useBackendForGender, sectionSlug, subcategorySlug, sortedProducts]);
 
   const hasProducts = categoryProducts.length > 0;
-  const showEmptyState =
-    useBackendForGender && (sectionSlug || subcategorySlug) && !loading && !error && !hasProducts;
+  /** Flag: show filter sidebar only when products are present. */
+  const showFilter = hasProducts;
+  /** Flag: no products → show hierarchy + "Stay tuned, coming soon." (never show blank). */
+  const showNoProductsMessage =
+    useBackendForGender && !loading && !error && !hasProducts;
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
@@ -202,34 +205,29 @@ const Category = () => {
     );
   }
 
-  /* Section or subcategory with no products: hierarchy + "Stay tuned, coming soon." only. */
-  if (showEmptyState) {
+  /* Flag: no products → show hierarchy + "Stay tuned, coming soon." (no animations so content is never hidden). */
+  if (showNoProductsMessage) {
     return (
       <div className="min-h-screen py-16">
         <Container>
-          <motion.div
-            initial="initial"
-            animate="animate"
-            variants={staggerContainer}
-            className="max-w-2xl mx-auto text-center space-y-3"
-          >
-            <motion.h1 variants={fadeInUp} className="text-3xl md:text-4xl font-bold" style={{ color: "var(--color-primary)" }}>
+          <div className="max-w-2xl mx-auto text-center space-y-3">
+            <h1 className="text-3xl md:text-4xl font-bold" style={{ color: "var(--color-primary)" }}>
               {category.name}
-            </motion.h1>
+            </h1>
             {sectionSlug && (
-              <motion.p variants={fadeInUp} className="text-lg" style={{ color: "var(--text-secondary)" }}>
+              <p className="text-lg md:text-xl" style={{ color: "var(--text-secondary)" }}>
                 {slugToDisplayName(sectionSlug)}
-              </motion.p>
+              </p>
             )}
             {subcategorySlug && (
-              <motion.p variants={fadeInUp} className="text-xl font-medium" style={{ color: "var(--text-primary)" }}>
+              <p className="text-xl font-medium" style={{ color: "var(--text-primary)" }}>
                 {slugToDisplayName(subcategorySlug)}
-              </motion.p>
+              </p>
             )}
-            <motion.p variants={fadeInUp} className="text-lg md:text-xl font-medium pt-6" style={{ color: "var(--text-secondary)" }}>
+            <p className="text-2xl md:text-4xl font-semibold pt-8" style={{ color: "var(--text-primary)" }}>
               Stay tuned, coming soon.
-            </motion.p>
-          </motion.div>
+            </p>
+          </div>
         </Container>
       </div>
     );
@@ -260,10 +258,11 @@ const Category = () => {
             )}
           </motion.div>
 
-          {/* Main: sidebar only when there are products */}
+          {/* Main: filter on left when products exist (showFilter), then content */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {hasProducts && (
-              <motion.aside variants={fadeInUp} className="lg:col-span-1">
+            {/* Filter sidebar — left side, only when products exist */}
+            {showFilter && (
+              <aside className="lg:col-span-1">
                 <div className="sticky top-24">
                   <ProductFilters
                     filters={filters}
@@ -271,10 +270,9 @@ const Category = () => {
                     onClearFilters={handleClearFilters}
                   />
                 </div>
-              </motion.aside>
+              </aside>
             )}
-
-            <div className={hasProducts ? "lg:col-span-3 space-y-6" : "space-y-6"}>
+            <div className={showFilter ? "lg:col-span-3 space-y-6" : "space-y-6"}>
               {/* Sort and count: only when products */}
               {hasProducts && (
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -317,6 +315,28 @@ const Category = () => {
                     Please try again later.
                   </p>
                 </motion.div>
+              )}
+
+              {/* Fallback: gender + no products (same as early return so we never show blank) */}
+              {useBackendForGender && !loading && !error && !hasProducts && (
+                <div className="max-w-2xl mx-auto text-center space-y-3 pt-8">
+                  <h2 className="text-2xl md:text-3xl font-bold" style={{ color: "var(--color-primary)" }}>
+                    {category.name}
+                  </h2>
+                  {sectionSlug && (
+                    <p className="text-lg md:text-xl" style={{ color: "var(--text-secondary)" }}>
+                      {slugToDisplayName(sectionSlug)}
+                    </p>
+                  )}
+                  {subcategorySlug && (
+                    <p className="text-xl font-medium" style={{ color: "var(--text-primary)" }}>
+                      {slugToDisplayName(subcategorySlug)}
+                    </p>
+                  )}
+                  <p className="text-2xl md:text-4xl font-semibold pt-8" style={{ color: "var(--text-primary)" }}>
+                    Stay tuned, coming soon.
+                  </p>
+                </div>
               )}
 
               {(!useBackendForGender || (!loading && !error)) && hasProducts && (
