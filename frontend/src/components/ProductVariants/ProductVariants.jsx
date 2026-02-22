@@ -1,18 +1,80 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiInfo, FiX } from "react-icons/fi";
 
-const ProductVariants = ({ selectedSize, selectedColor, onSizeChange, onColorChange }) => {
-  const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
-  const colors = [
-    { name: "Black", value: "#000000" },
-    { name: "White", value: "#FFFFFF" },
-    { name: "Navy", value: "#000080" },
-    { name: "Gray", value: "#808080" },
-    { name: "Beige", value: "#F5F5DC" },
-  ];
+/** Admin preset colors (name → hex) for resolving variant colorHex. */
+const PRESET_COLOR_HEX = {
+  Black: "#000000",
+  White: "#FFFFFF",
+  Navy: "#1e3a5f",
+  Red: "#c41e3a",
+  Burgundy: "#800020",
+  Gray: "#6b7280",
+  Charcoal: "#36454f",
+  Beige: "#f5f5dc",
+  Brown: "#8b4513",
+  Olive: "#808000",
+  Blue: "#2563eb",
+  "Sky Blue": "#0ea5e9",
+  Green: "#16a34a",
+  Mustard: "#e4a853",
+  Pink: "#ec4899",
+  Purple: "#7c3aed",
+  Orange: "#ea580c",
+  Yellow: "#eab308",
+};
+
+const ProductVariants = ({ product, selectedSize, selectedColor, onSizeChange, onColorChange }) => {
+  const { sizes: sizeList, colors: colorList } = useMemo(() => {
+    const matrix = product?.variantMatrix || [];
+    const variantSizes = product?.variants?.size?.length
+      ? product.variants.size
+      : [...new Set(matrix.map((v) => v.size).filter(Boolean))];
+    const variantColors = product?.variants?.color?.length
+      ? product.variants.color
+      : [...new Set(matrix.map((v) => v.color).filter(Boolean))];
+    const sizes = variantSizes.length > 0 ? variantSizes : ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
+    const colorMap = new Map();
+    (matrix || []).forEach((v) => {
+      if (v.color) {
+        const hex = v.colorHex || PRESET_COLOR_HEX[v.color] || "#808080";
+        if (!colorMap.get(v.color)) colorMap.set(v.color, hex);
+      }
+    });
+    const colors =
+      variantColors.length > 0
+        ? variantColors.map((name) => ({
+            name,
+            value: colorMap.get(name) || PRESET_COLOR_HEX[name] || "#808080",
+          }))
+        : [{ name: "Default", value: "#808080" }];
+    return { sizes, colors };
+  }, [product]);
 
   const [showSizeGuide, setShowSizeGuide] = useState(false);
+
+  const stockBySizeColor = useMemo(() => {
+    const matrix = product?.variantMatrix || [];
+    const map = new Map();
+    matrix.forEach((v) => {
+      if (v.size) {
+        const key = [v.size, (v.color || "").trim()].join("|");
+        map.set(key, (map.get(key) || 0) + (Number(v.stock) || 0));
+      }
+    });
+    return map;
+  }, [product]);
+
+  const isSizeAvailable = (size) => {
+    if (!product?.variantMatrix?.length) return true;
+    if (selectedColor) {
+      return (stockBySizeColor.get(`${size}|${selectedColor}`) ?? 0) > 0;
+    }
+    for (const [key, stock] of stockBySizeColor) {
+      if (key.startsWith(`${size}|`) && stock > 0) return true;
+    }
+    return false;
+  };
 
   return (
     <div className="space-y-6">
@@ -38,9 +100,9 @@ const ProductVariants = ({ selectedSize, selectedColor, onSizeChange, onColorCha
           </button>
         </div>
         <div className="flex flex-wrap gap-2">
-          {sizes.map((size) => {
+          {sizeList.map((size) => {
             const isSelected = selectedSize === size;
-            const isAvailable = true; // In real app, check product.stock[size]
+            const isAvailable = isSizeAvailable(size);
             return (
               <motion.button
                 key={size}
@@ -92,7 +154,7 @@ const ProductVariants = ({ selectedSize, selectedColor, onSizeChange, onColorCha
           Color
         </label>
         <div className="flex flex-wrap gap-3">
-          {colors.map((color) => {
+          {colorList.map((color) => {
             const isSelected = selectedColor === color.name;
             return (
               <motion.button
@@ -137,23 +199,33 @@ const ProductVariants = ({ selectedSize, selectedColor, onSizeChange, onColorCha
         </div>
       </div>
 
-      {/* Size Guide Modal */}
+      {/* Size Guide Modal: only shows sizes available for this product when product is provided */}
       {showSizeGuide && (
-        <SizeGuideModal onClose={() => setShowSizeGuide(false)} />
+        <SizeGuideModal
+          availableSizes={product ? sizeList : null}
+          onClose={() => setShowSizeGuide(false)}
+        />
       )}
     </div>
   );
 };
 
-const SizeGuideModal = ({ onClose }) => {
-  const sizeGuideData = [
-    { size: "XS", chest: "34-36", waist: "28-30", length: "26" },
-    { size: "S", chest: "36-38", waist: "30-32", length: "27" },
-    { size: "M", chest: "38-40", waist: "32-34", length: "28" },
-    { size: "L", chest: "40-42", waist: "34-36", length: "29" },
-    { size: "XL", chest: "42-44", waist: "36-38", length: "30" },
-    { size: "XXL", chest: "44-46", waist: "38-40", length: "31" },
-  ];
+/** Full size guide table (matches admin sizes: XS–3XL). */
+const FULL_SIZE_GUIDE = [
+  { size: "XS", chest: "34-36", waist: "28-30", length: "26" },
+  { size: "S", chest: "36-38", waist: "30-32", length: "27" },
+  { size: "M", chest: "38-40", waist: "32-34", length: "28" },
+  { size: "L", chest: "40-42", waist: "34-36", length: "29" },
+  { size: "XL", chest: "42-44", waist: "36-38", length: "30" },
+  { size: "XXL", chest: "44-46", waist: "38-40", length: "31" },
+  { size: "3XL", chest: "46-48", waist: "40-42", length: "32" },
+];
+
+const SizeGuideModal = ({ availableSizes, onClose }) => {
+  const sizeGuideData =
+    Array.isArray(availableSizes) && availableSizes.length > 0
+      ? FULL_SIZE_GUIDE.filter((row) => availableSizes.includes(row.size))
+      : FULL_SIZE_GUIDE;
 
   return (
     <AnimatePresence>

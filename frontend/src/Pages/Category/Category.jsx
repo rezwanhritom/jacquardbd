@@ -400,15 +400,17 @@ const Category = () => {
                     <div className="space-y-8">
                       <section className="space-y-6">
                         <div className="pb-3 border-b" style={{ borderColor: "var(--border-primary)" }}>
-                          <h2 className="text-lg font-medium tracking-tight uppercase" style={{ color: "var(--text-primary)", letterSpacing: "0.08em" }}>
+                          <h2 className="text-xl font-bold tracking-tight uppercase" style={{ color: "var(--text-primary)", letterSpacing: "0.08em" }}>
                             {sectionWithSubcategories.sectionName}
                           </h2>
                         </div>
                         {sectionWithSubcategories.subcategories.map(({ subcategoryName, products }) => (
                           <div key={subcategoryName} className="space-y-4">
-                            <h3 className="text-base font-medium" style={{ color: "var(--text-secondary)" }}>
-                              {subcategoryName}
-                            </h3>
+                            <div className="pb-3 border-b" style={{ borderColor: "var(--border-primary)" }}>
+                              <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+                                {subcategoryName}
+                              </h3>
+                            </div>
                             <ProductGrid products={products} onQuickView={setQuickViewProduct} hideViewToggle />
                           </div>
                         ))}
@@ -422,15 +424,17 @@ const Category = () => {
                       {sectionsWithSubcategories.map(({ sectionName, subcategories }) => (
                         <section key={sectionName} className="space-y-6">
                           <div className="pb-3 border-b" style={{ borderColor: "var(--border-primary)" }}>
-                            <h2 className="text-lg font-medium tracking-tight uppercase" style={{ color: "var(--text-primary)", letterSpacing: "0.08em" }}>
+                            <h2 className="text-xl font-bold tracking-tight uppercase" style={{ color: "var(--text-primary)", letterSpacing: "0.08em" }}>
                               {sectionName}
                             </h2>
                           </div>
                           {subcategories.map(({ subcategoryName, products }) => (
                             <div key={subcategoryName} className="space-y-4">
-                              <h3 className="text-base font-medium" style={{ color: "var(--text-secondary)" }}>
-                                {subcategoryName}
-                              </h3>
+                              <div className="pb-3 border-b" style={{ borderColor: "var(--border-primary)" }}>
+                                <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+                                  {subcategoryName}
+                                </h3>
+                              </div>
                               <ProductGrid products={products} onQuickView={setQuickViewProduct} hideViewToggle />
                             </div>
                           ))}
