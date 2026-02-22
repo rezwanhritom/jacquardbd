@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  createOrder,
   getMyOrders,
   getMyOrderById,
   getAdminOrders,
@@ -9,6 +10,7 @@ import { protect, requireRole } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
+router.post("/", protect, createOrder);
 router.get("/me", protect, getMyOrders);
 router.get("/me/:orderId", protect, getMyOrderById);
 router.get("/admin/list", protect, requireRole(["admin"]), getAdminOrders);

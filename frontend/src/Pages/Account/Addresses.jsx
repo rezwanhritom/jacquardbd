@@ -153,11 +153,16 @@ const Addresses = () => {
         variants={fadeInUp}
         className="flex items-center justify-between"
       >
-        <div className="flex items-center gap-3">
-          <FiMapPin size={24} style={{ color: "var(--color-primary)" }} />
-          <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
-            Address Book
-          </h2>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <FiMapPin size={24} style={{ color: "var(--color-primary)" }} />
+            <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+              Address Book
+            </h2>
+          </div>
+          <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
+            Set one address as default for checkout. You can change the default anytime.
+          </p>
         </div>
         <motion.button
           whileHover={{ scale: 1.05 }}

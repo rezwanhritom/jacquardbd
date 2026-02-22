@@ -11,6 +11,25 @@ const getBaseUrl = () => {
 };
 
 /**
+ * POST /api/orders — create order from cart. Body: { shippingAddress: { name, phone, address, city, state, zip }, shippingCost: number }.
+ * Backend creates order and clears cart. Returns { success, order, orderId }.
+ */
+export async function createOrder(payload) {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(`${baseUrl}/api/orders`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, order: null, orderId: null, message: data.message || "Failed to place order" };
+  }
+  return { success: true, order: data.order, orderId: data.orderId ?? data.order?._id, message: data.message };
+}
+
+/**
  * GET /api/orders/me — current user's orders (newest first).
  */
 export async function getMyOrders() {

@@ -11,6 +11,7 @@ import {
 } from "react-icons/fi";
 import { Container } from "../../components";
 import { useWishlist } from "../../context/WishlistContext";
+import { useCart } from "../../context/CartContext";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { getDisplayCategory } from "../../utils/productUtils";
 import toast from "react-hot-toast";
@@ -18,7 +19,9 @@ import Loading from "../../components/Loading";
 
 const Wishlist = () => {
   const { wishlistItems, loading, removeFromWishlist } = useWishlist();
+  const { addToCart } = useCart();
   const [removingId, setRemovingId] = useState(null);
+  const [movingToCartId, setMovingToCartId] = useState(null);
 
   const handleRemoveItem = (product) => {
     const id = product._id ?? product.id;
@@ -36,13 +39,26 @@ const Wishlist = () => {
     });
   };
 
-  const handleMoveToCart = (product) => {
-    toast.success(
-      <span>
-        <strong>{product.name}</strong> added to cart!
-      </span>,
-      { icon: <FiCheck className="text-green-500" /> }
-    );
+  const handleMoveToCart = async (product) => {
+    const id = product._id ?? product.id;
+    if (!id) {
+      toast.error("Invalid product");
+      return;
+    }
+    setMovingToCartId(id);
+    const { success, message } = await addToCart(product, 1);
+    setMovingToCartId(null);
+    if (success) {
+      toast.success(
+        <span>
+          <strong>{product.name}</strong> added to cart!
+        </span>,
+        { icon: <FiCheck className="text-green-500" /> }
+      );
+      removeFromWishlist(product).catch(() => {});
+    } else {
+      toast.error(message || "Could not add to cart");
+    }
   };
 
   const handleShare = () => {
@@ -168,6 +184,7 @@ const Wishlist = () => {
                     product={product}
                     index={index}
                     isRemoving={removingId === (product._id ?? product.id)}
+                    isMovingToCart={movingToCartId === (product._id ?? product.id)}
                     onRemove={handleRemoveItem}
                     onMoveToCart={handleMoveToCart}
                   />
@@ -213,13 +230,14 @@ const Wishlist = () => {
   );
 };
 
-const WishlistCard = ({ product, index, isRemoving, onRemove, onMoveToCart }) => {
+const WishlistCard = ({ product, index, isRemoving, isMovingToCart, onRemove, onMoveToCart }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const productId = product._id ?? product.id;
   const slugOrId = product.slug || productId;
   const imageUrl = Array.isArray(product.images) && product.images[0] ? product.images[0] : "/images/product-placeholder.png";
   const inStock = product.stockQuantity != null ? product.stockQuantity > 0 : true;
+  const moveDisabled = !inStock || isMovingToCart;
 
   return (
     <motion.div
@@ -352,18 +370,18 @@ const WishlistCard = ({ product, index, isRemoving, onRemove, onMoveToCart }) =>
           )}
         </div>
         <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          whileHover={!moveDisabled ? { scale: 1.02 } : {}}
+          whileTap={!moveDisabled ? { scale: 0.98 } : {}}
           onClick={() => onMoveToCart(product)}
-          disabled={!inStock}
+          disabled={moveDisabled}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
-            backgroundColor: inStock ? "var(--color-primary)" : "var(--bg-tertiary)",
-            color: inStock ? "white" : "var(--text-tertiary)",
+            backgroundColor: inStock && !isMovingToCart ? "var(--color-primary)" : "var(--bg-tertiary)",
+            color: inStock && !isMovingToCart ? "white" : "var(--text-tertiary)",
           }}
         >
           <FiShoppingBag size={16} />
-          {inStock ? "Move to Cart" : "Out of Stock"}
+          {isMovingToCart ? "Adding…" : inStock ? "Move to Cart" : "Out of Stock"}
         </motion.button>
       </div>
     </motion.div>

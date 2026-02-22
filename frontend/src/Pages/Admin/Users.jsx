@@ -366,9 +366,12 @@ const Users = () => {
               {editingUser && (
                 <div className="border-t pt-4 mt-4" style={{ borderColor: "var(--border-primary)" }}>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                      <FiMapPin size={18} style={{ color: "var(--color-primary)" }} />
-                      Addresses
+                    <span className="flex flex-col gap-0.5">
+                      <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                        <FiMapPin size={18} style={{ color: "var(--color-primary)" }} />
+                        Addresses
+                      </span>
+                      <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>Change default address using &quot;Set default&quot; on any address.</span>
                     </span>
                     <motion.button
                       type="button"

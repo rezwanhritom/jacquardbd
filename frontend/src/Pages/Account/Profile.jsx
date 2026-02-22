@@ -359,11 +359,16 @@ const Profile = () => {
           style={{ backgroundColor: "var(--bg-secondary)" }}
         >
           <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center space-x-3">
-              <FiMapPin size={24} style={{ color: "var(--color-primary)" }} />
-              <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
-                Address
-              </h2>
+            <div>
+              <div className="flex items-center space-x-3">
+                <FiMapPin size={24} style={{ color: "var(--color-primary)" }} />
+                <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+                  Address
+                </h2>
+              </div>
+              <p className="text-sm mt-1" style={{ color: "var(--text-tertiary)" }}>
+                Change the default address for checkout using &quot;Set default&quot; below.
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <motion.button
