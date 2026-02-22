@@ -111,10 +111,13 @@ export async function login(req, res, next) {
     const token = generateToken(user._id.toString());
     setTokenCookie(res, token);
 
+    const expiresIn = process.env.JWT_EXPIRES_IN || "15m";
     res.json({
       success: true,
       message: "Login successful",
       user: userResponse(user),
+      accessToken: token,
+      expiresIn,
     });
   } catch (err) {
     next(err);

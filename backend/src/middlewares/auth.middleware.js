@@ -4,11 +4,24 @@ import { verifyToken } from "../utils/generateToken.js";
 const COOKIE_NAME = "access_token";
 
 /**
- * Protect middleware: extract JWT from cookie, verify, attach user to req.user.
- * Denies with 401 if no cookie or invalid token.
+ * Get JWT from cookie or Authorization: Bearer <token> (for Postman / API clients).
+ */
+function getTokenFromRequest(req) {
+  const fromCookie = req.cookies?.[COOKIE_NAME];
+  if (fromCookie) return fromCookie;
+  const auth = req.headers?.authorization;
+  if (auth && typeof auth === "string" && auth.startsWith("Bearer ")) {
+    return auth.slice(7).trim();
+  }
+  return null;
+}
+
+/**
+ * Protect middleware: extract JWT from cookie or Bearer header, verify, attach user to req.user.
+ * Denies with 401 if no token or invalid token.
  */
 export async function protect(req, res, next) {
-  const token = req.cookies?.[COOKIE_NAME];
+  const token = getTokenFromRequest(req);
 
   if (!token) {
     return res.status(401).json({ success: false, message: "Not authorized" });
@@ -58,7 +71,7 @@ export function requireRole(allowedRoles) {
  * Use for routes that work for both authenticated and anonymous users.
  */
 export async function optionalAuth(req, res, next) {
-  const token = req.cookies?.[COOKIE_NAME];
+  const token = getTokenFromRequest(req);
   if (!token) {
     req.user = null;
     return next();

@@ -49,8 +49,8 @@ CORS is configured for allowed origins; use `credentials: true` in frontend.
     "_id": "...",
     "name": "John Doe",
     "email": "john@example.com",
-    "role": "normal",
-    "profileImage": null,
+    "role": "user",
+    "avatar": "",
     "createdAt": "...",
     "updatedAt": "..."
   }
@@ -79,8 +79,8 @@ CORS is configured for allowed origins; use `credentials: true` in frontend.
 
 **Success (200):**
 
-- Sets HTTP-only cookies: `access_token`, `refresh_token`.
-- Body:
+- Sets HTTP-only cookie: `access_token` (for browser clients).
+- Body includes `accessToken` and `expiresIn` for API clients (e.g. Postman, mobile):
 
 ```json
 {
@@ -90,11 +90,13 @@ CORS is configured for allowed origins; use `credentials: true` in frontend.
     "_id": "...",
     "name": "John Doe",
     "email": "john@example.com",
-    "role": "normal",
-    "profileImage": null,
+    "role": "user",
+    "avatar": "",
     "createdAt": "...",
     "updatedAt": "..."
-  }
+  },
+  "accessToken": "<JWT string>",
+  "expiresIn": "15m"
 }
 ```
 
@@ -103,7 +105,7 @@ CORS is configured for allowed origins; use `credentials: true` in frontend.
 - `400` – "Email and password are required".
 - `401` – "Invalid email or password".
 
-**Token usage:** After login, the client must send requests with credentials (e.g. `credentials: 'include'`) so the browser sends the `access_token` cookie. No token in headers required for cookie-based auth.
+**Token usage:** You can authenticate in two ways: (1) **Cookie:** send requests with credentials (e.g. `credentials: 'include'`) so the browser sends the `access_token` cookie. (2) **Bearer:** send header `Authorization: Bearer <accessToken>` (use the `accessToken` from the login response). Use Bearer for Postman or non-browser clients.
 
 ---
 
@@ -122,8 +124,8 @@ CORS is configured for allowed origins; use `credentials: true` in frontend.
     "_id": "...",
     "name": "John Doe",
     "email": "john@example.com",
-    "role": "normal",
-    "profileImage": null,
+    "role": "user",
+    "avatar": "",
     "createdAt": "...",
     "updatedAt": "..."
   }
@@ -328,13 +330,13 @@ Replaces previous profile image (old file removed from ImageKit when possible).
 
 ## 3. Role-based APIs (RBAC)
 
-**Roles:** `normal`, `premium`, `admin`.
+**Session roles:** `user`, `premium`, `admin`. Stored in the JWT payload via `req.user.role` after authentication.
 
-| Role    | Permissions                                      |
-|---------|---------------------------------------------------|
-| normal  | Browse, buy, manage own profile, upload profile image |
-| premium | normal + premium-only content                     |
-| admin   | Full access (create products, product images, all data) |
+| Role    | Permissions                                                       |
+|---------|--------------------------------------------------------------------|
+| user    | Default. Browse, buy, manage own profile, upload profile image.   |
+| premium | user + premium-only content (use `requireRole(['premium','admin'])`). |
+| admin   | Full access: create products, product images, all data.          |
 
 ### 3.1 Admin-only routes
 
@@ -347,7 +349,7 @@ Replaces previous profile image (old file removed from ImageKit when possible).
 
 - Reserved for future premium-only content (e.g. special endpoints). Use middleware `requireRole(['premium','admin'])`.
 
-### 3.3 Normal (authenticated) routes
+### 3.3 Authenticated user routes (any role)
 
 - **GET** `/api/auth/me`, **POST** `/api/auth/logout`, **POST** `/api/auth/refresh`.
 - **PATCH** `/api/users/me` – Update own profile (name, profileImage URL).

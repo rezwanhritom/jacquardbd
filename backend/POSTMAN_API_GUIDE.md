@@ -50,8 +50,10 @@ Auth uses an **HTTP-only cookie** named `access_token`. After **Login**, Postman
 }
 ```
 
-**Expected:** `200` – `{ "success": true, "message": "Login successful", "user": { ... } }`  
-Response will include **Set-Cookie** with `access_token`. Postman stores it for `localhost:5001` so the next requests send it automatically.
+**Expected:** `200` – `{ "success": true, "message": "Login successful", "user": { ... }, "accessToken": "<jwt>", "expiresIn": "15m" }`  
+- The server also sets an **HTTP-only cookie** `access_token` (for browser clients).
+- **For Postman:** Copy `accessToken` from the response body. In protected requests (e.g. **Me**), add header: `Authorization` = `Bearer <paste accessToken here>`.
+- Alternatively, enable **Cookies** in Postman so the cookie is sent automatically for `localhost:5001`.
 
 **Optional:** Wrong password or unknown email → `401` "Invalid email or password".
 
@@ -61,7 +63,7 @@ Response will include **Set-Cookie** with `access_token`. Postman stores it for 
 
 - **Method:** `GET`
 - **URL:** `http://localhost:5001/api/auth/me`
-- **Headers:** none (cookie is sent automatically if you logged in in the same Postman session).
+- **Headers:** Either send the cookie (if enabled), or `Authorization` = `Bearer <accessToken>` (use the `accessToken` from the login response).
 - **Body:** none
 
 **Expected:** `200` – `{ "success": true, "user": { "_id", "name", "email", "role", "createdAt", "updatedAt" } }`  
