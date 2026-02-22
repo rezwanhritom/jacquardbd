@@ -121,7 +121,7 @@ const Membership = () => {
                   </h3>
                   <div className="flex items-baseline gap-2">
                     <span className="text-4xl font-bold" style={{ color: "var(--color-primary)" }}>
-                      ${tier.price}
+                      ৳{tier.price}
                     </span>
                     {tier.price > 0 && (
                       <span className="text-sm" style={{ color: "var(--text-secondary)" }}>

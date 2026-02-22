@@ -195,11 +195,11 @@ const Products = () => {
                   <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>{product.name}</h3>
                   <div className="flex items-center space-x-2">
                     <span className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
-                      ${product.price.toFixed(2)}
+                      ৳{product.price.toFixed(2)}
                     </span>
                     {product.originalPrice && (
                       <span className="text-sm line-through" style={{ color: "var(--text-tertiary)" }}>
-                        ${product.originalPrice.toFixed(2)}
+                        ৳{product.originalPrice.toFixed(2)}
                       </span>
                     )}
                   </div>

@@ -437,7 +437,7 @@ const Checkout = () => {
                               </div>
                             </div>
                             <div className="font-bold" style={{ color: "var(--color-primary)" }}>
-                              ${option.price.toFixed(2)}
+                              ৳{option.price.toFixed(2)}
                             </div>
                           </motion.label>
                         ))}
@@ -805,7 +805,7 @@ const Checkout = () => {
                                   </p>
                                 </div>
                                 <div className="font-bold" style={{ color: "var(--color-primary)" }}>
-                                  ${(product.price * item.quantity).toFixed(2)}
+                                  ৳{(product.price * item.quantity).toFixed(2)}
                                 </div>
                               </div>
                             );
@@ -898,7 +898,7 @@ const Checkout = () => {
                             Qty: {item.quantity}
                           </p>
                           <p className="text-sm font-bold mt-1" style={{ color: "var(--color-primary)" }}>
-                            ${(product.price * item.quantity).toFixed(2)}
+                            ৳{(product.price * item.quantity).toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -910,20 +910,20 @@ const Checkout = () => {
                 <div className="space-y-3 pt-4 border-t" style={{ borderColor: "var(--border-primary)" }}>
                   <div className="flex justify-between text-sm">
                     <span style={{ color: "var(--text-secondary)" }}>Subtotal</span>
-                    <span style={{ color: "var(--text-primary)" }}>${subtotal.toFixed(2)}</span>
+                    <span style={{ color: "var(--text-primary)" }}>৳{subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span style={{ color: "var(--text-secondary)" }}>Shipping</span>
-                    <span style={{ color: "var(--text-primary)" }}>${shipping.toFixed(2)}</span>
+                    <span style={{ color: "var(--text-primary)" }}>৳{shipping.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span style={{ color: "var(--text-secondary)" }}>Tax</span>
-                    <span style={{ color: "var(--text-primary)" }}>${tax.toFixed(2)}</span>
+                    <span style={{ color: "var(--text-primary)" }}>৳{tax.toFixed(2)}</span>
                   </div>
                   <div className="pt-3 border-t" style={{ borderColor: "var(--border-primary)" }}>
                     <div className="flex justify-between text-lg font-bold">
                       <span style={{ color: "var(--text-primary)" }}>Total</span>
-                      <span style={{ color: "var(--color-primary)" }}>${total.toFixed(2)}</span>
+                      <span style={{ color: "var(--color-primary)" }}>৳{total.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>

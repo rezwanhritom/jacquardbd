@@ -3,7 +3,7 @@ export const trustData = [
     id: 1,
     icon: "truck",
     title: "Free Shipping",
-    description: "On orders over $100",
+    description: "On orders over ৳100",
   },
   {
     id: 2,

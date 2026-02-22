@@ -191,11 +191,11 @@ const ProductCarousel = ({ title, subtitle, products, showViewAll = true, compac
                       </h3>
                       <div className="flex items-center gap-3">
                         <span className="text-xl font-bold" style={{ color: "var(--color-primary)" }}>
-                          ${product.price.toFixed(2)}
+                          ৳{product.price.toFixed(2)}
                         </span>
                         {product.originalPrice && (
                           <span className="text-sm line-through" style={{ color: "var(--text-tertiary)" }}>
-                            ${product.originalPrice.toFixed(2)}
+                            ৳{product.originalPrice.toFixed(2)}
                           </span>
                         )}
                       </div>

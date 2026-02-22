@@ -231,7 +231,7 @@ const Dashboard = () => {
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <p className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
-                        ${order.total.toFixed(2)}
+                        ৳{order.total.toFixed(2)}
                       </p>
                       <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
                         {order.items.length} item{order.items.length !== 1 ? "s" : ""}

@@ -1,5 +1,13 @@
 import express from "express";
-import { getProducts, getProductById, createProduct, getProductsByCollection } from "../controller/productController.js";
+import {
+  getProducts,
+  getProductById,
+  createProduct,
+  getProductsByCollection,
+  getAdminProducts,
+  updateProduct,
+  deleteProduct,
+} from "../controller/productController.js";
 import { protect, requireRole } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
@@ -8,9 +16,15 @@ const router = express.Router();
 router.get("/", getProducts);
 // List by collection (e.g. new-arrivals) - must be before /:identifier
 router.get("/collection/:collectionName", getProductsByCollection);
+// Admin: list all products (active + draft)
+router.get("/admin/list", protect, requireRole(["admin"]), getAdminProducts);
 // Single product by slug or MongoDB _id
 router.get("/:identifier", getProductById);
-// Create product (JSON body) – admin only, requires auth cookie
+// Create product (JSON body) – admin only
 router.post("/", protect, requireRole(["admin"]), createProduct);
+// Update product by id – admin only
+router.put("/:id", protect, requireRole(["admin"]), updateProduct);
+// Delete product by id – admin only
+router.delete("/:id", protect, requireRole(["admin"]), deleteProduct);
 
 export default router;

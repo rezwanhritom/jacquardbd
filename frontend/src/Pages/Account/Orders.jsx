@@ -123,7 +123,7 @@ const Orders = () => {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <div className="text-right sm:text-left">
                     <p className="text-xl font-bold mb-1" style={{ color: "var(--color-primary)" }}>
-                      ${order.total.toFixed(2)}
+                      ৳{order.total.toFixed(2)}
                     </p>
                     <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
                       {order.paymentMethod}

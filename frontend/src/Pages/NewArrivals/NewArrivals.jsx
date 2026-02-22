@@ -247,7 +247,7 @@ const NewArrivals = () => {
           <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-12 text-white text-center md:text-left">
             <div className="flex items-center gap-2">
               <FiTruck size={20} />
-              <span className="text-sm font-medium">Free shipping on orders $100+</span>
+              <span className="text-sm font-medium">Free shipping on orders ৳100+</span>
             </div>
             <div className="flex items-center gap-2">
               <FiRefreshCw size={20} />
@@ -725,10 +725,10 @@ const DesktopFilters = ({
           </div>
           <div className="flex flex-wrap gap-2">
             {[
-              { label: "Under $50", min: 0, max: 50 },
-              { label: "$50-$100", min: 50, max: 100 },
-              { label: "$100-$200", min: 100, max: 200 },
-              { label: "$200+", min: 200, max: 1000 },
+              { label: "Under ৳50", min: 0, max: 50 },
+              { label: "৳50-৳100", min: 50, max: 100 },
+              { label: "৳100-৳200", min: 100, max: 200 },
+              { label: "৳200+", min: 200, max: 1000 },
             ].map((range) => (
               <motion.button
                 key={range.label}

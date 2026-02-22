@@ -15,6 +15,9 @@ import wishlistRoutes from "./routes/wishlist.routes.js";
 import cartRoutes from "./routes/cart.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import imageRoutes from "./routes/image.routes.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
+import orderRoutes from "./routes/order.routes.js";
+import campaignRoutes from "./routes/campaign.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -42,6 +45,9 @@ app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/images", imageRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/campaigns", campaignRoutes);
 
 app.use(errorHandler);
 

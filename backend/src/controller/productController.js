@@ -172,3 +172,92 @@ export async function createProduct(req, res, next) {
     next(err);
   }
 }
+
+/**
+ * GET /api/products/admin/list
+ * Admin only. Returns all products (active + draft), newest first.
+ */
+export async function getAdminProducts(req, res, next) {
+  try {
+    const products = await Product.find({}).lean().sort({ createdAt: -1 });
+    res.json({ success: true, products });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * PUT /api/products/:id
+ * Admin only. Update product by MongoDB _id. Body: same shape as create (partial ok).
+ */
+export async function updateProduct(req, res, next) {
+  try {
+    const { id } = req.params;
+    const body = req.body;
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    if (body.name !== undefined) {
+      const name = (body.name || "").trim();
+      if (!name) {
+        return res.status(400).json({ success: false, message: "Product name cannot be empty" });
+      }
+      product.name = name;
+      let slug = slugify(name);
+      if (slug) {
+        const existing = await Product.findOne({ slug, _id: { $ne: id } });
+        if (existing) slug = `${slug}-${Date.now()}`;
+        product.slug = slug;
+      }
+    }
+    if (body.shortDescription !== undefined) product.shortDescription = (body.shortDescription || "").trim();
+    if (body.description !== undefined) product.description = (body.description || "").trim();
+    if (body.category !== undefined) {
+      const categoryStr = (body.category || "").trim();
+      product.category = categoryStr;
+      product.categoryPath = parseCategoryPath(categoryStr);
+    }
+    if (body.collection !== undefined) {
+      const collectionValue = (body.collection || "regular").toLowerCase().trim();
+      product.collection = ALLOWED_COLLECTIONS.includes(collectionValue) ? collectionValue : "regular";
+    }
+    if (body.originalPrice !== undefined || body.discount !== undefined) {
+      const originalPrice = parseOriginalPrice(body.originalPrice !== undefined ? body.originalPrice : product.originalPrice);
+      const discount = parseDiscount(body.discount !== undefined ? body.discount : product.discount);
+      product.originalPrice = originalPrice;
+      product.discount = discount;
+      const finalPrice = computeFinalPrice(originalPrice, discount);
+      product.finalPrice = finalPrice != null ? finalPrice : undefined;
+      product.price = resolveSellingPrice(originalPrice, discount);
+    }
+    if (body.stockQuantity !== undefined) product.stockQuantity = Math.max(0, Number(body.stockQuantity) || 0);
+    if (body.status !== undefined) product.status = body.status === "active" ? "active" : "draft";
+    if (body.images !== undefined && Array.isArray(body.images)) product.images = body.images;
+    if (body.isFeatured !== undefined) product.isFeatured = Boolean(body.isFeatured);
+
+    await product.save();
+    const updated = await Product.findById(id).lean();
+    res.json({ success: true, message: "Product updated successfully", product: updated });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * DELETE /api/products/:id
+ * Admin only. Delete product by MongoDB _id.
+ */
+export async function deleteProduct(req, res, next) {
+  try {
+    const { id } = req.params;
+    const product = await Product.findByIdAndDelete(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+    res.json({ success: true, message: "Product deleted successfully" });
+  } catch (err) {
+    next(err);
+  }
+}

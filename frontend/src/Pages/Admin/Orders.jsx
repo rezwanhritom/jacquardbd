@@ -1,50 +1,93 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { FiEye, FiPackage, FiSearch, FiFilter, FiDownload } from "react-icons/fi";
-import { adminOrders } from "../../data/adminData";
-import { productsData } from "../../data/products";
+import { FiEye, FiPackage, FiSearch, FiDownload } from "react-icons/fi";
 import { EmptyState } from "../../components";
 import toast from "react-hot-toast";
+import { getAdminOrders, updateOrderStatus } from "../../services/orders.service";
+
+const STATUS_OPTIONS = [
+  { value: "pending", label: "Pending" },
+  { value: "paid", label: "Paid" },
+  { value: "failed", label: "Failed" },
+  { value: "cancelled", label: "Cancelled" },
+];
 
 const Orders = () => {
-  const [orders, setOrders] = useState(adminOrders);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [updatingId, setUpdatingId] = useState(null);
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    const result = await getAdminOrders();
+    if (result.success && result.orders) {
+      setOrders(result.orders);
+    } else {
+      toast.error(result.message || "Failed to load orders");
+      setOrders([]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
   const filteredOrders = orders.filter((order) => {
+    const orderIdStr = (order.orderId || order._id || "").toString().toLowerCase();
+    const customer = (order.customer || "").toLowerCase();
+    const email = (order.email || "").toLowerCase();
     const matchesSearch =
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.email.toLowerCase().includes(searchQuery.toLowerCase());
+      orderIdStr.includes(searchQuery.toLowerCase()) ||
+      customer.includes(searchQuery.toLowerCase()) ||
+      email.includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case "Delivered":
-        return "var(--color-primary)";
-      case "Shipped":
-        return "var(--color-secondary)";
-      case "Processing":
-        return "var(--color-tertiary)";
-      case "Pending":
-        return "var(--text-tertiary)";
-      default:
-        return "var(--text-tertiary)";
+    const s = (status || "").toLowerCase();
+    if (s === "paid") return "var(--color-primary)";
+    if (s === "pending") return "var(--color-tertiary)";
+    if (s === "failed") return "var(--color-tertiary)";
+    if (s === "cancelled") return "var(--text-tertiary)";
+    return "var(--text-tertiary)";
+  };
+
+  const getStatusLabel = (status) => {
+    const opt = STATUS_OPTIONS.find((o) => o.value === (status || "").toLowerCase());
+    return opt ? opt.label : (status || "").charAt(0).toUpperCase() + (status || "").slice(1).toLowerCase();
+  };
+
+  const handleStatusChange = async (orderId, newStatus) => {
+    setUpdatingId(orderId);
+    const result = await updateOrderStatus(orderId, newStatus);
+    if (result.success) {
+      setOrders((prev) =>
+        prev.map((o) => (o._id === orderId ? { ...o, status: newStatus } : o))
+      );
+      toast.success(`Order status updated to ${getStatusLabel(newStatus)}`);
+    } else {
+      toast.error(result.message || "Failed to update status");
     }
+    setUpdatingId(null);
   };
 
-  const getProduct = (productId) => {
-    return productsData.find((p) => p.id === productId);
-  };
+  const itemCount = (order) => (order.items || []).reduce((sum, i) => sum + (i.quantity || 0), 0);
 
-  const handleStatusChange = (orderId, newStatus) => {
-    const order = orders.find((o) => o.id === orderId);
-    setOrders(orders.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)));
-    toast.success(`Order ${orderId} status updated to ${newStatus}`);
-  };
+  if (loading) {
+    return (
+      <div
+        className="p-6 rounded-lg flex items-center justify-center min-h-[200px]"
+        style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-secondary)" }}
+      >
+        Loading orders…
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -76,7 +119,7 @@ const Orders = () => {
           <FiSearch size={20} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-tertiary)" }} />
           <input
             type="text"
-            placeholder="Search orders..."
+            placeholder="Search by order ID, customer, email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border-2 rounded-lg outline-none"
@@ -98,10 +141,11 @@ const Orders = () => {
           }}
         >
           <option value="all">All Status</option>
-          <option value="Pending">Pending</option>
-          <option value="Processing">Processing</option>
-          <option value="Shipped">Shipped</option>
-          <option value="Delivered">Delivered</option>
+          {STATUS_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -117,91 +161,103 @@ const Orders = () => {
           <table className="w-full">
             <thead>
               <tr className="border-b-2" style={{ borderColor: "var(--border-primary)" }}>
-                <th className="text-left py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>Order ID</th>
-                <th className="text-left py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>Customer</th>
-                <th className="text-left py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>Items</th>
-                <th className="text-left py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>Date</th>
-                <th className="text-left py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>Status</th>
-                <th className="text-left py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>Total</th>
-                <th className="text-right py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>Actions</th>
+                <th className="text-left py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Order ID
+                </th>
+                <th className="text-left py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Customer
+                </th>
+                <th className="text-left py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Items
+                </th>
+                <th className="text-left py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Date
+                </th>
+                <th className="text-left py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Status
+                </th>
+                <th className="text-left py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Total
+                </th>
+                <th className="text-right py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
               {filteredOrders.map((order, index) => (
                 <motion.tr
-                  key={order.id}
+                  key={order._id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="border-b" style={{ borderColor: "var(--border-primary)" }}
+                  className="border-b"
+                  style={{ borderColor: "var(--border-primary)" }}
                   whileHover={{ backgroundColor: "var(--bg-tertiary)" }}
                 >
                   <td className="py-4 px-4">
                     <span className="font-semibold font-mono" style={{ color: "var(--text-primary)" }}>
-                      {order.id}
+                      {order.orderId || order._id}
                     </span>
                   </td>
                   <td className="py-4 px-4">
                     <div>
                       <p className="font-semibold" style={{ color: "var(--text-primary)" }}>
-                        {order.customer}
+                        {order.customer || "—"}
                       </p>
                       <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                        {order.email}
+                        {order.email || "—"}
                       </p>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-2">
-                      {order.items.slice(0, 2).map((item) => {
-                        const product = getProduct(item.productId);
-                        if (!product) return null;
-                        return (
-                          <div key={item.productId} className="w-10 h-10 rounded overflow-hidden" style={{ backgroundColor: "var(--bg-tertiary)" }}>
-                            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-                          </div>
-                        );
-                      })}
-                      {order.items.length > 2 && (
-                        <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-                          +{order.items.length - 2}
-                        </span>
-                      )}
                     </div>
                   </td>
                   <td className="py-4 px-4">
                     <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                      {new Date(order.date).toLocaleDateString()}
+                      {itemCount(order)} item{itemCount(order) !== 1 ? "s" : ""}
+                      {(order.items || []).length > 0 && (order.items[0].name || order.items[0].productId) && (
+                        <span className="block text-xs mt-0.5 truncate max-w-[120px]" style={{ color: "var(--text-tertiary)" }}>
+                          {order.items[0].name || "—"}
+                          {(order.items || []).length > 1 ? ` +${order.items.length - 1}` : ""}
+                        </span>
+                      )}
+                    </span>
+                  </td>
+                  <td className="py-4 px-4">
+                    <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                      {order.date ? new Date(order.date).toLocaleDateString() : "—"}
                     </span>
                   </td>
                   <td className="py-4 px-4">
                     <select
-                      value={order.status}
-                      onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                      className="px-3 py-1 text-xs font-semibold uppercase rounded-lg border-0 outline-none"
+                      value={order.status || "pending"}
+                      onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                      disabled={updatingId === order._id}
+                      className="px-3 py-1 text-xs font-semibold uppercase rounded-lg border-0 outline-none disabled:opacity-60"
                       style={{
                         backgroundColor: getStatusColor(order.status) + "20",
                         color: getStatusColor(order.status),
                       }}
                     >
-                      <option value="Pending">Pending</option>
-                      <option value="Processing">Processing</option>
-                      <option value="Shipped">Shipped</option>
-                      <option value="Delivered">Delivered</option>
+                      {STATUS_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
                     </select>
                   </td>
                   <td className="py-4 px-4">
                     <span className="font-bold" style={{ color: "var(--color-primary)" }}>
-                      ${order.total.toFixed(2)}
+                      ৳{(order.total != null ? order.total : 0).toFixed(2)}
                     </span>
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex items-center justify-end gap-2">
                       <motion.button
+                        type="button"
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         className="p-2 rounded-lg transition-colors"
                         style={{ color: "var(--color-primary)" }}
+                        title={`Order ${order.orderId || order._id}`}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = "var(--bg-tertiary)";
                         }}
@@ -222,28 +278,28 @@ const Orders = () => {
           <EmptyState
             icon={FiPackage}
             title="No orders found"
-            description={searchQuery || statusFilter !== "all" ? "Try adjusting your filters" : "No orders available"}
+            description={searchQuery || statusFilter !== "all" ? "Try adjusting your filters" : "No orders in the database yet"}
           />
         )}
       </motion.div>
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {["Pending", "Processing", "Shipped", "Delivered"].map((status) => {
-          const count = orders.filter((o) => o.status === status).length;
+        {STATUS_OPTIONS.map(({ value, label }) => {
+          const count = orders.filter((o) => (o.status || "").toLowerCase() === value).length;
           return (
             <motion.div
-              key={status}
+              key={value}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="p-4 rounded-lg text-center"
               style={{ backgroundColor: "var(--bg-secondary)" }}
             >
-              <p className="text-2xl font-bold mb-1" style={{ color: getStatusColor(status) }}>
+              <p className="text-2xl font-bold mb-1" style={{ color: getStatusColor(value) }}>
                 {count}
               </p>
               <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                {status}
+                {label}
               </p>
             </motion.div>
           );

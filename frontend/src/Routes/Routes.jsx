@@ -35,7 +35,6 @@ const AdminProducts = lazy(() => import("../Pages/Admin/Products"));
 const AdminOrders = lazy(() => import("../Pages/Admin/Orders"));
 const AdminUsers = lazy(() => import("../Pages/Admin/Users"));
 const AdminCampaigns = lazy(() => import("../Pages/Admin/Campaigns"));
-const AdminSettings = lazy(() => import("../Pages/Admin/Settings"));
 const AdminProductCreate = lazy(() => import("../Pages/Admin/ProductCreate"));
 
 // Auth pages
@@ -342,14 +341,6 @@ export const router = createBrowserRouter([
             element: (
               <LazyWrapper>
                 <AdminCampaigns />
-              </LazyWrapper>
-            ),
-          },
-          {
-            path: "settings",
-            element: (
-              <LazyWrapper>
-                <AdminSettings />
               </LazyWrapper>
             ),
           },

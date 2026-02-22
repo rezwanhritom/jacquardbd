@@ -103,15 +103,15 @@ const QuickView = ({ product, isOpen, onClose, onAddToCart, onAddToWishlist }) =
                       </h1>
                       <div className="flex items-center gap-4 mb-4">
                         <span className="text-3xl font-bold" style={{ color: "var(--color-primary)" }}>
-                          ${product.price.toFixed(2)}
+                          ৳{product.price.toFixed(2)}
                         </span>
                         {product.originalPrice && (
                           <>
                             <span className="text-xl line-through" style={{ color: "var(--text-tertiary)" }}>
-                              ${product.originalPrice.toFixed(2)}
+                              ৳{product.originalPrice.toFixed(2)}
                             </span>
                             <span className="px-3 py-1 text-sm font-semibold text-white rounded" style={{ backgroundColor: "var(--color-tertiary)" }}>
-                              Save ${(product.originalPrice - product.price).toFixed(2)}
+                              Save ৳{(product.originalPrice - product.price).toFixed(2)}
                             </span>
                           </>
                         )}

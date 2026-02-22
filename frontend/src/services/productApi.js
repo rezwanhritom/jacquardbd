@@ -160,3 +160,74 @@ export async function uploadProductImages(productId, files) {
     message: data.message,
   };
 }
+
+/**
+ * Fetch all products for admin (GET /api/products/admin/list). Requires admin auth.
+ * @returns {Promise<{ success: boolean, products?: Array, message?: string }>}
+ */
+export async function getAdminProducts() {
+  const baseUrl = getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/products/admin/list`, {
+    credentials: "include",
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    return {
+      success: false,
+      message: data.message || "Failed to load products",
+      products: [],
+    };
+  }
+  return {
+    success: true,
+    products: Array.isArray(data.products) ? data.products : [],
+  };
+}
+
+/**
+ * Update a product (PUT /api/products/:id). Requires admin auth.
+ * @param {string} productId - MongoDB _id
+ * @param {Object} payload - Partial product data (name, category, originalPrice, discount, description, status, stockQuantity, images, etc.)
+ */
+export async function updateProduct(productId, payload) {
+  const baseUrl = getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/products/${productId}`, {
+    method: "PUT",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    return {
+      success: false,
+      message: data.message || "Failed to update product",
+      errors: data.errors || [],
+    };
+  }
+  return {
+    success: true,
+    product: data.product,
+    message: data.message,
+  };
+}
+
+/**
+ * Delete a product (DELETE /api/products/:id). Requires admin auth.
+ * @param {string} productId - MongoDB _id
+ */
+export async function deleteProduct(productId) {
+  const baseUrl = getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/products/${productId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    return {
+      success: false,
+      message: data.message || "Failed to delete product",
+    };
+  }
+  return { success: true, message: data.message };
+}

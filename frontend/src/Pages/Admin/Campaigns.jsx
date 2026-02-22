@@ -1,15 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { FiPlus, FiEdit, FiTrash2, FiX, FiSave, FiTrendingUp, FiCalendar, FiUsers } from "react-icons/fi";
-import { campaigns } from "../../data/adminData";
+import { FiPlus, FiEdit, FiTrash2, FiX, FiSave, FiCalendar, FiUsers } from "react-icons/fi";
 import { EmptyState } from "../../components";
 import toast from "react-hot-toast";
+import { getCampaigns, createCampaign, updateCampaign, deleteCampaign } from "../../services/campaigns.service";
+
+const toDateInput = (date) => {
+  if (!date) return "";
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+};
 
 const Campaigns = () => {
-  const [campaignsList, setCampaignsList] = useState(campaigns);
+  const [campaignsList, setCampaignsList] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     type: "Discount",
@@ -19,6 +28,22 @@ const Campaigns = () => {
     discount: "",
     targetAudience: "All Customers",
   });
+
+  const fetchCampaigns = async () => {
+    setLoading(true);
+    const result = await getCampaigns();
+    if (result.success && result.campaigns) {
+      setCampaignsList(result.campaigns);
+    } else {
+      toast.error(result.message || "Failed to load campaigns");
+      setCampaignsList([]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, []);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -43,64 +68,71 @@ const Campaigns = () => {
         return "var(--color-tertiary)";
       case "Loyalty":
         return "var(--color-primary)";
+      case "Seasonal":
+        return "var(--color-tertiary)";
       default:
         return "var(--text-tertiary)";
     }
   };
 
   const handleEdit = (campaign) => {
-    setEditingCampaign(campaign.id);
+    setEditingCampaign(campaign._id);
     setFormData({
-      name: campaign.name,
-      type: campaign.type,
-      status: campaign.status,
-      startDate: campaign.startDate,
-      endDate: campaign.endDate,
-      discount: campaign.discount.toString(),
-      targetAudience: campaign.targetAudience,
+      name: campaign.name || "",
+      type: campaign.type || "Discount",
+      status: campaign.status || "Scheduled",
+      startDate: toDateInput(campaign.startDate),
+      endDate: toDateInput(campaign.endDate),
+      discount: (campaign.discount != null ? campaign.discount : "").toString(),
+      targetAudience: campaign.targetAudience || "All Customers",
     });
     setShowForm(true);
   };
 
-  const handleDelete = (id) => {
-    const campaign = campaignsList.find((c) => c.id === id);
-    if (window.confirm(`Are you sure you want to delete "${campaign?.name}"?`)) {
-      setCampaignsList(campaignsList.filter((c) => c.id !== id));
+  const handleDelete = async (campaign) => {
+    if (!window.confirm(`Are you sure you want to delete "${campaign?.name}"?`)) return;
+    const result = await deleteCampaign(campaign._id);
+    if (result.success) {
+      setCampaignsList((prev) => prev.filter((c) => c._id !== campaign._id));
       toast.success(`"${campaign?.name}" deleted successfully`);
+    } else {
+      toast.error(result.message || "Failed to delete campaign");
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
+    const payload = {
+      name: formData.name.trim(),
+      type: formData.type,
+      status: formData.status,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      discount: formData.discount ? parseFloat(formData.discount) : 0,
+      targetAudience: formData.targetAudience,
+    };
+
     if (editingCampaign) {
-      setCampaignsList(
-        campaignsList.map((c) =>
-          c.id === editingCampaign
-            ? {
-                ...c,
-                ...formData,
-                discount: parseFloat(formData.discount),
-                conversions: c.conversions,
-                revenue: c.revenue,
-              }
-            : c
-        )
-      );
-      toast.success(`"${formData.name}" updated successfully`);
+      const result = await updateCampaign(editingCampaign, payload);
+      if (result.success && result.campaign) {
+        setCampaignsList((prev) => prev.map((c) => (c._id === editingCampaign ? result.campaign : c)));
+        toast.success(`"${formData.name}" updated successfully`);
+        handleCancel();
+      } else {
+        toast.error(result.message || "Failed to update campaign");
+      }
     } else {
-      setCampaignsList([
-        ...campaignsList,
-        {
-          id: campaignsList.length + 1,
-          ...formData,
-          discount: parseFloat(formData.discount),
-          conversions: 0,
-          revenue: 0,
-        },
-      ]);
-      toast.success(`"${formData.name}" created successfully`);
+      const result = await createCampaign(payload);
+      if (result.success && result.campaign) {
+        setCampaignsList((prev) => [result.campaign, ...prev]);
+        toast.success(`"${formData.name}" created successfully`);
+        handleCancel();
+      } else {
+        toast.error(result.message || "Failed to create campaign");
+      }
     }
-    handleCancel();
+    setSubmitting(false);
   };
 
   const handleCancel = () => {
@@ -117,6 +149,17 @@ const Campaigns = () => {
     });
   };
 
+  if (loading) {
+    return (
+      <div
+        className="p-6 rounded-lg flex items-center justify-center min-h-[200px]"
+        style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-secondary)" }}
+      >
+        Loading campaigns…
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -128,8 +171,17 @@ const Campaigns = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => {
-            setShowForm(true);
             setEditingCampaign(null);
+            setFormData({
+              name: "",
+              type: "Discount",
+              status: "Scheduled",
+              startDate: "",
+              endDate: "",
+              discount: "",
+              targetAudience: "All Customers",
+            });
+            setShowForm(true);
           }}
           className="flex items-center gap-2 px-4 py-2 text-white font-semibold rounded-lg"
           style={{ backgroundColor: "var(--color-primary)" }}
@@ -154,6 +206,7 @@ const Campaigns = () => {
                 {editingCampaign ? "Edit Campaign" : "Create New Campaign"}
               </h3>
               <motion.button
+                type="button"
                 whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={handleCancel}
@@ -230,6 +283,8 @@ const Campaigns = () => {
                   </label>
                   <input
                     type="number"
+                    min="0"
+                    max="100"
                     value={formData.discount}
                     onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
                     className="w-full px-4 py-3 border-2 rounded-lg outline-none"
@@ -299,17 +354,19 @@ const Campaigns = () => {
               <div className="flex gap-3 pt-4">
                 <motion.button
                   type="submit"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex items-center gap-2 px-6 py-3 text-white font-semibold rounded-lg"
+                  disabled={submitting}
+                  whileHover={!submitting ? { scale: 1.02 } : {}}
+                  whileTap={!submitting ? { scale: 0.98 } : {}}
+                  className="flex items-center gap-2 px-6 py-3 text-white font-semibold rounded-lg disabled:opacity-60"
                   style={{ backgroundColor: "var(--color-primary)" }}
                 >
                   <FiSave size={18} />
-                  {editingCampaign ? "Update Campaign" : "Create Campaign"}
+                  {submitting ? "Saving…" : editingCampaign ? "Update Campaign" : "Create Campaign"}
                 </motion.button>
                 <motion.button
                   type="button"
                   onClick={handleCancel}
+                  disabled={submitting}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="flex items-center gap-2 px-6 py-3 border-2 rounded-lg font-semibold"
@@ -334,9 +391,18 @@ const Campaigns = () => {
         variants={staggerContainer}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
+        {campaignsList.length === 0 && !showForm && (
+          <div className="col-span-full">
+            <EmptyState
+              icon={FiCalendar}
+              title="No campaigns yet"
+              description="Create your first marketing campaign above"
+            />
+          </div>
+        )}
         {campaignsList.map((campaign, index) => (
           <motion.div
-            key={campaign.id}
+            key={campaign._id}
             variants={fadeInUp}
             className="p-6 rounded-lg space-y-4"
             style={{ backgroundColor: "var(--bg-secondary)" }}
@@ -371,6 +437,7 @@ const Campaigns = () => {
               </div>
               <div className="flex gap-2">
                 <motion.button
+                  type="button"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => handleEdit(campaign)}
@@ -380,9 +447,10 @@ const Campaigns = () => {
                   <FiEdit size={18} />
                 </motion.button>
                 <motion.button
+                  type="button"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => handleDelete(campaign.id)}
+                  onClick={() => handleDelete(campaign)}
                   className="p-2 rounded-lg transition-colors"
                   style={{ color: "var(--color-tertiary)" }}
                 >
@@ -395,7 +463,8 @@ const Campaigns = () => {
                 <div className="flex items-center gap-2">
                   <FiCalendar size={14} style={{ color: "var(--text-tertiary)" }} />
                   <span style={{ color: "var(--text-secondary)" }}>
-                    {new Date(campaign.startDate).toLocaleDateString()} - {new Date(campaign.endDate).toLocaleDateString()}
+                    {campaign.startDate ? new Date(campaign.startDate).toLocaleDateString() : "—"} -{" "}
+                    {campaign.endDate ? new Date(campaign.endDate).toLocaleDateString() : "—"}
                   </span>
                 </div>
               </div>
@@ -403,7 +472,7 @@ const Campaigns = () => {
                 <FiUsers size={14} style={{ color: "var(--text-tertiary)" }} />
                 <span style={{ color: "var(--text-secondary)" }}>{campaign.targetAudience}</span>
               </div>
-              {campaign.discount > 0 && (
+              {(campaign.discount || 0) > 0 && (
                 <div className="text-sm">
                   <span className="font-semibold" style={{ color: "var(--color-primary)" }}>
                     {campaign.discount}% OFF
@@ -412,15 +481,19 @@ const Campaigns = () => {
               )}
               <div className="grid grid-cols-2 gap-4 pt-3 border-t" style={{ borderColor: "var(--border-primary)" }}>
                 <div>
-                  <p className="text-xs mb-1" style={{ color: "var(--text-tertiary)" }}>Conversions</p>
+                  <p className="text-xs mb-1" style={{ color: "var(--text-tertiary)" }}>
+                    Conversions
+                  </p>
                   <p className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
-                    {campaign.conversions}
+                    {campaign.conversions ?? 0}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs mb-1" style={{ color: "var(--text-tertiary)" }}>Revenue</p>
+                  <p className="text-xs mb-1" style={{ color: "var(--text-tertiary)" }}>
+                    Revenue
+                  </p>
                   <p className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
-                    ${campaign.revenue.toLocaleString()}
+                    ৳{(campaign.revenue ?? 0).toLocaleString()}
                   </p>
                 </div>
               </div>

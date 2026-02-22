@@ -244,15 +244,15 @@ const ProductDetail = () => {
               {/* Price */}
               <div className="flex items-center gap-4 flex-wrap">
                 <span className="text-4xl font-bold" style={{ color: "var(--color-primary)" }}>
-                  ${(product.price ?? 0).toFixed(2)}
+                  ৳{(product.price ?? 0).toFixed(2)}
                 </span>
                 {product.originalPrice != null && product.originalPrice > (product.price ?? 0) && (
                   <>
                     <span className="text-2xl line-through" style={{ color: "var(--text-tertiary)" }}>
-                      ${product.originalPrice.toFixed(2)}
+                      ৳{product.originalPrice.toFixed(2)}
                     </span>
                     <span className="px-4 py-2 text-sm font-semibold text-white rounded-lg" style={{ backgroundColor: "var(--color-tertiary)" }}>
-                      Save ${(product.originalPrice - (product.price ?? 0)).toFixed(2)}
+                      Save ৳{(product.originalPrice - (product.price ?? 0)).toFixed(2)}
                     </span>
                   </>
                 )}
@@ -374,7 +374,7 @@ const ProductDetail = () => {
                 </p>
                 <div className="space-y-2 text-sm" style={{ color: "var(--text-secondary)" }}>
                   <p>• Premium quality materials</p>
-                  <p>• Free shipping on orders over $100</p>
+                  <p>• Free shipping on orders over ৳100</p>
                   <p>• 30-day return policy</p>
                   <p>• Care instructions included</p>
                 </div>

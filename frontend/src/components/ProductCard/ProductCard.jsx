@@ -121,11 +121,11 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
               </div>
               <div className="flex items-center gap-4 flex-wrap">
                 <span className="text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
-                  ${(product.price ?? 0).toFixed(2)}
+                  ৳{(product.price ?? 0).toFixed(2)}
                 </span>
                 {product.originalPrice != null && product.originalPrice > (product.price ?? 0) && (
                   <span className="text-lg line-through" style={{ color: "var(--text-tertiary)" }}>
-                    ${product.originalPrice.toFixed(2)}
+                    ৳{product.originalPrice.toFixed(2)}
                   </span>
                 )}
                 {product.discount != null && product.discount > 0 && (
@@ -404,11 +404,11 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
             </h3>
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-xl font-bold" style={{ color: "var(--color-primary)" }}>
-                ${(product.price ?? 0).toFixed(2)}
+                ৳{(product.price ?? 0).toFixed(2)}
               </span>
               {product.originalPrice != null && product.originalPrice > (product.price ?? 0) && (
                 <span className="text-sm line-through" style={{ color: "var(--text-tertiary)" }}>
-                  ${product.originalPrice.toFixed(2)}
+                  ৳{product.originalPrice.toFixed(2)}
                 </span>
               )}
               {product.discount != null && product.discount > 0 && (

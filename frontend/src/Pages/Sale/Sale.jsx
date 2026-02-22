@@ -279,7 +279,7 @@ const Sale = () => {
               </div>
               <div className="flex items-center gap-2">
                 <FiTrendingDown size={18} />
-                <span>Save up to ${stats.totalSavings.toFixed(0)}</span>
+                <span>Save up to ৳{stats.totalSavings.toFixed(0)}</span>
               </div>
             </motion.div>
           </div>
@@ -750,13 +750,13 @@ const SaleProductCard = ({ product, index, onQuickView }) => {
             className="text-xl font-bold"
             style={{ color: "var(--color-tertiary)" }}
           >
-            ${product.price.toFixed(2)}
+            ৳{product.price.toFixed(2)}
           </motion.span>
           <span
             className="text-sm line-through"
             style={{ color: "var(--text-tertiary)" }}
           >
-            ${product.originalPrice.toFixed(2)}
+            ৳{product.originalPrice.toFixed(2)}
           </span>
           <span
             className="text-xs font-semibold px-2 py-0.5 rounded"
@@ -765,7 +765,7 @@ const SaleProductCard = ({ product, index, onQuickView }) => {
               color: "var(--color-tertiary)",
             }}
           >
-            Save ${(product.originalPrice - product.price).toFixed(2)}
+            Save ৳{(product.originalPrice - product.price).toFixed(2)}
           </span>
         </div>
       </div>

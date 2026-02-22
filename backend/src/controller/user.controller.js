@@ -1,8 +1,72 @@
 import User from "../models/User.js";
 import Product from "../models/Product.js";
+import Order from "../models/Order.js";
+import { ORDER_STATUS } from "../models/Order.js";
 
 const MONGO_ID_REGEX = /^[a-fA-F0-9]{24}$/;
 const PRODUCT_SELECT = "name price images category slug _id originalPrice discount finalPrice stockQuantity";
+
+/**
+ * GET /api/users/admin/list
+ * Admin only. Returns all users (customers) with order count and total spent (from paid orders).
+ */
+export async function getAdminCustomers(req, res, next) {
+  try {
+    const users = await User.find({}).select("name email avatar role createdAt").lean().sort({ createdAt: -1 });
+
+    const orderStats = await Order.aggregate([
+      { $match: { status: ORDER_STATUS.PAID } },
+      { $group: { _id: "$user", orderCount: { $sum: 1 }, totalSpent: { $sum: "$amount" } } },
+    ]);
+    const statsByUser = Object.fromEntries(orderStats.map((s) => [String(s._id), { orderCount: s.orderCount, totalSpent: s.totalSpent }]));
+
+    const list = users.map((u) => {
+      const stats = statsByUser[String(u._id)] || { orderCount: 0, totalSpent: 0 };
+      return {
+        _id: u._id,
+        name: u.name,
+        email: u.email,
+        avatar: u.avatar ?? "",
+        role: u.role ?? "user",
+        joined: u.createdAt,
+        orders: stats.orderCount,
+        totalSpent: stats.totalSpent,
+        status: stats.orderCount > 0 ? "Active" : "Inactive",
+      };
+    });
+
+    res.json({ success: true, customers: list });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * DELETE /api/users/admin/:userId
+ * Admin only. Delete a user by id. Orders are not deleted (they keep the user ref).
+ */
+export async function deleteUserAdmin(req, res, next) {
+  try {
+    const { userId } = req.params;
+    if (!userId || !MONGO_ID_REGEX.test(userId)) {
+      return res.status(400).json({ success: false, message: "Invalid user ID" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    if (user.role === "admin") {
+      return res.status(403).json({ success: false, message: "Cannot delete an admin user" });
+    }
+
+    await User.findByIdAndDelete(userId);
+    res.json({ success: true, message: "User deleted successfully" });
+  } catch (err) {
+    next(err);
+  }
+}
 
 /**
  * GET /api/users/:userId

@@ -8,7 +8,6 @@ import {
   FiPackage,
   FiUsers,
   FiBarChart2,
-  FiSettings,
   FiRadio,
   FiPlus,
 } from "react-icons/fi";
@@ -22,7 +21,6 @@ const Admin = () => {
     { id: "orders", label: "Orders", icon: FiBarChart2, path: "/admin/orders" },
     { id: "users", label: "Customers", icon: FiUsers, path: "/admin/users" },
     { id: "campaigns", label: "Campaigns", icon: FiRadio, path: "/admin/campaigns" },
-    { id: "settings", label: "Settings", icon: FiSettings, path: "/admin/settings" },
   ];
 
   return (

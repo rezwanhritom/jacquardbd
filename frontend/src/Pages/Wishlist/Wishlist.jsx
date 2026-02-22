@@ -108,7 +108,7 @@ const Wishlist = () => {
                     {totalSavings > 0 && (
                       <span style={{ color: "var(--color-tertiary)" }}>
                         {" "}
-                        • Save ${totalSavings.toFixed(2)} on these items
+                        • Save ৳{totalSavings.toFixed(2)} on these items
                       </span>
                     )}
                   </p>
@@ -340,14 +340,14 @@ const WishlistCard = ({ product, index, isRemoving, onRemove, onMoveToCart }) =>
             className="text-lg font-bold"
             style={{ color: "var(--color-primary)" }}
           >
-            ${(product.price ?? 0).toFixed(2)}
+            ৳{(product.price ?? 0).toFixed(2)}
           </span>
           {product.originalPrice > 0 && (
             <span
               className="text-sm line-through"
               style={{ color: "var(--text-tertiary)" }}
             >
-              ${(product.originalPrice ?? 0).toFixed(2)}
+              ৳{(product.originalPrice ?? 0).toFixed(2)}
             </span>
           )}
         </div>

@@ -71,3 +71,27 @@ export async function removeFromUserWishlist(userId, productId) {
   }
   return { success: true, wishlist: Array.isArray(data.wishlist) ? data.wishlist : [], message: data.message };
 }
+
+/**
+ * GET /api/users/admin/list — admin only. List all customers with order count and total spent.
+ */
+export async function getAdminCustomers() {
+  const res = await userFetch("/admin/list");
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, customers: [], message: data.message || "Failed to load customers" };
+  }
+  return { success: true, customers: Array.isArray(data.customers) ? data.customers : [] };
+}
+
+/**
+ * DELETE /api/users/admin/:userId — admin only. Delete a user.
+ */
+export async function deleteUserAdmin(userId) {
+  const res = await userFetch(`/admin/${userId}`, { method: "DELETE" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, message: data.message || "Failed to delete user" };
+  }
+  return { success: true, message: data.message };
+}

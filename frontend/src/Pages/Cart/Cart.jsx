@@ -162,14 +162,14 @@ const Cart = () => {
                                 className="text-xl font-bold block"
                                 style={{ color: "var(--color-primary)" }}
                               >
-                                ${(price * item.quantity).toFixed(2)}
+                                ৳{(price * item.quantity).toFixed(2)}
                               </span>
                               {product?.originalPrice > 0 && (
                                 <span
                                   className="text-sm line-through"
                                   style={{ color: "var(--text-tertiary)" }}
                                 >
-                                  ${(product.originalPrice * item.quantity).toFixed(2)}
+                                  ৳{(product.originalPrice * item.quantity).toFixed(2)}
                                 </span>
                               )}
                             </div>
@@ -197,12 +197,12 @@ const Cart = () => {
                     <div className="space-y-3 pt-4 border-t" style={{ borderColor: "var(--border-primary)" }}>
                       <div className="flex justify-between text-sm">
                         <span style={{ color: "var(--text-secondary)" }}>Subtotal</span>
-                        <span style={{ color: "var(--text-primary)" }}>${subtotal.toFixed(2)}</span>
+                        <span style={{ color: "var(--text-primary)" }}>৳{subtotal.toFixed(2)}</span>
                       </div>
                       <div className="pt-3 border-t" style={{ borderColor: "var(--border-primary)" }}>
                         <div className="flex justify-between text-lg font-bold">
                           <span style={{ color: "var(--text-primary)" }}>Total</span>
-                          <span style={{ color: "var(--color-primary)" }}>${subtotal.toFixed(2)}</span>
+                          <span style={{ color: "var(--color-primary)" }}>৳{subtotal.toFixed(2)}</span>
                         </div>
                       </div>
                     </div>

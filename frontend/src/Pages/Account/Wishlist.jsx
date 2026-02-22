@@ -187,11 +187,11 @@ const Wishlist = () => {
                     </h3>
                     <div className="flex items-center space-x-2">
                       <span className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
-                        ${Number(price).toFixed(2)}
+                        ৳{Number(price).toFixed(2)}
                       </span>
                       {product.originalPrice != null && product.originalPrice > price && (
                         <span className="text-sm line-through" style={{ color: "var(--text-tertiary)" }}>
-                          ${Number(product.originalPrice).toFixed(2)}
+                          ৳{Number(product.originalPrice).toFixed(2)}
                         </span>
                       )}
                     </div>
