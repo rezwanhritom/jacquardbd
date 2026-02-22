@@ -23,6 +23,9 @@ const mapApiProductForDetail = (p) => ({
   description: p.description || "",
   slug: p.slug || "",
   tags: p.tags || [],
+  attributes: p.attributes || {},
+  variantMatrix: p.variantMatrix || [],
+  stockQuantity: p.stockQuantity ?? 0,
 });
 
 const mapApiProductForCard = (p) => ({
@@ -372,13 +375,66 @@ const ProductDetail = () => {
                 <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                   {product.description || `Premium quality ${product.name.toLowerCase()} from our ${getDisplayCategory(product)} collection. Crafted with attention to detail and designed for comfort and style. Perfect addition to your wardrobe.`}
                 </p>
-                <div className="space-y-2 text-sm" style={{ color: "var(--text-secondary)" }}>
-                  <p>• Premium quality materials</p>
-                  <p>• Free shipping on orders over ৳100</p>
-                  <p>• 30-day return policy</p>
-                  <p>• Care instructions included</p>
-                </div>
               </div>
+
+              {/* Attributes (Composition, Size & Fit, Care, Traceability) */}
+              {(() => {
+                const attrs = product.attributes || {};
+                const toList = (v) => (Array.isArray(v) ? v : v ? [String(v)] : []).filter(Boolean);
+                const comp = toList(attrs.composition);
+                const fit = toList(attrs.sizeAndFit);
+                const care = toList(attrs.care);
+                const trace = toList(attrs.traceability);
+                const hasAny = comp.length > 0 || fit.length > 0 || care.length > 0 || trace.length > 0;
+                if (!hasAny) return null;
+                return (
+                  <div className="pt-6 border-t space-y-6" style={{ borderColor: "var(--border-primary)" }}>
+                    <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
+                      Specifications
+                    </h3>
+                    {comp.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
+                          Composition
+                        </h4>
+                        <ul className="list-disc list-inside space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                          {comp.map((line, i) => <li key={i}>{line}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    {fit.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
+                          Size &amp; Fit
+                        </h4>
+                        <ul className="list-disc list-inside space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                          {fit.map((line, i) => <li key={i}>{line}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    {care.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
+                          Care
+                        </h4>
+                        <ul className="list-disc list-inside space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                          {care.map((line, i) => <li key={i}>{line}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    {trace.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
+                          Traceability
+                        </h4>
+                        <ul className="list-disc list-inside space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                          {trace.map((line, i) => <li key={i}>{line}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </motion.div>
 

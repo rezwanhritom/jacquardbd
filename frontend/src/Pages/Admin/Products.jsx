@@ -446,7 +446,7 @@ const Products = () => {
                         </p>
                         {product.collection && product.collection !== "regular" && (
                           <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: "var(--color-primary)20", color: "var(--color-primary)" }}>
-                            {product.collection}
+                            {{ "new-arrivals": "New Arrivals", "sale": "Sale", "featured": "Campaigns", "campaigns": "Campaigns" }[product.collection] || product.collection}
                           </span>
                         )}
                       </div>

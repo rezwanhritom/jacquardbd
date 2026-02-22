@@ -6,7 +6,7 @@ import { parseCategoryPath } from "../utils/categoryUtils.js";
 import { DEFAULT_PRODUCT_IMAGE_URL } from "../constants/defaults.js";
 
 const MONGO_ID_REGEX = /^[a-fA-F0-9]{24}$/;
-const ALLOWED_COLLECTIONS = ["regular", "new-arrivals", "sale", "featured"];
+const ALLOWED_COLLECTIONS = ["regular", "new-arrivals", "sale", "featured", "campaigns"];
 
 /**
  * GET /api/products/:identifier
@@ -48,7 +48,10 @@ export async function getProductsByCollection(req, res, next) {
         allowed: ALLOWED_COLLECTIONS,
       });
     }
-    const products = await Product.find({ status: "active", collection: collectionName })
+    const collectionFilter = collectionName === "campaigns"
+      ? { $in: ["campaigns", "featured"] }
+      : collectionName;
+    const products = await Product.find({ status: "active", collection: collectionFilter })
       .lean()
       .sort({ createdAt: -1 });
     res.json({ success: true, products });
@@ -134,6 +137,20 @@ export async function createProduct(req, res, next) {
     const collectionValue = (body.collection || "regular").toLowerCase().trim();
     const collection = ALLOWED_COLLECTIONS.includes(collectionValue) ? collectionValue : "regular";
 
+    const variantMatrix = Array.isArray(body.variantMatrix)
+      ? body.variantMatrix.filter((v) => v && (v.size || v.color) && Number(v.stock) >= 0).map((v) => ({
+          size: String(v.size || "").trim(),
+          color: String(v.color || "").trim(),
+          colorHex: String(v.colorHex || "").trim(),
+          stock: Math.max(0, Number(v.stock) || 0),
+        }))
+      : [];
+    const stockFromMatrix = variantMatrix.reduce((sum, v) => sum + (v.stock || 0), 0);
+    const stockQuantity = variantMatrix.length > 0 ? stockFromMatrix : Math.max(0, Number(body.stockQuantity) || 0);
+
+    const attrs = body.attributes || {};
+    const toLines = (v) => (Array.isArray(v) ? v : typeof v === "string" ? v.split("\n").map((s) => s.trim()).filter(Boolean) : []);
+
     const product = new Product({
       name,
       slug,
@@ -149,16 +166,21 @@ export async function createProduct(req, res, next) {
       collections: Array.isArray(body.collections) ? body.collections : [],
       tags: Array.isArray(body.tags) ? body.tags : [],
       variants: {
-        size: Array.isArray(body.variants?.size) ? body.variants.size : [],
-        color: Array.isArray(body.variants?.color) ? body.variants.color : [],
+        size: Array.isArray(body.variants?.size) ? body.variants.size : [...new Set(variantMatrix.map((v) => v.size).filter(Boolean))],
+        color: Array.isArray(body.variants?.color) ? body.variants.color : [...new Set(variantMatrix.map((v) => v.color).filter(Boolean))],
       },
-      stockQuantity: Number(body.stockQuantity) || 0,
+      variantMatrix: variantMatrix,
+      stockQuantity,
       isFeatured: Boolean(body.isFeatured),
       status: body.status === "active" ? "active" : "draft",
       images: [DEFAULT_PRODUCT_IMAGE_URL],
       sku: (body.sku || "").trim(),
-      material: (body.material || "").trim(),
-      fit: (body.fit || "").trim(),
+      attributes: {
+        composition: toLines(attrs.composition),
+        sizeAndFit: toLines(attrs.sizeAndFit),
+        care: toLines(attrs.care),
+        traceability: toLines(attrs.traceability),
+      },
     });
 
     await product.save();
@@ -232,7 +254,34 @@ export async function updateProduct(req, res, next) {
       product.finalPrice = finalPrice != null ? finalPrice : undefined;
       product.price = resolveSellingPrice(originalPrice, discount);
     }
-    if (body.stockQuantity !== undefined) product.stockQuantity = Math.max(0, Number(body.stockQuantity) || 0);
+    if (body.variantMatrix !== undefined && Array.isArray(body.variantMatrix)) {
+      const variantMatrix = body.variantMatrix
+        .filter((v) => v && (v.size || v.color) && Number(v.stock) >= 0)
+        .map((v) => ({
+          size: String(v.size || "").trim(),
+          color: String(v.color || "").trim(),
+          colorHex: String(v.colorHex || "").trim(),
+          stock: Math.max(0, Number(v.stock) || 0),
+        }));
+      product.variantMatrix = variantMatrix;
+      product.variants = {
+        size: [...new Set(variantMatrix.map((v) => v.size).filter(Boolean))],
+        color: [...new Set(variantMatrix.map((v) => v.color).filter(Boolean))],
+      };
+      product.stockQuantity = variantMatrix.reduce((sum, v) => sum + (v.stock || 0), 0);
+    } else if (body.stockQuantity !== undefined) {
+      product.stockQuantity = Math.max(0, Number(body.stockQuantity) || 0);
+    }
+    if (body.attributes !== undefined) {
+      const attrs = body.attributes;
+      const toLines = (v) => (Array.isArray(v) ? v : typeof v === "string" ? v.split("\n").map((s) => s.trim()).filter(Boolean) : []);
+      product.attributes = {
+        composition: toLines(attrs.composition),
+        sizeAndFit: toLines(attrs.sizeAndFit),
+        care: toLines(attrs.care),
+        traceability: toLines(attrs.traceability),
+      };
+    }
     if (body.status !== undefined) product.status = body.status === "active" ? "active" : "draft";
     if (body.images !== undefined && Array.isArray(body.images)) product.images = body.images;
     if (body.isFeatured !== undefined) product.isFeatured = Boolean(body.isFeatured);

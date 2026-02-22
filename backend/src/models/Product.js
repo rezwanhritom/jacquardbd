@@ -17,17 +17,27 @@ const productSchema = new mongoose.Schema(
     category: { type: String, default: "" }, // full path e.g. "Male > Winter Wear > Jackets > Leather Jacket"
     categoryPath: [{ type: String }], // parsed path for filtering e.g. ["Male", "Winter Wear", "Jackets", "Leather Jacket"]
     collections: [{ type: String }],
-    /** Single collection for filtering (e.g. new-arrivals page). Values: regular | new-arrivals | sale | featured */
+    /** Single collection for filtering. Values: regular | new-arrivals | sale | campaigns (featured kept for backward compat) */
     collection: {
       type: String,
-      enum: ["regular", "new-arrivals", "sale", "featured"],
+      enum: ["regular", "new-arrivals", "sale", "featured", "campaigns"],
       default: "regular",
     },
     tags: [{ type: String }],
+    /** Legacy: flat lists of size/color names. Kept for backward compat. */
     variants: {
       size: [{ type: String }],
       color: [{ type: String }],
     },
+    /** Per-variant stock: each entry is size + color + stock. Total stockQuantity derived from this when set. */
+    variantMatrix: [
+      {
+        size: { type: String, required: true },
+        color: { type: String, required: true },
+        colorHex: { type: String, default: "" },
+        stock: { type: Number, required: true, min: 0 },
+      },
+    ],
     stockQuantity: { type: Number, default: 0, min: 0 },
     isFeatured: { type: Boolean, default: false },
     status: {
@@ -36,10 +46,14 @@ const productSchema = new mongoose.Schema(
       default: "draft",
     },
     images: [{ type: String }],
-    // Optional fields for future use (e.g. SKU, material, fit)
     sku: { type: String, default: "" },
-    material: { type: String, default: "" },
-    fit: { type: String, default: "" },
+    /** Product attributes for detail page bullet lists */
+    attributes: {
+      composition: [{ type: String }],
+      sizeAndFit: [{ type: String }],
+      care: [{ type: String }],
+      traceability: [{ type: String }],
+    },
   },
   { timestamps: true }
 );

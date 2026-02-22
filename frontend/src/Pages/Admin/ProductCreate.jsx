@@ -7,27 +7,50 @@ import {
   FiX,
   FiPackage,
   FiImage,
-  FiDollarSign,
+  FiCreditCard,
   FiGrid,
   FiTag,
   FiEye,
   FiInfo,
   FiAlertCircle,
-  FiCheck,
+  FiList,
 } from "react-icons/fi";
-import { ImageUpload, TagInput, ColorSwatch, CascadingCategorySelect } from "../../components/Admin";
+import { ImageUpload, TagInput, CascadingCategorySelect } from "../../components/Admin";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import toast from "react-hot-toast";
 import { createProduct as createProductApi, uploadProductImages as uploadProductImagesApi } from "../../services/productApi";
 import { categoryTree } from "../../data/categoryTree";
 
 const availableSizes = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
-/** Single collection for filtering (e.g. New Arrivals page). Values match backend enum. */
+
+/** Preset colors for quick pick (name, hex). Picker auto-fills hex; name can be edited. */
+const presetColors = [
+  { name: "Black", hex: "#000000" },
+  { name: "White", hex: "#FFFFFF" },
+  { name: "Navy", hex: "#1e3a5f" },
+  { name: "Red", hex: "#c41e3a" },
+  { name: "Burgundy", hex: "#800020" },
+  { name: "Gray", hex: "#6b7280" },
+  { name: "Charcoal", hex: "#36454f" },
+  { name: "Beige", hex: "#f5f5dc" },
+  { name: "Brown", hex: "#8b4513" },
+  { name: "Olive", hex: "#808000" },
+  { name: "Blue", hex: "#2563eb" },
+  { name: "Sky Blue", hex: "#0ea5e9" },
+  { name: "Green", hex: "#16a34a" },
+  { name: "Mustard", hex: "#e4a853" },
+  { name: "Pink", hex: "#ec4899" },
+  { name: "Purple", hex: "#7c3aed" },
+  { name: "Orange", hex: "#ea580c" },
+  { name: "Yellow", hex: "#eab308" },
+];
+
+/** Single collection for filtering. Values match backend enum. */
 const collectionOptions = [
   { value: "regular", label: "Regular" },
   { value: "new-arrivals", label: "New Arrivals" },
   { value: "sale", label: "Sale" },
-  { value: "featured", label: "Featured" },
+  { value: "campaigns", label: "Campaigns" },
 ];
 
 const ProductCreate = () => {
@@ -44,17 +67,19 @@ const ProductCreate = () => {
     fullDescription: "",
     originalPrice: "",
     discount: "",
-    stockQuantity: "",
-    sizes: [],
-    colors: [],
-    material: "",
-    fit: "",
+    variantMatrix: [], // [{ size, color, colorHex, stock }]
     category: "",
     collection: "regular",
     collections: [],
     tags: [],
     isActive: true,
     isFeatured: false,
+    attributes: {
+      composition: "",
+      sizeAndFit: "",
+      care: "",
+      traceability: "",
+    },
   });
 
   const [images, setImages] = useState([]);
@@ -80,12 +105,39 @@ const ProductCreate = () => {
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  const toggleSize = (size) => {
+  const addVariantRow = () => {
     setFormData((prev) => ({
       ...prev,
-      sizes: prev.sizes.includes(size)
-        ? prev.sizes.filter((s) => s !== size)
-        : [...prev.sizes, size],
+      variantMatrix: [...prev.variantMatrix, { size: "", color: "", colorHex: "", stock: 0 }],
+    }));
+  };
+
+  const updateVariantRow = (index, field, value) => {
+    setFormData((prev) => {
+      const next = [...prev.variantMatrix];
+      if (!next[index]) return prev;
+      next[index] = { ...next[index], [field]: value };
+      return { ...prev, variantMatrix: next };
+    });
+  };
+
+  const setVariantRowPreset = (index, preset, currentColorName) => {
+    setFormData((prev) => {
+      const next = [...prev.variantMatrix];
+      if (!next[index]) return prev;
+      next[index] = {
+        ...next[index],
+        colorHex: preset.hex,
+        color: currentColorName?.trim() ? next[index].color : preset.name,
+      };
+      return { ...prev, variantMatrix: next };
+    });
+  };
+
+  const removeVariantRow = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      variantMatrix: prev.variantMatrix.filter((_, i) => i !== index),
     }));
   };
 
@@ -102,13 +154,16 @@ const ProductCreate = () => {
     return Math.round(value * 100) / 100;
   }, [formData.originalPrice, formData.discount]);
 
-  // Stock status
+  // Stock status from variant matrix (for display only)
+  const totalStock = useMemo(
+    () => formData.variantMatrix.reduce((sum, row) => sum + (Number(row.stock) || 0), 0),
+    [formData.variantMatrix]
+  );
   const stockStatus = useMemo(() => {
-    const qty = parseInt(formData.stockQuantity) || 0;
-    if (qty === 0) return { label: "Out of Stock", color: "var(--color-tertiary)" };
-    if (qty <= 10) return { label: "Low Stock", color: "#f59e0b" };
+    if (totalStock === 0) return { label: "Out of Stock", color: "var(--color-tertiary)" };
+    if (totalStock <= 10) return { label: "Low Stock", color: "#f59e0b" };
     return { label: "In Stock", color: "var(--color-secondary)" };
-  }, [formData.stockQuantity]);
+  }, [totalStock]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -137,13 +192,23 @@ const ProductCreate = () => {
     collection: formData.collection || "regular",
     collections: formData.collections,
     tags: formData.tags,
-    variants: { size: formData.sizes, color: formData.colors },
-    stockQuantity: parseInt(formData.stockQuantity, 10) || 0,
+    variantMatrix: formData.variantMatrix
+      .filter((r) => (r.size || r.color) && (Number(r.stock) || 0) >= 0)
+      .map((r) => ({
+        size: String(r.size || "").trim(),
+        color: String(r.color || "").trim(),
+        colorHex: String(r.colorHex || "").trim(),
+        stock: Math.max(0, Number(r.stock) || 0),
+      })),
     isFeatured: formData.isFeatured,
     status: isDraft ? "draft" : formData.isActive ? "active" : "draft",
     sku: formData.sku.trim() || undefined,
-    material: formData.material.trim() || undefined,
-    fit: formData.fit || undefined,
+    attributes: {
+      composition: formData.attributes.composition.trim() ? formData.attributes.composition.trim().split("\n").map((s) => s.trim()).filter(Boolean) : [],
+      sizeAndFit: formData.attributes.sizeAndFit.trim() ? formData.attributes.sizeAndFit.trim().split("\n").map((s) => s.trim()).filter(Boolean) : [],
+      care: formData.attributes.care.trim() ? formData.attributes.care.trim().split("\n").map((s) => s.trim()).filter(Boolean) : [],
+      traceability: formData.attributes.traceability.trim() ? formData.attributes.traceability.trim().split("\n").map((s) => s.trim()).filter(Boolean) : [],
+    },
   });
 
   const handleSubmit = async (isDraft = false) => {
@@ -208,8 +273,9 @@ const ProductCreate = () => {
   const sections = [
     { id: "basic", label: "Basic Info", icon: FiPackage },
     { id: "media", label: "Media", icon: FiImage },
-    { id: "pricing", label: "Pricing", icon: FiDollarSign },
+    { id: "pricing", label: "Pricing", icon: FiCreditCard },
     { id: "variants", label: "Variants", icon: FiGrid },
+    { id: "attributes", label: "Attributes", icon: FiList },
     { id: "organization", label: "Organization", icon: FiTag },
     { id: "visibility", label: "Visibility", icon: FiEye },
   ];
@@ -519,7 +585,7 @@ const ProductCreate = () => {
             <ImageUpload images={images} setImages={setImages} />
           </motion.section>
 
-          {/* Pricing & Inventory */}
+          {/* Pricing */}
           <motion.section
             variants={fadeInUp}
             className="rounded-xl p-6 border"
@@ -533,10 +599,10 @@ const ProductCreate = () => {
                 className="p-2 rounded-lg"
                 style={{ backgroundColor: "var(--bg-secondary)" }}
               >
-                <FiDollarSign size={20} style={{ color: "var(--color-primary)" }} />
+                <FiCreditCard size={20} style={{ color: "var(--color-primary)" }} />
               </div>
               <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-                Pricing & Inventory
+                Pricing
               </h2>
             </div>
 
@@ -544,7 +610,7 @@ const ProductCreate = () => {
               {/* Original Price */}
               <div>
                 <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-                  Original Price <span style={{ color: "var(--color-tertiary)" }}>*</span>
+                  Original Price (৳) <span style={{ color: "var(--color-tertiary)" }}>*</span>
                 </label>
                 <div className="relative">
                   <span
@@ -619,7 +685,7 @@ const ProductCreate = () => {
               {/* Final Price (calculated, read-only) */}
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-                  Final Price
+                  Final Price (৳)
                 </label>
                 <div
                   className="w-full px-4 py-3 border-2 rounded-lg text-sm font-semibold"
@@ -635,55 +701,10 @@ const ProductCreate = () => {
                   Original Price − (Original Price × Discount ÷ 100)
                 </p>
               </div>
-
-              {/* Stock Quantity */}
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-                  Stock Quantity
-                </label>
-                <input
-                  type="number"
-                  name="stockQuantity"
-                  value={formData.stockQuantity}
-                  onChange={handleChange}
-                  placeholder="0"
-                  min="0"
-                  className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors text-sm"
-                  style={{
-                    borderColor: "var(--border-primary)",
-                    backgroundColor: "var(--bg-primary)",
-                    color: "var(--text-primary)",
-                  }}
-                  onFocus={(e) => (e.target.style.borderColor = "var(--color-primary)")}
-                  onBlur={(e) => (e.target.style.borderColor = "var(--border-primary)")}
-                />
-              </div>
-
-              {/* Stock Status Badge */}
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-                  Stock Status
-                </label>
-                <div
-                  className="px-4 py-3 border-2 rounded-lg flex items-center gap-2"
-                  style={{
-                    borderColor: "var(--border-primary)",
-                    backgroundColor: "var(--bg-secondary)",
-                  }}
-                >
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: stockStatus.color }}
-                  />
-                  <span className="text-sm font-medium" style={{ color: stockStatus.color }}>
-                    {stockStatus.label}
-                  </span>
-                </div>
-              </div>
             </div>
           </motion.section>
 
-          {/* Variants & Attributes */}
+          {/* Variants (size × color × stock) */}
           <motion.section
             variants={fadeInUp}
             className="rounded-xl p-6 border"
@@ -700,99 +721,242 @@ const ProductCreate = () => {
                 <FiGrid size={20} style={{ color: "var(--color-primary)" }} />
               </div>
               <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-                Variants & Attributes
+                Variants
               </h2>
             </div>
-
-            <div className="space-y-6">
-              {/* Sizes */}
-              <div>
-                <label className="block text-sm font-medium mb-3" style={{ color: "var(--text-primary)" }}>
-                  Available Sizes
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {availableSizes.map((size) => {
-                    const isSelected = formData.sizes.includes(size);
-                    return (
-                      <motion.button
-                        key={size}
-                        type="button"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => toggleSize(size)}
-                        className={`px-4 py-2 rounded-lg font-medium text-sm border-2 transition-colors ${
-                          isSelected ? "text-white" : ""
-                        }`}
+            <p className="text-sm mb-4" style={{ color: "var(--text-secondary)" }}>
+              Add each size–color combination with its stock. Stock status is calculated from the total below.
+            </p>
+            <div className="space-y-3">
+              {formData.variantMatrix.map((row, index) => (
+                <div
+                  key={index}
+                  className="p-3 rounded-lg border space-y-2"
+                  style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)" }}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      value={row.size}
+                      onChange={(e) => updateVariantRow(index, "size", e.target.value)}
+                      className="px-3 py-2 rounded-lg border-2 text-sm"
+                      style={{
+                        borderColor: "var(--border-primary)",
+                        backgroundColor: "var(--bg-primary)",
+                        color: "var(--text-primary)",
+                      }}
+                    >
+                      <option value="">Size</option>
+                      {availableSizes.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      value={row.color}
+                      onChange={(e) => updateVariantRow(index, "color", e.target.value)}
+                      placeholder="Color name"
+                      className="w-28 px-3 py-2 rounded-lg border-2 text-sm"
+                      style={{
+                        borderColor: "var(--border-primary)",
+                        backgroundColor: "var(--bg-primary)",
+                        color: "var(--text-primary)",
+                      }}
+                    />
+                    <div className="flex items-center gap-1" title="Pick color – auto-fills hex">
+                      <input
+                        type="color"
+                        value={row.colorHex && /^#[0-9A-Fa-f]{6}$/.test(row.colorHex) ? row.colorHex : "#000000"}
+                        onChange={(e) => updateVariantRow(index, "colorHex", e.target.value)}
+                        title="Pick color"
+                        className="w-9 h-9 rounded-lg border-2 cursor-pointer p-0"
+                        style={{ borderColor: "var(--border-primary)" }}
+                      />
+                      <input
+                        type="text"
+                        value={row.colorHex}
+                        onChange={(e) => updateVariantRow(index, "colorHex", e.target.value)}
+                        placeholder="#hex (auto from picker)"
+                        className="w-24 px-2 py-2 rounded-lg border-2 text-sm font-mono"
                         style={{
-                          borderColor: isSelected ? "var(--color-primary)" : "var(--border-primary)",
-                          backgroundColor: isSelected ? "var(--color-primary)" : "transparent",
-                          color: isSelected ? "white" : "var(--text-secondary)",
+                          borderColor: "var(--border-primary)",
+                          backgroundColor: "var(--bg-primary)",
+                          color: "var(--text-primary)",
                         }}
-                      >
-                        {size}
-                      </motion.button>
-                    );
-                  })}
+                      />
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      value={row.stock}
+                      onChange={(e) => updateVariantRow(index, "stock", e.target.value)}
+                      placeholder="Stock"
+                      className="w-20 px-3 py-2 rounded-lg border-2 text-sm"
+                      style={{
+                        borderColor: "var(--border-primary)",
+                        backgroundColor: "var(--bg-primary)",
+                        color: "var(--text-primary)",
+                      }}
+                    />
+                    <motion.button
+                      type="button"
+                      onClick={() => removeVariantRow(index)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="p-2 rounded-lg"
+                      style={{ color: "var(--color-tertiary)" }}
+                    >
+                      <FiX size={18} />
+                    </motion.button>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>Quick pick:</span>
+                    {presetColors.map((preset) => (
+                      <button
+                        key={preset.hex}
+                        type="button"
+                        title={`${preset.name} ${preset.hex}`}
+                        className="w-6 h-6 rounded-full border-2 shrink-0 focus:outline-none focus:ring-2 focus:ring-offset-1"
+                        style={{
+                          backgroundColor: preset.hex,
+                          borderColor: (row.colorHex || "").toUpperCase() === preset.hex.toUpperCase() ? "var(--color-primary)" : "var(--border-primary)",
+                        }}
+                        onClick={() => setVariantRowPreset(index, preset, row.color)}
+                      />
+                    ))}
+                  </div>
                 </div>
+              ))}
+              <motion.button
+                type="button"
+                onClick={addVariantRow}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full py-3 rounded-lg border-2 border-dashed font-medium text-sm"
+                style={{
+                  borderColor: "var(--border-primary)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                + Add variant (size + color + stock)
+              </motion.button>
+            </div>
+            {formData.variantMatrix.length > 0 && (
+              <div className="mt-4 pt-4 border-t flex items-center gap-2" style={{ borderColor: "var(--border-primary)" }}>
+                <span className="text-sm" style={{ color: "var(--text-secondary)" }}>Total stock:</span>
+                <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{totalStock}</span>
+                <span
+                  className="px-2 py-0.5 text-xs font-semibold rounded"
+                  style={{ backgroundColor: stockStatus.color + "20", color: stockStatus.color }}
+                >
+                  {stockStatus.label}
+                </span>
               </div>
+            )}
+          </motion.section>
 
-              {/* Colors */}
+          {/* Attributes (composition, size & fit, care, traceability) */}
+          <motion.section
+            variants={fadeInUp}
+            className="rounded-xl p-6 border"
+            style={{
+              backgroundColor: "var(--bg-primary)",
+              borderColor: "var(--border-primary)",
+            }}
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div
+                className="p-2 rounded-lg"
+                style={{ backgroundColor: "var(--bg-secondary)" }}
+              >
+                <FiList size={20} style={{ color: "var(--color-primary)" }} />
+              </div>
+              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                Attributes
+              </h2>
+            </div>
+            <p className="text-sm mb-4" style={{ color: "var(--text-secondary)" }}>
+              One line per bullet. Shown on the product page under COMPOSITION, SIZE &amp; FIT, CARE, and TRACEABILITY.
+            </p>
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium mb-3" style={{ color: "var(--text-primary)" }}>
-                  Available Colors
+                <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                  COMPOSITION
                 </label>
-                <ColorSwatch
-                  selectedColors={formData.colors}
-                  setSelectedColors={(colors) => setFormData((prev) => ({ ...prev, colors }))}
+                <textarea
+                  value={formData.attributes.composition}
+                  onChange={(e) => setFormData((prev) => ({
+                    ...prev,
+                    attributes: { ...prev.attributes, composition: e.target.value },
+                  }))}
+                  placeholder={"Outer: 65% Cotton\n30% Polyester\nInner: Brushed thermal lining"}
+                  rows={4}
+                  className="w-full px-4 py-3 border-2 rounded-lg outline-none resize-none text-sm"
+                  style={{
+                    borderColor: "var(--border-primary)",
+                    backgroundColor: "var(--bg-primary)",
+                    color: "var(--text-primary)",
+                  }}
                 />
               </div>
-
-              {/* Material & Fit */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-                    Material
-                  </label>
-                  <input
-                    type="text"
-                    name="material"
-                    value={formData.material}
-                    onChange={handleChange}
-                    placeholder="e.g., 100% Cotton"
-                    className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors text-sm"
-                    style={{
-                      borderColor: "var(--border-primary)",
-                      backgroundColor: "var(--bg-primary)",
-                      color: "var(--text-primary)",
-                    }}
-                    onFocus={(e) => (e.target.style.borderColor = "var(--color-primary)")}
-                    onBlur={(e) => (e.target.style.borderColor = "var(--border-primary)")}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-                    Fit
-                  </label>
-                  <select
-                    name="fit"
-                    value={formData.fit}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors text-sm appearance-none cursor-pointer"
-                    style={{
-                      borderColor: "var(--border-primary)",
-                      backgroundColor: "var(--bg-primary)",
-                      color: formData.fit ? "var(--text-primary)" : "var(--text-tertiary)",
-                    }}
-                    onFocus={(e) => (e.target.style.borderColor = "var(--color-primary)")}
-                    onBlur={(e) => (e.target.style.borderColor = "var(--border-primary)")}
-                  >
-                    <option value="">Select fit type</option>
-                    <option value="slim">Slim Fit</option>
-                    <option value="regular">Regular Fit</option>
-                    <option value="relaxed">Relaxed Fit</option>
-                    <option value="oversized">Oversized</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                  SIZE &amp; FIT
+                </label>
+                <textarea
+                  value={formData.attributes.sizeAndFit}
+                  onChange={(e) => setFormData((prev) => ({
+                    ...prev,
+                    attributes: { ...prev.attributes, sizeAndFit: e.target.value },
+                  }))}
+                  placeholder={"Regular fit\nTrue to size\nComfortable stretch for ease of movement"}
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 rounded-lg outline-none resize-none text-sm"
+                  style={{
+                    borderColor: "var(--border-primary)",
+                    backgroundColor: "var(--bg-primary)",
+                    color: "var(--text-primary)",
+                  }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                  CARE
+                </label>
+                <textarea
+                  value={formData.attributes.care}
+                  onChange={(e) => setFormData((prev) => ({
+                    ...prev,
+                    attributes: { ...prev.attributes, care: e.target.value },
+                  }))}
+                  placeholder={"Machine wash at 30°C\nWash inside out with similar colours\nDo not bleach"}
+                  rows={4}
+                  className="w-full px-4 py-3 border-2 rounded-lg outline-none resize-none text-sm"
+                  style={{
+                    borderColor: "var(--border-primary)",
+                    backgroundColor: "var(--bg-primary)",
+                    color: "var(--text-primary)",
+                  }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                  TRACEABILITY
+                </label>
+                <textarea
+                  value={formData.attributes.traceability}
+                  onChange={(e) => setFormData((prev) => ({
+                    ...prev,
+                    attributes: { ...prev.attributes, traceability: e.target.value },
+                  }))}
+                  placeholder={"Fabric sourced from responsibly selected suppliers\nManufactured in ethically audited facilities"}
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 rounded-lg outline-none resize-none text-sm"
+                  style={{
+                    borderColor: "var(--border-primary)",
+                    backgroundColor: "var(--bg-primary)",
+                    color: "var(--text-primary)",
+                  }}
+                />
               </div>
             </div>
           </motion.section>
@@ -803,7 +967,7 @@ const ProductCreate = () => {
           {/* Organization */}
           <motion.section
             variants={fadeInUp}
-            className="rounded-xl p-6 border sticky top-24"
+            className="rounded-xl p-6 border"
             style={{
               backgroundColor: "var(--bg-primary)",
               borderColor: "var(--border-primary)",

@@ -65,7 +65,7 @@ export async function getProductsByGender(gender, options = {}) {
 
 /**
  * Fetch products by collection (GET /api/products/collection/:collectionName).
- * @param {string} collectionName - e.g. "new-arrivals", "sale", "featured"
+ * @param {string} collectionName - e.g. "new-arrivals", "sale", "campaigns"
  * @returns {Promise<{ success: boolean, products?: Array, message?: string }>}
  */
 export async function getProductsByCollection(collectionName) {
