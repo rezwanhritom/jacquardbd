@@ -196,37 +196,58 @@ const Navbar = () => {
                       >
                         <div className="grid grid-cols-2 gap-6">
                           {navigationData.megaMenuCategories[link.label]?.map(
-                            (category) => (
-                              <motion.div
-                                key={category.id}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.1 }}
-                              >
-                                <h4
-                                  className="font-semibold mb-4 text-sm uppercase tracking-wide"
-                                  style={{ color: "var(--color-primary)" }}
+                            (category) => {
+                              const genderSlug = link.label.toLowerCase();
+                              const sectionSlug = category.title.toLowerCase().replace(/\s+/g, "-");
+                              const sectionPath = `/category/${genderSlug}/${sectionSlug}`;
+                              return (
+                                <motion.div
+                                  key={category.id}
+                                  initial={{ opacity: 0, x: -10 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: 0.1 }}
                                 >
-                                  {category.title}
-                                </h4>
-                                <ul className="space-y-2">
-                                  {category.items.map((item, idx) => (
-                                    <li key={idx}>
-                                      <motion.button
-                                        className="text-sm text-left w-full transition-colors"
-                                        style={{ color: "var(--text-tertiary)" }}
-                                        whileHover={{
-                                          color: "var(--color-primary)",
-                                          x: 5,
-                                        }}
-                                      >
-                                        {item}
-                                      </motion.button>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </motion.div>
-                            )
+                                  <Link
+                                    to={sectionPath}
+                                    onClick={() => setActiveMegaMenu(null)}
+                                    className="block mb-4"
+                                  >
+                                    <h4
+                                      className="font-semibold text-sm uppercase tracking-wide hover:underline"
+                                      style={{ color: "var(--color-primary)" }}
+                                    >
+                                      {category.title}
+                                    </h4>
+                                  </Link>
+                                  <ul className="space-y-2">
+                                    {category.items.map((item, idx) => {
+                                      const itemSlug = item.toLowerCase().replace(/\s+/g, "-");
+                                      const itemPath = `/category/${genderSlug}/${sectionSlug}/${itemSlug}`;
+                                      return (
+                                        <li key={idx}>
+                                          <Link
+                                            to={itemPath}
+                                            onClick={() => setActiveMegaMenu(null)}
+                                            className="block"
+                                          >
+                                            <motion.span
+                                              className="text-sm text-left w-full transition-colors block"
+                                              style={{ color: "var(--text-tertiary)" }}
+                                              whileHover={{
+                                                color: "var(--color-primary)",
+                                                x: 5,
+                                              }}
+                                            >
+                                              {item}
+                                            </motion.span>
+                                          </Link>
+                                        </li>
+                                      );
+                                    })}
+                                  </ul>
+                                </motion.div>
+                              );
+                            }
                           )}
                         </div>
                       </motion.div>

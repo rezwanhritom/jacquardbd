@@ -4,7 +4,7 @@ import ProductCard from "../ProductCard";
 import { ProductCardSkeleton, EmptyState } from "../";
 import { FiGrid, FiList, FiPackage } from "react-icons/fi";
 
-const ProductGrid = ({ products, viewMode: externalViewMode, onViewModeChange, onQuickView }) => {
+const ProductGrid = ({ products, viewMode: externalViewMode, onViewModeChange, onQuickView, hideViewToggle }) => {
   const [internalViewMode, setInternalViewMode] = useState("grid");
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
   const setViewMode = onViewModeChange || setInternalViewMode;
@@ -23,7 +23,8 @@ const ProductGrid = ({ products, viewMode: externalViewMode, onViewModeChange, o
 
   return (
     <div className="space-y-6">
-      {/* View Mode Toggle */}
+      {/* View Mode Toggle — hidden when hideViewToggle (e.g. inside section/subcategory blocks) */}
+      {!hideViewToggle && (
       <div className="flex items-center justify-end gap-2">
         <motion.button
           whileHover={{ scale: 1.1 }}
@@ -56,6 +57,7 @@ const ProductGrid = ({ products, viewMode: externalViewMode, onViewModeChange, o
           <FiList size={20} />
         </motion.button>
       </div>
+      )}
 
       {/* Products Grid/List */}
       <AnimatePresence mode="wait">

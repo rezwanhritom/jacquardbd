@@ -15,6 +15,28 @@ export function getLevel2Category(product) {
   return "Other";
 }
 
+/** Level-3 subcategory (e.g. "Sweatshirts"). For grouping under section. */
+export function getLevel3Category(product) {
+  const path = product?.categoryPath;
+  if (Array.isArray(path) && path.length > 0) {
+    if (path.length >= 3) return path[2].trim();
+    return path[path.length - 1].trim();
+  }
+  const cat = product?.category;
+  if (typeof cat === "string") {
+    const parts = cat.split(">").map((s) => s.trim()).filter(Boolean);
+    if (parts.length >= 3) return parts[2];
+    if (parts.length >= 1) return parts[parts.length - 1];
+  }
+  return "Other";
+}
+
+/** Convert display name to URL slug: "Winter Wear" -> "winter-wear". */
+export function toCategorySlug(name) {
+  if (!name || typeof name !== "string") return "";
+  return name.trim().toLowerCase().replace(/\s+/g, "-");
+}
+
 /** Display category for cards: 3rd level (e.g. "Oversized Polo") or last segment, else full string. */
 export function getDisplayCategory(product) {
   const path = product?.categoryPath;

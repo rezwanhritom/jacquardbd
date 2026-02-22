@@ -35,13 +35,16 @@ export async function getProduct(identifier) {
 }
 
 /**
- * Fetch products by gender (GET /api/products?gender=men|women).
+ * Fetch products by gender (GET /api/products?gender=men|women&section=&subcategory=).
  * @param {string} gender - "men" or "women"
+ * @param {{ section?: string, subcategory?: string }} options - optional section/subcategory slugs
  * @returns {Promise<{ success: boolean, products?: Array, message?: string }>}
  */
-export async function getProductsByGender(gender) {
+export async function getProductsByGender(gender, options = {}) {
   const baseUrl = getBaseUrl();
   const params = new URLSearchParams({ gender: gender.toLowerCase() });
+  if (options.section) params.set("section", options.section);
+  if (options.subcategory) params.set("subcategory", options.subcategory);
   const response = await fetch(`${baseUrl}/api/products?${params}`);
 
   const data = await response.json().catch(() => ({}));

@@ -3,8 +3,6 @@ import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiChevronLeft, FiChevronRight, FiShoppingBag, FiHeart } from "react-icons/fi";
-import { getDisplayCategory } from "../../utils/productUtils";
-
 const ProductCarousel = ({ title, subtitle, products, showViewAll = true, compact = false }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollContainerRef = useRef(null);
@@ -188,9 +186,6 @@ const ProductCarousel = ({ title, subtitle, products, showViewAll = true, compac
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <p className="text-xs uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
-                        {getDisplayCategory(product)}
-                      </p>
                       <h3 className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>
                         {product.name}
                       </h3>
