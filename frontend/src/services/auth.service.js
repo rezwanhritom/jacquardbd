@@ -76,3 +76,55 @@ export async function getMe() {
   }
   return { success: true, user: data.user };
 }
+
+/**
+ * POST /api/auth/change-password — Body: { currentPassword, newPassword }
+ */
+export async function changePassword(currentPassword, newPassword) {
+  const res = await authFetch("/change-password", {
+    method: "POST",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, message: data.message || "Failed to change password" };
+  }
+  return { success: true, message: data.message };
+}
+
+/**
+ * GET /api/auth/sessions — list active sessions (DB)
+ */
+export async function getSessions() {
+  const res = await authFetch("/sessions");
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, sessions: [], message: data.message };
+  }
+  return { success: true, sessions: Array.isArray(data.sessions) ? data.sessions : [] };
+}
+
+/**
+ * DELETE /api/auth/sessions/:sessionId — revoke one session
+ */
+export async function revokeSession(sessionId) {
+  const res = await authFetch(`/sessions/${sessionId}`, { method: "DELETE" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, message: data.message || "Failed to revoke session" };
+  }
+  return { success: true, wasCurrent: data.wasCurrent, message: data.message };
+}
+
+/**
+ * DELETE /api/auth/sessions — revoke all other sessions. Pass all=true to revoke all including current.
+ */
+export async function revokeAllOtherSessions(revokeAll = false) {
+  const url = revokeAll ? "/sessions?all=1" : "/sessions";
+  const res = await authFetch(url, { method: "DELETE" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, message: data.message || "Failed to revoke sessions" };
+  }
+  return { success: true, revokedCurrent: data.revokedCurrent, message: data.message };
+}
