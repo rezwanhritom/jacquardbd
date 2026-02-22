@@ -4,9 +4,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Task Manager</title>
+    <title>Jacquard</title>
   </head>
   <body>
+    <div id="app-loading" style="position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;gap:1.25rem;">
+      <img src="/images/logo.png" alt="" style="max-width:180px;height:auto;object-fit:contain;" onerror="this.style.display='none'" />
+      <span style="font-size:1.75rem;font-weight:700;letter-spacing:0.35em;color:#1a1a1a;">JACQUARD</span>
+      <div style="width:32px;height:32px;border:3px solid #e5e5e5;border-top-color:#1a1a1a;border-radius:50%;animation:app-load-spin 0.8s linear infinite;"></div>
+    </div>
+    <style>
+      @keyframes app-load-spin { to { transform: rotate(360deg); } }
+    </style>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
