@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router";
+import { useState, useMemo, useEffect } from "react";
+import { Link, useNavigate, useParams } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiChevronRight,
@@ -18,7 +18,7 @@ import {
 import { ImageUpload, TagInput, CascadingCategorySelect } from "../../components/Admin";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import toast from "react-hot-toast";
-import { createProduct as createProductApi, uploadProductImages as uploadProductImagesApi } from "../../services/productApi";
+import { getProduct, createProduct as createProductApi, updateProduct as updateProductApi, uploadProductImages as uploadProductImagesApi } from "../../services/productApi";
 import { categoryTree } from "../../data/categoryTree";
 
 const availableSizes = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
@@ -55,6 +55,9 @@ const collectionOptions = [
 
 const ProductCreate = () => {
   const navigate = useNavigate();
+  const { productId } = useParams();
+  const isEditMode = Boolean(productId);
+  const [loadingProduct, setLoadingProduct] = useState(isEditMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeSection, setActiveSection] = useState("basic");
 
@@ -84,6 +87,68 @@ const ProductCreate = () => {
 
   const [images, setImages] = useState([]);
   const [errors, setErrors] = useState({});
+
+  // Load product in edit mode
+  useEffect(() => {
+    if (!productId) {
+      setLoadingProduct(false);
+      return;
+    }
+    setLoadingProduct(true);
+    getProduct(productId)
+      .then((res) => {
+        if (!res.success || !res.product) {
+          toast.error(res.message || "Product not found");
+          navigate("/admin/products");
+          return;
+        }
+        const p = res.product;
+        const attrs = p.attributes || {};
+        const toLines = (v) => (Array.isArray(v) ? v : typeof v === "string" ? [v] : []).filter(Boolean);
+        setFormData({
+          name: p.name || "",
+          slug: p.slug || "",
+          sku: p.sku || "",
+          shortDescription: p.shortDescription || "",
+          fullDescription: p.description || "",
+          originalPrice: p.originalPrice != null ? String(p.originalPrice) : "",
+          discount: p.discount != null ? String(p.discount) : "",
+          variantMatrix: Array.isArray(p.variantMatrix) && p.variantMatrix.length > 0
+            ? p.variantMatrix.map((v) => ({
+                size: v.size || "",
+                color: v.color || "",
+                colorHex: v.colorHex || "",
+                stock: Number(v.stock) || 0,
+              }))
+            : [],
+          category: p.category || (p.categoryPath && p.categoryPath[0]) || "",
+          collection: p.collection || "regular",
+          collections: Array.isArray(p.collections) ? p.collections : [],
+          tags: Array.isArray(p.tags) ? p.tags : [],
+          isActive: p.status === "active",
+          isFeatured: Boolean(p.isFeatured),
+          attributes: {
+            composition: toLines(attrs.composition).join("\n"),
+            sizeAndFit: toLines(attrs.sizeAndFit).join("\n"),
+            care: toLines(attrs.care).join("\n"),
+            traceability: toLines(attrs.traceability).join("\n"),
+          },
+        });
+        const imgList = Array.isArray(p.images) ? p.images : [];
+        setImages(
+          imgList.map((url, i) => ({
+            id: `existing-${i}-${Date.now()}`,
+            url: typeof url === "string" ? url : url?.url || "",
+            isPrimary: i === 0,
+          }))
+        );
+      })
+      .catch(() => {
+        toast.error("Failed to load product");
+        navigate("/admin/products");
+      })
+      .finally(() => setLoadingProduct(false));
+  }, [productId, navigate]);
 
   // Auto-generate slug from name
   const handleNameChange = (e) => {
@@ -221,6 +286,50 @@ const ProductCreate = () => {
     setErrors({});
 
     const payload = buildProductPayload(isDraft);
+
+    if (isEditMode && productId) {
+      const existingUrls = images.filter((img) => img?.url && !img?.file).map((img) => img.url);
+      const filesToUpload = images.filter((img) => img?.file instanceof File).map((img) => img.file);
+      let finalImageUrls = existingUrls;
+
+      if (filesToUpload.length > 0) {
+        const uploadResult = await uploadProductImagesApi(productId, filesToUpload);
+        if (uploadResult.success && Array.isArray(uploadResult.productImages)) {
+          finalImageUrls = uploadResult.productImages;
+        } else {
+          const um = uploadResult.message || "";
+          if (um.toLowerCase().includes("authorized") || um.toLowerCase().includes("forbidden")) {
+            toast.error("Please log in as admin to upload images.");
+          } else {
+            toast.error(um || "Image upload failed");
+          }
+        }
+      }
+      payload.images = finalImageUrls;
+
+      const result = await updateProductApi(productId, payload);
+      setIsSubmitting(false);
+      if (result.success) {
+        toast.success(isDraft ? "Draft saved!" : "Product updated successfully!");
+        if (!isDraft) navigate("/admin/products");
+      } else {
+        const msg = result.errors?.length ? result.errors.join(". ") : result.message;
+        toast.error(msg || "Failed to update product");
+        if (result.errors?.length) {
+          const newErrors = {};
+          result.errors.forEach((e) => {
+            const lower = e.toLowerCase();
+            if (lower.includes("name")) newErrors.name = e;
+            else if (lower.includes("original price")) newErrors.originalPrice = e;
+            else if (lower.includes("discount")) newErrors.discount = e;
+            else if (lower.includes("category")) newErrors.category = e;
+          });
+          if (Object.keys(newErrors).length) setErrors(newErrors);
+        }
+      }
+      return;
+    }
+
     const result = await createProductApi(payload);
 
     if (!result.success) {
@@ -245,11 +354,11 @@ const ProductCreate = () => {
       return;
     }
 
-    const productId = result.product?._id;
+    const newProductId = result.product?._id;
     const filesToUpload = images.filter((img) => img?.file instanceof File).map((img) => img.file);
 
-    if (productId && filesToUpload.length > 0) {
-      const uploadResult = await uploadProductImagesApi(productId, filesToUpload);
+    if (newProductId && filesToUpload.length > 0) {
+      const uploadResult = await uploadProductImagesApi(newProductId, filesToUpload);
       if (!uploadResult.success) {
         const um = uploadResult.message || "";
         if (um.toLowerCase().includes("authorized") || um.toLowerCase().includes("forbidden")) {
@@ -279,6 +388,14 @@ const ProductCreate = () => {
     { id: "organization", label: "Organization", icon: FiTag },
     { id: "visibility", label: "Visibility", icon: FiEye },
   ];
+
+  if (loadingProduct) {
+    return (
+      <div className="flex items-center justify-center min-h-[300px]" style={{ color: "var(--text-secondary)" }}>
+        Loading product…
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -312,10 +429,10 @@ const ProductCreate = () => {
               Products
             </Link>
             <FiChevronRight size={14} style={{ color: "var(--text-tertiary)" }} />
-            <span style={{ color: "var(--text-primary)" }}>Add New</span>
+            <span style={{ color: "var(--text-primary)" }}>{isEditMode ? "Edit" : "Add New"}</span>
           </nav>
           <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: "var(--text-primary)" }}>
-            Add New Product
+            {isEditMode ? "Edit Product" : "Add New Product"}
           </h1>
         </div>
 
@@ -368,7 +485,7 @@ const ProductCreate = () => {
             ) : (
               <>
                 <FiSave size={16} />
-                Save Product
+                {isEditMode ? "Update Product" : "Save Product"}
               </>
             )}
           </motion.button>

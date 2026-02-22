@@ -1,36 +1,18 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { FiEdit, FiTrash2, FiX, FiSave, FiSearch, FiFilter } from "react-icons/fi";
+import { Link, useNavigate } from "react-router";
+import { motion } from "framer-motion";
+import { staggerContainer } from "../../utils/animations";
+import { FiEdit, FiTrash2, FiSearch, FiFilter } from "react-icons/fi";
 import { EmptyState } from "../../components";
 import toast from "react-hot-toast";
 import { getDisplayCategory } from "../../utils/productUtils";
-import { getAdminProducts, createProduct, updateProduct, deleteProduct } from "../../services/productApi";
-
-const CATEGORY_OPTIONS = [
-  { value: "Male", label: "Men" },
-  { value: "Female", label: "Women" },
-  { value: "Kids", label: "Kids" },
-  { value: "Accessories", label: "Accessories" },
-];
+import { getAdminProducts, deleteProduct } from "../../services/productApi";
 
 const Products = () => {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    category: "Male",
-    price: "",
-    originalPrice: "",
-    discount: "",
-    description: "",
-    stockQuantity: "0",
-    status: "draft",
-  });
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -55,23 +37,6 @@ const Products = () => {
       (product.categoryPath || []).some((p) => (p || "").toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const handleEdit = (product) => {
-    const categoryPath = product.categoryPath || [];
-    const category = product.category || (categoryPath[0] || "Male");
-    setEditingProduct(product._id);
-    setFormData({
-      name: product.name || "",
-      category: CATEGORY_OPTIONS.some((o) => o.value === category) ? category : "Male",
-      price: (product.price != null ? product.price : "").toString(),
-      originalPrice: (product.originalPrice != null ? product.originalPrice : product.price ?? "").toString(),
-      discount: (product.discount != null ? product.discount : 0).toString(),
-      description: product.description || "",
-      stockQuantity: (product.stockQuantity != null ? product.stockQuantity : 0).toString(),
-      status: product.status === "active" ? "active" : "draft",
-    });
-    setShowForm(true);
-  };
-
   const handleDelete = async (product) => {
     if (!window.confirm(`Are you sure you want to delete "${product?.name}"?`)) return;
     const result = await deleteProduct(product._id);
@@ -81,64 +46,6 @@ const Products = () => {
     } else {
       toast.error(result.message || "Failed to delete product");
     }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    const originalPrice = formData.originalPrice ? parseFloat(formData.originalPrice) : parseFloat(formData.price) || 0;
-    const discount = formData.discount ? parseFloat(formData.discount) : 0;
-    const payload = {
-      name: formData.name.trim(),
-      category: formData.category,
-      originalPrice,
-      discount,
-      description: (formData.description || "").trim(),
-      stockQuantity: Math.max(0, parseInt(formData.stockQuantity, 10) || 0),
-      status: formData.status,
-    };
-
-    if (editingProduct) {
-      const result = await updateProduct(editingProduct, {
-        ...payload,
-        originalPrice,
-        discount,
-      });
-      if (result.success) {
-        const updated = result.product;
-        setProducts((prev) => prev.map((p) => (p._id === editingProduct ? { ...p, ...updated } : p)));
-        toast.success(`"${formData.name}" updated successfully`);
-        handleCancel();
-      } else {
-        toast.error(result.message || "Failed to update product");
-      }
-    } else {
-      const result = await createProduct(payload);
-      if (result.success) {
-        const newProduct = result.product;
-        if (newProduct) setProducts((prev) => [newProduct, ...prev]);
-        toast.success(`"${formData.name}" added successfully`);
-        handleCancel();
-      } else {
-        toast.error(result.message || "Failed to add product");
-      }
-    }
-    setSubmitting(false);
-  };
-
-  const handleCancel = () => {
-    setShowForm(false);
-    setEditingProduct(null);
-    setFormData({
-      name: "",
-      category: "Male",
-      price: "",
-      originalPrice: "",
-      discount: "",
-      description: "",
-      stockQuantity: "0",
-      status: "draft",
-    });
   };
 
   const inStock = (product) => (product.stockQuantity != null ? product.stockQuantity > 0 : false);
@@ -159,29 +66,13 @@ const Products = () => {
           Products Management
         </h2>
         <div className="flex items-center gap-3 flex-wrap">
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => {
-              setEditingProduct(null);
-              setFormData({
-                name: "",
-                category: "Male",
-                price: "",
-                originalPrice: "",
-                discount: "",
-                description: "",
-                stockQuantity: "0",
-                status: "draft",
-              });
-              setShowForm(true);
-            }}
-            className="px-4 py-2 rounded-lg font-semibold text-white"
+          <Link
+            to="/admin/products/new"
+            className="px-4 py-2 rounded-lg font-semibold text-white inline-block"
             style={{ backgroundColor: "var(--color-primary)" }}
           >
             Add product
-          </motion.button>
+          </Link>
         <div className="relative">
           <FiSearch size={20} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-tertiary)" }} />
           <input
@@ -199,195 +90,6 @@ const Products = () => {
         </div>
         </div>
       </div>
-
-      {/* Add/Edit Form */}
-      <AnimatePresence>
-        {showForm && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="p-6 rounded-lg space-y-4"
-            style={{ backgroundColor: "var(--bg-secondary)" }}
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-                {editingProduct ? "Edit Product" : "Add New Product"}
-              </h3>
-              <motion.button
-                type="button"
-                whileHover={{ scale: 1.1, rotate: 90 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={handleCancel}
-                className="p-2 rounded-lg"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                <FiX size={20} />
-              </motion.button>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                    Product Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                    className="w-full px-4 py-3 border-2 rounded-lg outline-none"
-                    style={{
-                      borderColor: "var(--border-primary)",
-                      backgroundColor: "var(--bg-primary)",
-                      color: "var(--text-primary)",
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                    Category *
-                  </label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    required
-                    className="w-full px-4 py-3 border-2 rounded-lg outline-none"
-                    style={{
-                      borderColor: "var(--border-primary)",
-                      backgroundColor: "var(--bg-primary)",
-                      color: "var(--text-primary)",
-                    }}
-                  >
-                    {CATEGORY_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                    Original Price * (৳)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.originalPrice}
-                    onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
-                    required
-                    className="w-full px-4 py-3 border-2 rounded-lg outline-none"
-                    style={{
-                      borderColor: "var(--border-primary)",
-                      backgroundColor: "var(--bg-primary)",
-                      color: "var(--text-primary)",
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                    Discount (%)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    value={formData.discount}
-                    onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
-                    className="w-full px-4 py-3 border-2 rounded-lg outline-none"
-                    style={{
-                      borderColor: "var(--border-primary)",
-                      backgroundColor: "var(--bg-primary)",
-                      color: "var(--text-primary)",
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                    Stock Quantity
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.stockQuantity}
-                    onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })}
-                    className="w-full px-4 py-3 border-2 rounded-lg outline-none"
-                    style={{
-                      borderColor: "var(--border-primary)",
-                      backgroundColor: "var(--bg-primary)",
-                      color: "var(--text-primary)",
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                    Status
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-4 py-3 border-2 rounded-lg outline-none"
-                    style={{
-                      borderColor: "var(--border-primary)",
-                      backgroundColor: "var(--bg-primary)",
-                      color: "var(--text-primary)",
-                    }}
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="active">Active</option>
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                    Description
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={4}
-                    className="w-full px-4 py-3 border-2 rounded-lg outline-none resize-none"
-                    style={{
-                      borderColor: "var(--border-primary)",
-                      backgroundColor: "var(--bg-primary)",
-                      color: "var(--text-primary)",
-                    }}
-                  />
-                </div>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <motion.button
-                  type="submit"
-                  disabled={submitting}
-                  whileHover={!submitting ? { scale: 1.02 } : {}}
-                  whileTap={!submitting ? { scale: 0.98 } : {}}
-                  className="flex items-center gap-2 px-6 py-3 text-white font-semibold rounded-lg disabled:opacity-60"
-                  style={{ backgroundColor: "var(--color-primary)" }}
-                >
-                  <FiSave size={18} />
-                  {submitting ? "Saving…" : editingProduct ? "Update Product" : "Add Product"}
-                </motion.button>
-                <motion.button
-                  type="button"
-                  onClick={handleCancel}
-                  disabled={submitting}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex items-center gap-2 px-6 py-3 border-2 rounded-lg font-semibold"
-                  style={{
-                    borderColor: "var(--border-primary)",
-                    color: "var(--text-primary)",
-                  }}
-                >
-                  <FiX size={18} />
-                  Cancel
-                </motion.button>
-              </div>
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Products Table */}
       <motion.div
@@ -488,7 +190,7 @@ const Products = () => {
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        onClick={() => handleEdit(product)}
+                        onClick={() => navigate(`/admin/products/${product._id}/edit`)}
                         className="p-2 rounded-lg transition-colors"
                         style={{ color: "var(--color-primary)" }}
                         onMouseEnter={(e) => {
@@ -497,6 +199,7 @@ const Products = () => {
                         onMouseLeave={(e) => {
                           e.currentTarget.style.backgroundColor = "transparent";
                         }}
+                        title="Edit product (full form)"
                       >
                         <FiEdit size={18} />
                       </motion.button>

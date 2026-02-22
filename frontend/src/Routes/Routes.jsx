@@ -330,6 +330,14 @@ export const router = createBrowserRouter([
             ),
           },
           {
+            path: "products/:productId/edit",
+            element: (
+              <LazyWrapper>
+                <AdminProductCreate />
+              </LazyWrapper>
+            ),
+          },
+          {
             path: "orders",
             element: (
               <LazyWrapper>
