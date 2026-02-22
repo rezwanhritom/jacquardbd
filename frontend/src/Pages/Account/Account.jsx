@@ -7,6 +7,7 @@ import {
   FiUser,
   FiPackage,
   FiHeart,
+  FiShoppingCart,
   FiMapPin,
   FiShield,
   FiSliders,
@@ -36,6 +37,7 @@ const Account = () => {
     { id: "orders", label: "Orders", icon: FiPackage, path: "/account/orders", description: "Order history" },
     { id: "addresses", label: "Addresses", icon: FiMapPin, path: "/account/addresses", description: "Saved locations" },
     { id: "wishlist", label: "Wishlist", icon: FiHeart, path: "/account/wishlist", description: "Saved items" },
+    { id: "cart", label: "Cart", icon: FiShoppingCart, path: "/account/cart", description: "Shopping cart" },
     { id: "security", label: "Security", icon: FiShield, path: "/account/security", description: "Password & safety" },
     { id: "preferences", label: "Preferences", icon: FiSliders, path: "/account/settings", description: "App settings" },
   ];
