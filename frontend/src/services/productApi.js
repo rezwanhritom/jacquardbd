@@ -95,6 +95,7 @@ export async function createProduct(payload) {
   const baseUrl = getBaseUrl();
   const response = await fetch(`${baseUrl}/api/products`, {
     method: "POST",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
     },
@@ -114,6 +115,45 @@ export async function createProduct(payload) {
   return {
     success: true,
     product: data.product,
+    message: data.message,
+  };
+}
+
+/**
+ * Upload product images to ImageKit and save URLs on the product.
+ * Must be called after product is created. Requires admin auth (cookies).
+ * @param {string} productId - MongoDB _id of the product
+ * @param {File[]} files - Array of File objects (from input or ImageUpload state)
+ * @returns {Promise<{ success: boolean, images?: string[], productImages?: string[], message?: string }>}
+ */
+export async function uploadProductImages(productId, files) {
+  if (!productId || !files?.length) {
+    return { success: false, message: "Product ID and at least one file required" };
+  }
+  const baseUrl = getBaseUrl();
+  const formData = new FormData();
+  files.forEach((file) => {
+    if (file instanceof File) formData.append("images", file);
+  });
+  if (formData.getAll("images").length === 0) {
+    return { success: false, message: "No valid files to upload" };
+  }
+  const response = await fetch(`${baseUrl}/api/images/upload/product/${productId}`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    return {
+      success: false,
+      message: data.message || "Image upload failed",
+    };
+  }
+  return {
+    success: true,
+    images: data.images,
+    productImages: data.productImages,
     message: data.message,
   };
 }

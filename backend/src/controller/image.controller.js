@@ -5,7 +5,7 @@ import { getImageKit, isImageKitConfigured } from "../config/imagekit.js";
 
 const MONGO_ID_REGEX = /^[a-fA-F0-9]{24}$/;
 
-function ensureImageKit(res, next) {
+function ensureImageKit(req, res, next) {
   if (!isImageKitConfigured()) {
     return res.status(503).json({ success: false, message: "Image upload service not configured" });
   }
@@ -22,6 +22,13 @@ function ensureImageKit(res, next) {
  * Upload multiple images for a product. Folder: /products/:productId
  */
 export async function uploadProductImages(req, res, next) {
+  // Debug: confirm files and productId reached the controller
+  if (process.env.NODE_ENV !== "production") {
+    console.log("[ImageKit] uploadProductImages called", {
+      filesCount: req.files?.length ?? 0,
+      productId: req.params?.productId,
+    });
+  }
   if (!req.files?.length) {
     return res.status(400).json({ success: false, message: "No files uploaded" });
   }
@@ -38,17 +45,32 @@ export async function uploadProductImages(req, res, next) {
   try {
     for (let i = 0; i < req.files.length; i++) {
       const file = req.files[i];
+      const ext = (file.mimetype && file.mimetype.split("/")[1]) || "jpg";
       const result = await imagekit.upload({
         file: file.buffer,
-        fileName: `img_${Date.now()}_${i}.${file.mimetype.split("/")[1] || "jpg"}`,
+        fileName: `img_${Date.now()}_${i}.${ext}`,
         folder,
       });
+      if (process.env.NODE_ENV !== "production" && result?.url) {
+        console.log("[ImageKit] uploaded file", i + 1, result.url);
+      }
       if (result?.url) urls.push(result.url);
     }
-    await Product.updateOne({ _id: productId }, { $push: { images: { $each: urls } } });
+    if (urls.length === 0) {
+      return res.status(500).json({ success: false, message: "ImageKit returned no URLs" });
+    }
+    // If product had only the default placeholder, replace; otherwise append
+    const hadOnlyDefault = product.images?.length === 1;
+    const update = hadOnlyDefault
+      ? { $set: { images: urls } }
+      : { $push: { images: { $each: urls } } };
+    await Product.updateOne({ _id: productId }, update);
     const updated = await Product.findById(productId).select("images").lean();
     res.status(201).json({ success: true, message: "Images uploaded", images: urls, productImages: updated?.images || [] });
   } catch (err) {
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[ImageKit] upload error", err?.message || err);
+    }
     next(err);
   }
 }

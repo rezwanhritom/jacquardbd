@@ -18,7 +18,7 @@ import {
 import { ImageUpload, TagInput, ColorSwatch, CascadingCategorySelect } from "../../components/Admin";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import toast from "react-hot-toast";
-import { createProduct as createProductApi } from "../../services/productApi";
+import { createProduct as createProductApi, uploadProductImages as uploadProductImagesApi } from "../../services/productApi";
 import { categoryTree } from "../../data/categoryTree";
 
 const availableSizes = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
@@ -158,16 +158,14 @@ const ProductCreate = () => {
     const payload = buildProductPayload(isDraft);
     const result = await createProductApi(payload);
 
-    setIsSubmitting(false);
-
-    if (result.success) {
-      toast.success(isDraft ? "Draft saved successfully!" : "Product created successfully!");
-      if (!isDraft) {
-        navigate("/admin/products");
-      }
-    } else {
+    if (!result.success) {
+      setIsSubmitting(false);
       const msg = result.errors?.length ? result.errors.join(". ") : result.message;
-      toast.error(msg || "Failed to create product");
+      if (msg?.toLowerCase().includes("authorized") || msg?.toLowerCase().includes("forbidden")) {
+        toast.error("Please log in as admin and try again.");
+      } else {
+        toast.error(msg || "Failed to create product");
+      }
       if (result.errors?.length) {
         const newErrors = {};
         result.errors.forEach((e) => {
@@ -179,6 +177,31 @@ const ProductCreate = () => {
         });
         if (Object.keys(newErrors).length) setErrors(newErrors);
       }
+      return;
+    }
+
+    const productId = result.product?._id;
+    const filesToUpload = images.filter((img) => img?.file instanceof File).map((img) => img.file);
+
+    if (productId && filesToUpload.length > 0) {
+      const uploadResult = await uploadProductImagesApi(productId, filesToUpload);
+      if (!uploadResult.success) {
+        const um = uploadResult.message || "";
+        if (um.toLowerCase().includes("authorized") || um.toLowerCase().includes("forbidden")) {
+          toast.error("Please log in as admin to upload images.");
+        } else {
+          toast.error(um || "Product created but image upload failed");
+        }
+      } else {
+        toast.success(isDraft ? "Draft saved successfully!" : "Product created successfully!");
+      }
+    } else {
+      toast.success(isDraft ? "Draft saved successfully!" : "Product created successfully!");
+    }
+
+    setIsSubmitting(false);
+    if (!isDraft) {
+      navigate("/admin/products");
     }
   };
 

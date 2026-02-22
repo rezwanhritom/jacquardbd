@@ -1,13 +1,13 @@
 import express from "express";
 import {
-  uploadProductImages,
+  uploadProductImages as uploadProductImagesHandler,
   uploadProfileImage,
   deleteImage,
   updateProductImages,
   getUploadParams,
   imageKitReady,
 } from "../controller/image.controller.js";
-import { uploadProductImages: multerProduct, uploadProfileImage: multerProfile } from "../middlewares/upload.middleware.js";
+import { uploadProductImages as multerProduct, uploadProfileImage as multerProfile } from "../middlewares/upload.middleware.js";
 import { protect, requireRole } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
@@ -26,7 +26,7 @@ router.post(
       next();
     });
   },
-  uploadProductImages
+  uploadProductImagesHandler
 );
 
 router.post(

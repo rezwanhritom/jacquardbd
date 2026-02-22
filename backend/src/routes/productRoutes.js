@@ -1,5 +1,6 @@
 import express from "express";
 import { getProducts, getProductById, createProduct, getProductsByCollection } from "../controller/productController.js";
+import { protect, requireRole } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
@@ -9,7 +10,7 @@ router.get("/", getProducts);
 router.get("/collection/:collectionName", getProductsByCollection);
 // Single product by slug or MongoDB _id
 router.get("/:identifier", getProductById);
-// Create product (JSON body)
-router.post("/", createProduct);
+// Create product (JSON body) – admin only, requires auth cookie
+router.post("/", protect, requireRole(["admin"]), createProduct);
 
 export default router;

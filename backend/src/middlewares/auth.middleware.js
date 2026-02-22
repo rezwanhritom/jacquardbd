@@ -41,6 +41,19 @@ export function sameUser(req, res, next) {
 }
 
 /**
+ * Restrict to given roles. Use after protect. Returns 403 if req.user.role not in allowedRoles.
+ */
+export function requireRole(allowedRoles) {
+  return (req, res, next) => {
+    const role = req.user?.role;
+    if (!role || !Array.isArray(allowedRoles) || !allowedRoles.includes(role)) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+    next();
+  };
+}
+
+/**
  * Optional: attach user to req.user if valid cookie present, else req.user = null.
  * Use for routes that work for both authenticated and anonymous users.
  */
