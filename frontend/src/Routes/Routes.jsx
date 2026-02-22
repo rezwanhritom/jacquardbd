@@ -25,6 +25,7 @@ const AccountOrders = lazy(() => import("../Pages/Account/Orders"));
 const AccountOrderDetail = lazy(() => import("../Pages/Account/OrderDetail"));
 const AccountAddresses = lazy(() => import("../Pages/Account/Addresses"));
 const AccountWishlist = lazy(() => import("../Pages/Account/Wishlist"));
+const AccountCart = lazy(() => import("../Pages/Account/AccountCart"));
 const AccountMembership = lazy(() => import("../Pages/Account/Membership"));
 const AccountNewsletter = lazy(() => import("../Pages/Account/Newsletter"));
 const AccountSettings = lazy(() => import("../Pages/Account/Settings"));
@@ -247,6 +248,14 @@ export const router = createBrowserRouter([
             ),
           },
           {
+            path: "cart",
+            element: (
+              <LazyWrapper>
+                <AccountCart />
+              </LazyWrapper>
+            ),
+          },
+          {
             path: "membership",
             element: (
               <LazyWrapper>
@@ -314,6 +323,14 @@ export const router = createBrowserRouter([
           },
           {
             path: "products/new",
+            element: (
+              <LazyWrapper>
+                <AdminProductCreate />
+              </LazyWrapper>
+            ),
+          },
+          {
+            path: "products/:productId/edit",
             element: (
               <LazyWrapper>
                 <AdminProductCreate />

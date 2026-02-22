@@ -1,11 +1,9 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate, Link } from "react-router";
 import { Container } from "../../components";
-import { productsData } from "../../data/products";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import {
-  FiCreditCard,
   FiTruck,
   FiLock,
   FiMapPin,
@@ -13,67 +11,233 @@ import {
   FiChevronRight,
   FiChevronLeft,
   FiEdit2,
+  FiPlus,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
+import { useAuth } from "../../context/AuthContext";
+import { useCart } from "../../context/CartContext";
+import { getProfile, updateProfile } from "../../services/user.service";
+import { getShippingOptions } from "../../services/shipping.service";
+import { createOrder } from "../../services/orders.service";
+import Loading from "../../components/Loading";
 
-// Fake cart items for checkout
-const checkoutItems = [
-  { id: 1, productId: 1, quantity: 2, size: "M", color: "Black" },
-  { id: 2, productId: 3, quantity: 1, size: "L", color: "Navy" },
-];
+const emptyAddressForm = () => ({
+  email: "",
+  firstName: "",
+  lastName: "",
+  address: "",
+  city: "",
+  state: "",
+  zipCode: "",
+  country: "Bangladesh",
+  phone: "",
+});
 
-// Shipping options
-const shippingOptions = [
-  { id: "standard", name: "Standard Shipping", price: 10, days: "5-7 business days" },
-  { id: "express", name: "Express Shipping", price: 25, days: "2-3 business days" },
-  { id: "overnight", name: "Overnight Shipping", price: 50, days: "Next business day" },
-];
+/** Form fields from address only (street, city, state, zip, country). */
+function addressFieldsOnly(addr) {
+  return {
+    address: (addr && addr.address) ? String(addr.address).trim() : "",
+    city: (addr && addr.city) ? String(addr.city).trim() : "",
+    state: (addr && addr.state) ? String(addr.state).trim() : "",
+    zipCode: (addr && addr.zip) ? String(addr.zip).trim() : "",
+    country: (addr && addr.country) ? String(addr.country).trim() : "Bangladesh",
+  };
+}
 
-// Payment methods
-const paymentMethods = [
-  { id: "card", name: "Credit/Debit Card", icon: "💳" },
-  { id: "bkash", name: "bKash", icon: "📱" },
-  { id: "nagad", name: "Nagad", icon: "📱" },
-];
+/** Contact fields (name, email, phone) from current user profile so checkout always shows latest profile. */
+function profileContactFields(user) {
+  const name = (user && user.name) ? String(user.name).trim() : "";
+  const parts = name ? name.split(/\s+/) : [];
+  return {
+    email: (user && user.email) ? String(user.email).trim() : "",
+    firstName: parts[0] || "",
+    lastName: parts.slice(1).join(" ") || "",
+    phone: (user && user.phone) ? String(user.phone).trim() : "",
+  };
+}
+
+/** Full form from address + current profile: contact from profile, address lines from address. */
+function addressAndProfileToFormData(addr, user) {
+  return {
+    ...profileContactFields(user),
+    ...addressFieldsOnly(addr),
+  };
+}
 
 const Checkout = () => {
   const navigate = useNavigate();
+  const { user: authUser, isAuthenticated } = useAuth();
+  const { cartItems, getCartTotal, refetchCart } = useCart();
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profile, setProfile] = useState(null);
+  const [addresses, setAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const [updatingPhone, setUpdatingPhone] = useState(false);
+  const [shippingOptions, setShippingOptions] = useState([]);
+  const previousStepRef = useRef(null);
   const [formData, setFormData] = useState({
-    // Address
-    email: "customer@example.com",
-    firstName: "John",
-    lastName: "Doe",
-    address: "123 Main Street",
-    city: "Dhaka",
-    state: "Dhaka",
-    zipCode: "1200",
-    country: "Bangladesh",
-    phone: "+880 1712 345678",
-    // Shipping
-    shippingMethod: "standard",
-    // Payment
-    paymentMethod: "card",
-    cardNumber: "1234 5678 9012 3456",
-    expiryDate: "12/25",
-    cvv: "123",
-    cardName: "John Doe",
-    bkashNumber: "+880 1712 345678",
-    nagadNumber: "+880 1712 345678",
+    ...emptyAddressForm(),
+    shippingMethod: "",
   });
+  const [placingOrder, setPlacingOrder] = useState(false);
 
-  const getProduct = (productId) => {
-    return productsData.find((p) => p.id === productId);
+  // Load shipping options from DB
+  useEffect(() => {
+    getShippingOptions().then(({ success, options }) => {
+      if (success && Array.isArray(options) && options.length > 0) {
+        setShippingOptions(options);
+        setFormData((prev) => {
+          const firstId = options[0].id;
+          if (!prev.shippingMethod || !options.some((o) => o.id === prev.shippingMethod)) {
+            return { ...prev, shippingMethod: firstId };
+          }
+          return prev;
+        });
+      }
+    });
+  }, []);
+
+  // Auth guard: redirect to login if not authenticated
+  useEffect(() => {
+    if (!profileLoading && !isAuthenticated) {
+      navigate("/login", { replace: true, state: { from: "/checkout" } });
+    }
+  }, [isAuthenticated, profileLoading, navigate]);
+
+  // Load user profile and addresses from DB (refetches every time checkout mounts so we always have latest profile)
+  useEffect(() => {
+    if (!isAuthenticated || !authUser?._id) {
+      setProfileLoading(false);
+      return;
+    }
+    getProfile(authUser._id)
+      .then(({ success, user }) => {
+        if (success && user) {
+          setProfile(user);
+          const addrs = Array.isArray(user.addresses) ? user.addresses : [];
+          setAddresses(addrs);
+          const defaultAddr = addrs.find((a) => a.isDefault) || addrs[0];
+          if (defaultAddr && defaultAddr._id) {
+            setSelectedAddressId(defaultAddr._id);
+            setFormData((prev) => ({
+              ...prev,
+              ...addressAndProfileToFormData(defaultAddr, user),
+            }));
+          } else {
+            setSelectedAddressId("new");
+            setFormData((prev) => ({
+              ...prev,
+              ...emptyAddressForm(),
+              ...profileContactFields(user),
+              country: "Bangladesh",
+            }));
+          }
+        }
+      })
+      .finally(() => setProfileLoading(false));
+  }, [isAuthenticated, authUser?._id]);
+
+  // When user returns to address step (e.g. Edit from review), refetch profile and refresh contact fields so we show latest name/email/phone
+  const refetchProfileForContact = useCallback(() => {
+    if (!authUser?._id) return;
+    getProfile(authUser._id).then(({ success, user }) => {
+      if (success && user) {
+        setProfile(user);
+        setFormData((prev) => ({ ...prev, ...profileContactFields(user) }));
+      }
+    });
+  }, [authUser?._id]);
+
+  // When navigating back to address step (e.g. Edit or Previous), refetch profile so contact fields show latest
+  useEffect(() => {
+    if (currentStep === 1 && previousStepRef.current !== 1 && previousStepRef.current != null && isAuthenticated && authUser?._id) {
+      refetchProfileForContact();
+    }
+    previousStepRef.current = currentStep;
+  }, [currentStep, isAuthenticated, authUser?._id, refetchProfileForContact]);
+
+  // When user selects a saved address: contact (name, email, phone) from current profile; address lines from selected address
+  const handleSelectAddress = useCallback(
+    (addressId) => {
+      setSelectedAddressId(addressId);
+      const user = profile || authUser;
+      if (addressId === "new") {
+        setFormData((prev) => ({
+          ...prev,
+          ...addressFieldsOnly(null),
+          ...profileContactFields(user),
+          country: "Bangladesh",
+        }));
+        return;
+      }
+      const addr = addresses.find((a) => String(a._id) === String(addressId));
+      if (addr) {
+        setFormData((prev) => ({
+          ...prev,
+          ...addressAndProfileToFormData(addr, user),
+        }));
+      }
+    },
+    [addresses, profile, authUser]
+  );
+
+  // Save "new" address to profile when moving to next step (synced with DB & Account)
+  const saveNewAddressIfNeeded = useCallback(async () => {
+    if (selectedAddressId !== "new" || !authUser?._id) return;
+    const { firstName, lastName, address, city, state, zipCode, country, phone } = formData;
+    if (!address.trim() || !city.trim() || !phone.trim()) return;
+    const name = `${(firstName || "").trim()} ${(lastName || "").trim()}`.trim() || "Shipping";
+    const newAddr = {
+      label: "Home",
+      name,
+      phone: phone.trim(),
+      address: address.trim(),
+      city: city.trim(),
+      state: (state || "").trim(),
+      zip: (zipCode || "").trim(),
+      country: (country || "Bangladesh").trim(),
+      isDefault: addresses.length === 0,
+    };
+    const toSend = [...addresses.map((a) => ({ _id: a._id, label: a.label || "Home", name: a.name || "", phone: a.phone || "", address: a.address || "", city: a.city || "", state: a.state || "", zip: a.zip || "", country: a.country || "", isDefault: !!a.isDefault })), newAddr];
+    if (toSend.length === 1) toSend[0].isDefault = true;
+    const { success, user } = await updateProfile(authUser._id, { addresses: toSend });
+    if (success && user && Array.isArray(user.addresses)) {
+      setAddresses(user.addresses);
+      setSelectedAddressId(user.addresses[user.addresses.length - 1]._id);
+    }
+  }, [selectedAddressId, authUser?._id, formData, addresses]);
+
+  const handleNext = async () => {
+    if (currentStep === 1) {
+      await saveNewAddressIfNeeded();
+      // First-time phone: save to profile as default if user had no phone
+      const currentPhone = (formData.phone || "").trim();
+      const savedPhone = (profile?.phone || "").trim();
+      if (!savedPhone && currentPhone && authUser?._id) {
+        const { success, user: updated } = await updateProfile(authUser._id, { phone: currentPhone });
+        if (success && updated) setProfile((p) => (p ? { ...p, phone: updated.phone ?? currentPhone } : p));
+      }
+    }
+    if (currentStep < 3) setCurrentStep(currentStep + 1);
+  };
+
+  const handleUpdatePhone = async () => {
+    const currentPhone = (formData.phone || "").trim();
+    if (!currentPhone || !authUser?._id) return;
+    setUpdatingPhone(true);
+    const { success, user: updated } = await updateProfile(authUser._id, { phone: currentPhone });
+    setUpdatingPhone(false);
+    if (success && updated) {
+      setProfile((p) => (p ? { ...p, phone: updated.phone ?? currentPhone } : p));
+      toast.success("Phone number updated in your profile");
+    } else {
+      toast.error("Failed to update phone number");
+    }
   };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleNext = () => {
-    if (currentStep < 4) {
-      setCurrentStep(currentStep + 1);
-    }
   };
 
   const handlePrevious = () => {
@@ -82,31 +246,74 @@ const Checkout = () => {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    toast.loading("Processing your order...", { id: "order-processing" });
-    setTimeout(() => {
-      const orderId = `ORD-${Date.now()}`;
-      toast.success("Order placed successfully!", { id: "order-processing" });
+  const handlePlaceOrder = async () => {
+    setPlacingOrder(true);
+    toast.loading("Placing your order...", { id: "order-processing" });
+    const shippingAddress = {
+      name: `${(formData.firstName || "").trim()} ${(formData.lastName || "").trim()}`.trim() || "Customer",
+      phone: (formData.phone || "").trim(),
+      address: (formData.address || "").trim(),
+      city: (formData.city || "").trim(),
+      state: (formData.state || "").trim(),
+      zip: (formData.zipCode || "").trim(),
+    };
+    const { success, orderId, message } = await createOrder({
+      shippingAddress,
+      shippingCost: shipping,
+    });
+    setPlacingOrder(false);
+    toast.dismiss("order-processing");
+    if (success && orderId) {
+      await refetchCart();
+      toast.success("Order placed successfully!");
       navigate(`/order-success/${orderId}`);
-    }, 1500);
+    } else {
+      toast.error(message || "Failed to place order");
+    }
   };
 
-  const subtotal = checkoutItems.reduce((sum, item) => {
-    const product = getProduct(item.productId);
-    return sum + (product ? product.price * item.quantity : 0);
-  }, 0);
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+  };
+
+  const subtotal = getCartTotal();
 
   const selectedShipping = shippingOptions.find((s) => s.id === formData.shippingMethod);
-  const shipping = selectedShipping ? selectedShipping.price : 10;
+  const shipping = selectedShipping != null && typeof selectedShipping.price === "number" ? selectedShipping.price : 0;
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
+
+  if (!isAuthenticated && !profileLoading) return null;
+  if (profileLoading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loading />
+      </div>
+    );
+  }
+  if (cartItems.length === 0) {
+    return (
+      <div className="min-h-screen py-16">
+        <Container>
+          <div className="min-h-[50vh] flex flex-col items-center justify-center gap-4">
+            <p className="text-lg" style={{ color: "var(--text-secondary)" }}>Your cart is empty.</p>
+            <Link
+              to="/cart"
+              className="px-6 py-3 rounded-lg font-semibold text-white"
+              style={{ backgroundColor: "var(--color-primary)" }}
+            >
+              Go to Cart
+            </Link>
+          </div>
+        </Container>
+      </div>
+    );
+  }
 
   const steps = [
     { id: 1, name: "Address", icon: FiMapPin },
     { id: 2, name: "Shipping", icon: FiTruck },
-    { id: 3, name: "Payment", icon: FiCreditCard },
-    { id: 4, name: "Review", icon: FiCheck },
+    { id: 3, name: "Review", icon: FiCheck },
   ];
 
   const stepVariants = {
@@ -196,9 +403,9 @@ const Checkout = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Form */}
             <div className="lg:col-span-2">
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleFormSubmit}>
                 <AnimatePresence mode="wait">
-                  {/* Step 1: Address */}
+                  {/* Step 1: Address (DB-synced) */}
                   {currentStep === 1 && (
                     <motion.div
                       key="address"
@@ -210,180 +417,288 @@ const Checkout = () => {
                       className="p-6 rounded-lg space-y-6"
                       style={{ backgroundColor: "var(--bg-secondary)" }}
                     >
-                      <div className="flex items-center space-x-3 mb-4">
-                        <FiMapPin size={24} style={{ color: "var(--color-primary)" }} />
-                        <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
-                          Shipping Address
-                        </h2>
+                      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+                        <div className="flex items-center space-x-3">
+                          <FiMapPin size={24} style={{ color: "var(--color-primary)" }} />
+                          <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+                            Shipping Address
+                          </h2>
+                        </div>
+                        <Link
+                          to="/account/addresses"
+                          className="text-sm font-medium flex items-center gap-1"
+                          style={{ color: "var(--color-primary)" }}
+                        >
+                          Manage addresses
+                          <FiChevronRight size={14} />
+                        </Link>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                            Email *
-                          </label>
-                          <input
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
-                            style={{
-                              borderColor: "var(--border-primary)",
-                              backgroundColor: "var(--bg-primary)",
-                              color: "var(--text-primary)",
-                            }}
-                          />
+
+                      {/* Saved addresses from DB */}
+                      {addresses.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
+                            Choose a saved address
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {addresses.map((addr) => {
+                              const isSelected = selectedAddressId === addr._id;
+                              return (
+                                <motion.label
+                                  key={addr._id}
+                                  whileHover={{ scale: 1.01 }}
+                                  className={`flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                                    isSelected ? "ring-2 ring-offset-2" : ""
+                                  }`}
+                                  style={{
+                                    borderColor: isSelected ? "var(--color-primary)" : "var(--border-primary)",
+                                    backgroundColor: "var(--bg-primary)",
+                                    ringColor: "var(--color-primary)",
+                                  }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name="selectedAddress"
+                                    checked={isSelected}
+                                    onChange={() => handleSelectAddress(addr._id)}
+                                    className="mt-1 w-4 h-4"
+                                    style={{ accentColor: "var(--color-primary)" }}
+                                  />
+                                  <div className="min-w-0">
+                                    <span className="font-semibold block" style={{ color: "var(--text-primary)" }}>
+                                      {addr.label || "Address"}
+                                    </span>
+                                    <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                                      {addr.name}
+                                      {addr.phone && ` • ${addr.phone}`}
+                                    </p>
+                                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                                      {[addr.address, addr.city, addr.state, addr.zip, addr.country].filter(Boolean).join(", ")}
+                                    </p>
+                                  </div>
+                                </motion.label>
+                              );
+                            })}
+                            <motion.label
+                              whileHover={{ scale: 1.01 }}
+                              className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                                selectedAddressId === "new" ? "ring-2 ring-offset-2" : ""
+                              }`}
+                              style={{
+                                borderColor: selectedAddressId === "new" ? "var(--color-primary)" : "var(--border-primary)",
+                                backgroundColor: "var(--bg-primary)",
+                                ringColor: "var(--color-primary)",
+                              }}
+                            >
+                              <input
+                                type="radio"
+                                name="selectedAddress"
+                                checked={selectedAddressId === "new"}
+                                onChange={() => handleSelectAddress("new")}
+                                className="w-4 h-4"
+                                style={{ accentColor: "var(--color-primary)" }}
+                              />
+                              <FiPlus size={20} style={{ color: "var(--color-primary)" }} />
+                              <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                                Add new address
+                              </span>
+                            </motion.label>
+                          </div>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                            Phone *
-                          </label>
-                          <input
-                            type="tel"
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
-                            style={{
-                              borderColor: "var(--border-primary)",
-                              backgroundColor: "var(--bg-primary)",
-                              color: "var(--text-primary)",
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                            First Name *
-                          </label>
-                          <input
-                            type="text"
-                            name="firstName"
-                            value={formData.firstName}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
-                            style={{
-                              borderColor: "var(--border-primary)",
-                              backgroundColor: "var(--bg-primary)",
-                              color: "var(--text-primary)",
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                            Last Name *
-                          </label>
-                          <input
-                            type="text"
-                            name="lastName"
-                            value={formData.lastName}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
-                            style={{
-                              borderColor: "var(--border-primary)",
-                              backgroundColor: "var(--bg-primary)",
-                              color: "var(--text-primary)",
-                            }}
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                            Address *
-                          </label>
-                          <input
-                            type="text"
-                            name="address"
-                            value={formData.address}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
-                            style={{
-                              borderColor: "var(--border-primary)",
-                              backgroundColor: "var(--bg-primary)",
-                              color: "var(--text-primary)",
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                            City *
-                          </label>
-                          <input
-                            type="text"
-                            name="city"
-                            value={formData.city}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
-                            style={{
-                              borderColor: "var(--border-primary)",
-                              backgroundColor: "var(--bg-primary)",
-                              color: "var(--text-primary)",
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                            State/Division *
-                          </label>
-                          <input
-                            type="text"
-                            name="state"
-                            value={formData.state}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
-                            style={{
-                              borderColor: "var(--border-primary)",
-                              backgroundColor: "var(--bg-primary)",
-                              color: "var(--text-primary)",
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                            ZIP Code *
-                          </label>
-                          <input
-                            type="text"
-                            name="zipCode"
-                            value={formData.zipCode}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
-                            style={{
-                              borderColor: "var(--border-primary)",
-                              backgroundColor: "var(--bg-primary)",
-                              color: "var(--text-primary)",
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                            Country *
-                          </label>
-                          <input
-                            type="text"
-                            name="country"
-                            value={formData.country}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
-                            style={{
-                              borderColor: "var(--border-primary)",
-                              backgroundColor: "var(--bg-primary)",
-                              color: "var(--text-primary)",
-                            }}
-                          />
+                      )}
+
+                      {/* Form: edit selected or new address */}
+                      <div className="pt-2">
+                        <p className="text-sm font-medium mb-3" style={{ color: "var(--text-secondary)" }}>
+                          {selectedAddressId === "new" ? "New address details" : "Edit or confirm details"}
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
+                              Email *
+                            </label>
+                            <input
+                              type="email"
+                              name="email"
+                              value={formData.email}
+                              onChange={handleChange}
+                              required
+                              className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
+                              style={{
+                                borderColor: "var(--border-primary)",
+                                backgroundColor: "var(--bg-primary)",
+                                color: "var(--text-primary)",
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
+                              Phone *
+                            </label>
+                            <input
+                              type="tel"
+                              name="phone"
+                              value={formData.phone}
+                              onChange={handleChange}
+                              required
+                              className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
+                              style={{
+                                borderColor: "var(--border-primary)",
+                                backgroundColor: "var(--bg-primary)",
+                                color: "var(--text-primary)",
+                              }}
+                            />
+                            {profile?.phone?.trim() && (formData.phone || "").trim() !== profile.phone.trim() && (formData.phone || "").trim() && (
+                              <button
+                                type="button"
+                                onClick={handleUpdatePhone}
+                                disabled={updatingPhone}
+                                className="mt-1.5 text-sm font-medium disabled:opacity-60"
+                                style={{ color: "var(--color-primary)" }}
+                              >
+                                {updatingPhone ? "Updating…" : "Update number?"}
+                              </button>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
+                              First Name *
+                            </label>
+                            <input
+                              type="text"
+                              name="firstName"
+                              value={formData.firstName}
+                              onChange={handleChange}
+                              required
+                              className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
+                              style={{
+                                borderColor: "var(--border-primary)",
+                                backgroundColor: "var(--bg-primary)",
+                                color: "var(--text-primary)",
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
+                              Last Name *
+                            </label>
+                            <input
+                              type="text"
+                              name="lastName"
+                              value={formData.lastName}
+                              onChange={handleChange}
+                              required
+                              className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
+                              style={{
+                                borderColor: "var(--border-primary)",
+                                backgroundColor: "var(--bg-primary)",
+                                color: "var(--text-primary)",
+                              }}
+                            />
+                          </div>
+                          <div className="md:col-span-2">
+                            <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
+                              Address *
+                            </label>
+                            <input
+                              type="text"
+                              name="address"
+                              value={formData.address}
+                              onChange={handleChange}
+                              required
+                              className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
+                              style={{
+                                borderColor: "var(--border-primary)",
+                                backgroundColor: "var(--bg-primary)",
+                                color: "var(--text-primary)",
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
+                              City *
+                            </label>
+                            <input
+                              type="text"
+                              name="city"
+                              value={formData.city}
+                              onChange={handleChange}
+                              required
+                              className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
+                              style={{
+                                borderColor: "var(--border-primary)",
+                                backgroundColor: "var(--bg-primary)",
+                                color: "var(--text-primary)",
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
+                              State/Division *
+                            </label>
+                            <input
+                              type="text"
+                              name="state"
+                              value={formData.state}
+                              onChange={handleChange}
+                              required
+                              className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
+                              style={{
+                                borderColor: "var(--border-primary)",
+                                backgroundColor: "var(--bg-primary)",
+                                color: "var(--text-primary)",
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
+                              ZIP Code *
+                            </label>
+                            <input
+                              type="text"
+                              name="zipCode"
+                              value={formData.zipCode}
+                              onChange={handleChange}
+                              required
+                              className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
+                              style={{
+                                borderColor: "var(--border-primary)",
+                                backgroundColor: "var(--bg-primary)",
+                                color: "var(--text-primary)",
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
+                              Country *
+                            </label>
+                            <input
+                              type="text"
+                              name="country"
+                              value={formData.country}
+                              onChange={handleChange}
+                              required
+                              className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
+                              style={{
+                                borderColor: "var(--border-primary)",
+                                backgroundColor: "var(--bg-primary)",
+                                color: "var(--text-primary)",
+                              }}
+                            />
+                          </div>
+                          {selectedAddressId === "new" && addresses.length > 0 && (
+                            <div className="md:col-span-2 mt-2 p-3 rounded-lg border border-dashed" style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-primary)" }}>
+                              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                                <strong style={{ color: "var(--text-primary)" }}>Add new address?</strong> This will be saved to your address book (e.g. address #{addresses.length + 1}). Click Next to continue.
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </motion.div>
                   )}
 
-                  {/* Step 2: Shipping */}
+                  {/* Step 2: Shipping (DB-synced) */}
                   {currentStep === 2 && (
                     <motion.div
                       key="shipping"
@@ -432,12 +747,14 @@ const Checkout = () => {
                                   {option.name}
                                 </div>
                                 <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                                  {option.days}
+                                  {option.description || ""}
                                 </div>
                               </div>
                             </div>
                             <div className="font-bold" style={{ color: "var(--color-primary)" }}>
-                              ৳{option.price.toFixed(2)}
+                              {option.price != null && typeof option.price === "number"
+                                ? `৳${Number(option.price).toFixed(2)}`
+                                : (option.priceLabel || "Based on distance")}
                             </div>
                           </motion.label>
                         ))}
@@ -445,223 +762,8 @@ const Checkout = () => {
                     </motion.div>
                   )}
 
-                  {/* Step 3: Payment */}
+                  {/* Step 3: Review (DB-synced: formData, selectedShipping, cartItems) */}
                   {currentStep === 3 && (
-                    <motion.div
-                      key="payment"
-                      variants={stepVariants}
-                      initial="hidden"
-                      animate="visible"
-                      exit="exit"
-                      transition={{ duration: 0.3 }}
-                      className="p-6 rounded-lg space-y-6"
-                      style={{ backgroundColor: "var(--bg-secondary)" }}
-                    >
-                      <div className="flex items-center space-x-3 mb-4">
-                        <FiCreditCard size={24} style={{ color: "var(--color-primary)" }} />
-                        <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
-                          Payment Method
-                        </h2>
-                      </div>
-
-                      {/* Payment Method Selection */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        {paymentMethods.map((method) => (
-                          <motion.label
-                            key={method.id}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className={`flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                              formData.paymentMethod === method.id ? "ring-2" : ""
-                            }`}
-                            style={{
-                              borderColor:
-                                formData.paymentMethod === method.id
-                                  ? "var(--color-primary)"
-                                  : "var(--border-primary)",
-                              backgroundColor: "var(--bg-primary)",
-                            }}
-                          >
-                            <input
-                              type="radio"
-                              name="paymentMethod"
-                              value={method.id}
-                              checked={formData.paymentMethod === method.id}
-                              onChange={handleChange}
-                              className="hidden"
-                            />
-                            <span className="text-3xl mb-2">{method.icon}</span>
-                            <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                              {method.name}
-                            </span>
-                          </motion.label>
-                        ))}
-                      </div>
-
-                      {/* Payment Details */}
-                      <AnimatePresence mode="wait">
-                        {formData.paymentMethod === "card" && (
-                          <motion.div
-                            key="card"
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="space-y-4"
-                          >
-                            <div>
-                              <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                                Card Number *
-                              </label>
-                              <input
-                                type="text"
-                                name="cardNumber"
-                                value={formData.cardNumber}
-                                onChange={handleChange}
-                                required
-                                placeholder="1234 5678 9012 3456"
-                                maxLength={19}
-                                className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
-                                style={{
-                                  borderColor: "var(--border-primary)",
-                                  backgroundColor: "var(--bg-primary)",
-                                  color: "var(--text-primary)",
-                                }}
-                              />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                                  Expiry Date *
-                                </label>
-                                <input
-                                  type="text"
-                                  name="expiryDate"
-                                  value={formData.expiryDate}
-                                  onChange={handleChange}
-                                  required
-                                  placeholder="MM/YY"
-                                  maxLength={5}
-                                  className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
-                                  style={{
-                                    borderColor: "var(--border-primary)",
-                                    backgroundColor: "var(--bg-primary)",
-                                    color: "var(--text-primary)",
-                                  }}
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                                  CVV *
-                                </label>
-                                <input
-                                  type="text"
-                                  name="cvv"
-                                  value={formData.cvv}
-                                  onChange={handleChange}
-                                  required
-                                  placeholder="123"
-                                  maxLength={3}
-                                  className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
-                                  style={{
-                                    borderColor: "var(--border-primary)",
-                                    backgroundColor: "var(--bg-primary)",
-                                    color: "var(--text-primary)",
-                                  }}
-                                />
-                              </div>
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                                Cardholder Name *
-                              </label>
-                              <input
-                                type="text"
-                                name="cardName"
-                                value={formData.cardName}
-                                onChange={handleChange}
-                                required
-                                className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
-                                style={{
-                                  borderColor: "var(--border-primary)",
-                                  backgroundColor: "var(--bg-primary)",
-                                  color: "var(--text-primary)",
-                                }}
-                              />
-                            </div>
-                          </motion.div>
-                        )}
-
-                        {formData.paymentMethod === "bkash" && (
-                          <motion.div
-                            key="bkash"
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="space-y-4"
-                          >
-                            <div className="p-4 rounded-lg" style={{ backgroundColor: "var(--bg-primary)" }}>
-                              <p className="text-sm mb-4" style={{ color: "var(--text-secondary)" }}>
-                                Pay with bKash mobile number
-                              </p>
-                              <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                                bKash Number *
-                              </label>
-                              <input
-                                type="tel"
-                                name="bkashNumber"
-                                value={formData.bkashNumber}
-                                onChange={handleChange}
-                                required
-                                placeholder="+880 1XXX XXXXXX"
-                                className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
-                                style={{
-                                  borderColor: "var(--border-primary)",
-                                  backgroundColor: "var(--bg-primary)",
-                                  color: "var(--text-primary)",
-                                }}
-                              />
-                            </div>
-                          </motion.div>
-                        )}
-
-                        {formData.paymentMethod === "nagad" && (
-                          <motion.div
-                            key="nagad"
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="space-y-4"
-                          >
-                            <div className="p-4 rounded-lg" style={{ backgroundColor: "var(--bg-primary)" }}>
-                              <p className="text-sm mb-4" style={{ color: "var(--text-secondary)" }}>
-                                Pay with Nagad mobile number
-                              </p>
-                              <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                                Nagad Number *
-                              </label>
-                              <input
-                                type="tel"
-                                name="nagadNumber"
-                                value={formData.nagadNumber}
-                                onChange={handleChange}
-                                required
-                                placeholder="+880 1XXX XXXXXX"
-                                className="w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors"
-                                style={{
-                                  borderColor: "var(--border-primary)",
-                                  backgroundColor: "var(--bg-primary)",
-                                  color: "var(--text-primary)",
-                                }}
-                              />
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </motion.div>
-                  )}
-
-                  {/* Step 4: Review */}
-                  {currentStep === 4 && (
                     <motion.div
                       key="review"
                       variants={stepVariants}
@@ -735,41 +837,13 @@ const Checkout = () => {
                             {selectedShipping?.name}
                           </p>
                           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                            {selectedShipping?.days}
+                            {selectedShipping?.description || ""}
                           </p>
-                        </div>
-                      </div>
-
-                      {/* Payment Method Review */}
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
-                            Payment Method
-                          </h3>
-                          <button
-                            type="button"
-                            onClick={() => setCurrentStep(3)}
-                            className="flex items-center gap-1 text-sm"
-                            style={{ color: "var(--color-primary)" }}
-                          >
-                            <FiEdit2 size={14} />
-                            Edit
-                          </button>
-                        </div>
-                        <div className="p-4 rounded-lg" style={{ backgroundColor: "var(--bg-primary)" }}>
-                          <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                            {paymentMethods.find((m) => m.id === formData.paymentMethod)?.name}
+                          <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
+                            {selectedShipping?.price != null && typeof selectedShipping.price === "number"
+                              ? `৳${Number(selectedShipping.price).toFixed(2)}`
+                              : (selectedShipping?.priceLabel || "Based on distance")}
                           </p>
-                          {formData.paymentMethod === "card" && (
-                            <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
-                              **** **** **** {formData.cardNumber.slice(-4)}
-                            </p>
-                          )}
-                          {(formData.paymentMethod === "bkash" || formData.paymentMethod === "nagad") && (
-                            <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
-                              {formData[`${formData.paymentMethod}Number`]}
-                            </p>
-                          )}
                         </div>
                       </div>
 
@@ -779,33 +853,30 @@ const Checkout = () => {
                           Order Items
                         </h3>
                         <div className="space-y-3">
-                          {checkoutItems.map((item) => {
-                            const product = getProduct(item.productId);
+                          {cartItems.map((item) => {
+                            const product = item.product;
                             if (!product) return null;
-
+                            const price = product.finalPrice ?? product.price ?? 0;
+                            const img = Array.isArray(product.images) && product.images[0] ? product.images[0] : "/images/product-placeholder.png";
                             return (
                               <div
-                                key={item.id}
+                                key={product._id ?? product.id}
                                 className="flex gap-4 p-4 rounded-lg"
                                 style={{ backgroundColor: "var(--bg-primary)" }}
                               >
                                 <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg" style={{ backgroundColor: "var(--bg-tertiary)" }}>
-                                  <img
-                                    src={product.images[0]}
-                                    alt={product.name}
-                                    className="w-full h-full object-cover"
-                                  />
+                                  <img src={img} alt={product.name} className="w-full h-full object-cover" />
                                 </div>
                                 <div className="flex-1">
                                   <p className="font-semibold" style={{ color: "var(--text-primary)" }}>
                                     {product.name}
                                   </p>
                                   <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                                    Size: {item.size} | Qty: {item.quantity}
+                                    Qty: {item.quantity}
                                   </p>
                                 </div>
                                 <div className="font-bold" style={{ color: "var(--color-primary)" }}>
-                                  ৳{(product.price * item.quantity).toFixed(2)}
+                                  ৳{(price * item.quantity).toFixed(2)}
                                 </div>
                               </div>
                             );
@@ -835,7 +906,7 @@ const Checkout = () => {
                     </motion.button>
                   )}
                   <div className="flex-1" />
-                  {currentStep < 4 ? (
+                  {currentStep < 3 ? (
                     <motion.button
                       type="button"
                       onClick={handleNext}
@@ -849,14 +920,16 @@ const Checkout = () => {
                     </motion.button>
                   ) : (
                     <motion.button
-                      type="submit"
-                      className="flex items-center gap-2 px-8 py-3 text-white font-semibold uppercase tracking-wider rounded-lg"
+                      type="button"
+                      disabled={placingOrder}
+                      onClick={handlePlaceOrder}
+                      className="flex items-center gap-2 px-8 py-3 text-white font-semibold uppercase tracking-wider rounded-lg disabled:opacity-70"
                       style={{ backgroundColor: "var(--color-primary)" }}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                      whileHover={!placingOrder ? { scale: 1.02 } : {}}
+                      whileTap={!placingOrder ? { scale: 0.98 } : {}}
                     >
                       <FiLock size={20} />
-                      Place Order
+                      {placingOrder ? "Placing…" : "Place Order"}
                     </motion.button>
                   )}
                 </div>
@@ -877,18 +950,15 @@ const Checkout = () => {
 
                 {/* Order Items */}
                 <div className="space-y-3">
-                  {checkoutItems.map((item) => {
-                    const product = getProduct(item.productId);
+                  {cartItems.map((item) => {
+                    const product = item.product;
                     if (!product) return null;
-
+                    const price = product.finalPrice ?? product.price ?? 0;
+                    const img = Array.isArray(product.images) && product.images[0] ? product.images[0] : "/images/product-placeholder.png";
                     return (
-                      <div key={item.id} className="flex gap-3">
+                      <div key={product._id ?? product.id} className="flex gap-3">
                         <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded-lg" style={{ backgroundColor: "var(--bg-tertiary)" }}>
-                          <img
-                            src={product.images[0]}
-                            alt={product.name}
-                            className="w-full h-full object-cover"
-                          />
+                          <img src={img} alt={product.name} className="w-full h-full object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>
@@ -898,7 +968,7 @@ const Checkout = () => {
                             Qty: {item.quantity}
                           </p>
                           <p className="text-sm font-bold mt-1" style={{ color: "var(--color-primary)" }}>
-                            ৳{(product.price * item.quantity).toFixed(2)}
+                            ৳{(price * item.quantity).toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -914,7 +984,11 @@ const Checkout = () => {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span style={{ color: "var(--text-secondary)" }}>Shipping</span>
-                    <span style={{ color: "var(--text-primary)" }}>৳{shipping.toFixed(2)}</span>
+                    <span style={{ color: "var(--text-primary)" }}>
+                      {selectedShipping?.price != null && typeof selectedShipping.price === "number"
+                        ? `৳${shipping.toFixed(2)}`
+                        : (selectedShipping?.priceLabel || "Based on distance")}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span style={{ color: "var(--text-secondary)" }}>Tax</span>

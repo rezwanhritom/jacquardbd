@@ -22,6 +22,18 @@ const userFetch = (path, options = {}) => {
 };
 
 /**
+ * GET /api/users/:userId/dashboard — fetch account dashboard (user, totalOrders, totalSpent, wishlistCount, avgOrderValue, recentOrders).
+ */
+export async function getAccountDashboard(userId) {
+  const res = await userFetch(`/${userId}/dashboard`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, data: null, message: data.message || "Failed to load dashboard" };
+  }
+  return { success: true, data: data.data, message: data.message };
+}
+
+/**
  * GET /api/users/:userId — fetch profile (name, email, avatar, createdAt, updatedAt).
  */
 export async function getProfile(userId) {
@@ -46,6 +58,26 @@ export async function updateProfile(userId, payload) {
     return { success: false, user: null, message: data.message || "Failed to update profile" };
   }
   return { success: true, user: data.user, message: data.message };
+}
+
+/**
+ * POST /api/images/upload/profile — upload profile image (multipart form, field: "image").
+ * Returns { success, url?, message }. On success, update user profile with url as avatar.
+ */
+export async function uploadProfileImage(file) {
+  const baseUrl = getBaseUrl().replace(/\/$/, "");
+  const formData = new FormData();
+  formData.append("image", file);
+  const res = await fetch(`${baseUrl}/api/images/upload/profile`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, url: null, message: data.message || "Failed to upload image" };
+  }
+  return { success: true, url: data.url, message: data.message };
 }
 
 /**
@@ -82,6 +114,48 @@ export async function getAdminCustomers() {
     return { success: false, customers: [], message: data.message || "Failed to load customers" };
   }
   return { success: true, customers: Array.isArray(data.customers) ? data.customers : [] };
+}
+
+/**
+ * GET /api/users/admin/:userId — admin only. Get one user with addresses (for edit form).
+ */
+export async function getOneUserAdmin(userId) {
+  const res = await userFetch(`/admin/${userId}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, user: null, message: data.message || "Failed to load user" };
+  }
+  return { success: true, user: data.user, message: data.message };
+}
+
+/**
+ * POST /api/users/admin — admin only. Create user. Body: { name, email, password, role? }.
+ */
+export async function createUserAdmin(payload) {
+  const res = await userFetch("/admin", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, user: null, message: data.message || "Failed to create user" };
+  }
+  return { success: true, user: data.user, message: data.message };
+}
+
+/**
+ * PUT /api/users/admin/:userId — admin only. Update user. Body: { name?, email?, password?, role? }.
+ */
+export async function updateUserAdmin(userId, payload) {
+  const res = await userFetch(`/admin/${userId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, user: null, message: data.message || "Failed to update user" };
+  }
+  return { success: true, user: data.user, message: data.message };
 }
 
 /**

@@ -6,6 +6,9 @@ export default {
   darkMode: "class",
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['"Trojan Pro"'],
+      },
       colors: {
         customBlack: "#09090B",
         lightBlack: "#171618",

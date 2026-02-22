@@ -7,17 +7,29 @@ import {
   FiUser,
   FiPackage,
   FiHeart,
+  FiShoppingCart,
   FiMapPin,
   FiShield,
   FiSliders,
   FiLogOut,
   FiChevronRight,
 } from "react-icons/fi";
-import { mockUser } from "../../data/accountData";
+import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
+import { useAuth } from "../../context/AuthContext";
+
+function membershipLabel(role) {
+  if (role === "premium") return "Premium";
+  if (role === "admin") return "Admin";
+  return "Standard";
+}
 
 const Account = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const displayName = user?.name?.trim() || "User";
+  const membershipTier = membershipLabel(user?.role ?? "user");
 
   const tabs = [
     { id: "dashboard", label: "Overview", icon: FiLayout, path: "/account", description: "Dashboard & stats" },
@@ -25,12 +37,15 @@ const Account = () => {
     { id: "orders", label: "Orders", icon: FiPackage, path: "/account/orders", description: "Order history" },
     { id: "addresses", label: "Addresses", icon: FiMapPin, path: "/account/addresses", description: "Saved locations" },
     { id: "wishlist", label: "Wishlist", icon: FiHeart, path: "/account/wishlist", description: "Saved items" },
+    { id: "cart", label: "Cart", icon: FiShoppingCart, path: "/account/cart", description: "Shopping cart" },
     { id: "security", label: "Security", icon: FiShield, path: "/account/security", description: "Password & safety" },
     { id: "preferences", label: "Preferences", icon: FiSliders, path: "/account/settings", description: "App settings" },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logout();
     toast.success("Logged out successfully!");
+    navigate("/");
   };
 
   return (
@@ -74,25 +89,23 @@ const Account = () => {
             >
               <div className="text-right hidden sm:block">
                 <p className="font-semibold" style={{ color: "var(--text-primary)" }}>
-                  {mockUser.firstName} {mockUser.lastName}
+                  {displayName}
                 </p>
                 <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-                  {mockUser.membershipTier} Member
+                  {membershipTier} Member
                 </p>
               </div>
               <motion.div
                 whileHover={{ scale: 1.05 }}
-                className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-offset-2"
+                className="w-12 h-12 rounded-full flex items-center justify-center ring-2 ring-offset-2"
                 style={{ 
                   ringColor: "var(--color-primary)",
                   ringOffsetColor: "var(--bg-primary)",
+                  backgroundColor: "var(--bg-secondary)",
+                  color: "var(--color-primary)",
                 }}
               >
-                <img
-                  src={mockUser.avatar}
-                  alt={mockUser.firstName}
-                  className="w-full h-full object-cover"
-                />
+                <FiUser size={24} />
               </motion.div>
             </motion.div>
           </div>

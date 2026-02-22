@@ -13,6 +13,8 @@ const campaignSchema = new mongoose.Schema(
     endDate: { type: Date, required: true },
     discount: { type: Number, min: 0, max: 100, default: 0 },
     targetAudience: { type: String, enum: TARGET_AUDIENCES, default: "All Customers" },
+    /** Product IDs this campaign applies to. Empty = all products; non-empty = only these products. */
+    products: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
     conversions: { type: Number, min: 0, default: 0 },
     revenue: { type: Number, min: 0, default: 0 },
   },

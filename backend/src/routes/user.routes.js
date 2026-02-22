@@ -1,12 +1,16 @@
 import express from "express";
 import { protect, sameUser, requireRole } from "../middlewares/auth.middleware.js";
 import {
+  getAccountDashboard,
   getProfile,
   updateProfile,
   getWishlist,
   addToWishlist,
   removeFromWishlist,
   getAdminCustomers,
+  getOneUserAdmin,
+  createUserAdmin,
+  updateUserAdmin,
   deleteUserAdmin,
 } from "../controller/user.controller.js";
 
@@ -15,8 +19,12 @@ const router = express.Router();
 router.use(protect);
 
 router.get("/admin/list", requireRole(["admin"]), getAdminCustomers);
+router.get("/admin/:userId", requireRole(["admin"]), getOneUserAdmin);
+router.post("/admin", requireRole(["admin"]), createUserAdmin);
+router.put("/admin/:userId", requireRole(["admin"]), updateUserAdmin);
 router.delete("/admin/:userId", requireRole(["admin"]), deleteUserAdmin);
 
+router.get("/:userId/dashboard", sameUser, getAccountDashboard);
 router.get("/:userId", sameUser, getProfile);
 router.put("/:userId", sameUser, updateProfile);
 router.get("/:userId/wishlist", sameUser, getWishlist);

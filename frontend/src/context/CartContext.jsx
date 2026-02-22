@@ -38,6 +38,15 @@ export function CartProvider({ children }) {
     setCartItems(entries.map(normalizeCartItem));
   }, []);
 
+  const refetchCart = useCallback(() => {
+    if (!isAuthenticated) return Promise.resolve();
+    setLoading(true);
+    return cartApi.getCart().then(({ success, cart }) => {
+      setCartFromEntries(success && Array.isArray(cart) ? cart : []);
+      setLoading(false);
+    });
+  }, [isAuthenticated, setCartFromEntries]);
+
   useEffect(() => {
     setLoading(true);
     if (isAuthenticated) {
@@ -159,6 +168,7 @@ export function CartProvider({ children }) {
     getCartTotal,
     getCartCount,
     isInCart,
+    refetchCart,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

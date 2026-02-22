@@ -1,68 +1,88 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { FiPackage, FiDollarSign, FiHeart, FiTrendingUp, FiShoppingBag, FiClock } from "react-icons/fi";
-import { mockUser, mockOrders } from "../../data/accountData";
-import { productsData } from "../../data/products";
+import { FiPackage, FiDollarSign, FiHeart, FiTrendingUp, FiShoppingBag, FiClock, FiUser } from "react-icons/fi";
+import { useAuth } from "../../context/AuthContext";
+import { getAccountDashboard } from "../../services/user.service";
+
+function membershipLabel(role) {
+  if (role === "premium") return "Premium";
+  if (role === "admin") return "Admin";
+  return "Standard";
+}
 
 const Dashboard = () => {
-  const recentOrders = mockOrders.slice(0, 3);
-  const totalSpent = mockUser.totalSpent;
-  const totalOrders = mockUser.totalOrders;
-  const wishlistCount = 8; // Mock count
-  const averageOrderValue = totalSpent / totalOrders;
+  const { user: authUser } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!authUser?._id) {
+      setLoading(false);
+      return;
+    }
+    getAccountDashboard(authUser._id)
+      .then((res) => {
+        if (res.success) setData(res.data);
+        else setError(res.message);
+      })
+      .catch(() => setError("Failed to load dashboard"))
+      .finally(() => setLoading(false));
+  }, [authUser?._id]);
+
+  const firstName = authUser?.name?.trim().split(/\s+/)[0] || "there";
+  const memberSince = data?.user?.createdAt || authUser?.createdAt;
+  const membershipTier = membershipLabel(data?.user?.role ?? authUser?.role ?? "user");
+
+  const totalOrders = data?.totalOrders ?? 0;
+  const totalSpent = data?.totalSpent ?? 0;
+  const wishlistCount = data?.wishlistCount ?? 0;
+  const avgOrderValue = data?.avgOrderValue ?? 0;
+  const recentOrders = data?.recentOrders ?? [];
 
   const stats = [
-    {
-      id: 1,
-      label: "Total Orders",
-      value: totalOrders,
-      icon: FiPackage,
-      color: "var(--color-primary)",
-      change: "+12%",
-    },
-    {
-      id: 2,
-      label: "Total Spent",
-      value: `$${totalSpent.toFixed(2)}`,
-      icon: FiDollarSign,
-      color: "var(--color-secondary)",
-      change: "+8%",
-    },
-    {
-      id: 3,
-      label: "Wishlist Items",
-      value: wishlistCount,
-      icon: FiHeart,
-      color: "var(--color-tertiary)",
-      change: "+3",
-    },
-    {
-      id: 4,
-      label: "Avg Order Value",
-      value: `$${averageOrderValue.toFixed(2)}`,
-      icon: FiTrendingUp,
-      color: "var(--color-primary)",
-      change: "+5%",
-    },
+    { id: 1, label: "Total Orders", value: totalOrders, icon: FiPackage, color: "var(--color-primary)" },
+    { id: 2, label: "Total Spent", value: `৳${Number(totalSpent).toFixed(2)}`, icon: FiDollarSign, color: "var(--color-secondary)" },
+    { id: 3, label: "Wishlist Items", value: wishlistCount, icon: FiHeart, color: "var(--color-tertiary)" },
+    { id: 4, label: "Avg Order Value", value: `৳${Number(avgOrderValue).toFixed(2)}`, icon: FiTrendingUp, color: "var(--color-primary)" },
   ];
-
-  const getProduct = (productId) => {
-    return productsData.find((p) => p.id === productId);
-  };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Delivered":
+      case "paid":
         return "var(--color-primary)";
-      case "Shipped":
-        return "var(--color-secondary)";
-      case "Processing":
+      case "pending":
         return "var(--color-tertiary)";
+      case "cancelled":
+      case "failed":
+        return "var(--text-tertiary)";
       default:
         return "var(--text-tertiary)";
     }
   };
+
+  const formatStatus = (status) => {
+    if (!status) return "—";
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16" style={{ color: "var(--text-secondary)" }}>
+        Loading dashboard…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-16" style={{ color: "var(--text-secondary)" }}>
+        <p>{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -75,13 +95,12 @@ const Dashboard = () => {
       >
         <div>
           <h2 className="text-3xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
-            Welcome back, {mockUser.firstName}! 👋
+            Welcome back, {firstName}! 👋
           </h2>
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            Member since {new Date(mockUser.memberSince).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-            })}
+            {memberSince
+              ? `Member since ${new Date(memberSince).toLocaleDateString("en-US", { year: "numeric", month: "long" })}`
+              : "Manage your account"}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -90,11 +109,14 @@ const Dashboard = () => {
               Membership
             </p>
             <p className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
-              {mockUser.membershipTier}
+              {membershipTier}
             </p>
           </div>
-          <div className="w-16 h-16 rounded-full overflow-hidden border-2" style={{ borderColor: "var(--border-primary)" }}>
-            <img src={mockUser.avatar} alt={mockUser.firstName} className="w-full h-full object-cover" />
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center border-2"
+            style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)", color: "var(--color-primary)" }}
+          >
+            <FiUser size={32} />
           </div>
         </div>
       </motion.div>
@@ -121,9 +143,6 @@ const Dashboard = () => {
                 <div className="p-3 rounded-lg" style={{ backgroundColor: stat.color + "20" }}>
                   <Icon size={24} style={{ color: stat.color }} />
                 </div>
-                <span className="text-xs font-semibold px-2 py-1 rounded" style={{ backgroundColor: "var(--bg-tertiary)", color: "var(--text-secondary)" }}>
-                  {stat.change}
-                </span>
               </div>
               <div>
                 <p className="text-2xl font-bold mb-1" style={{ color: "var(--text-primary)" }}>
@@ -157,12 +176,8 @@ const Dashboard = () => {
             to="/account/orders"
             className="text-sm font-semibold transition-colors"
             style={{ color: "var(--color-primary)" }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.textDecoration = "underline";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.textDecoration = "none";
-            }}
+            onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none"; }}
           >
             View All
           </Link>
@@ -172,22 +187,19 @@ const Dashboard = () => {
           <div className="space-y-4">
             {recentOrders.map((order, index) => (
               <motion.div
-                key={order.id}
+                key={order._id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
                 className="p-4 rounded-lg border-2 transition-all"
-                style={{
-                  borderColor: "var(--border-primary)",
-                  backgroundColor: "var(--bg-primary)",
-                }}
+                style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-primary)" }}
                 whileHover={{ borderColor: "var(--color-primary)", scale: 1.01 }}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-3">
                       <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
-                        Order #{order.id}
+                        {order.orderId}
                       </span>
                       <span
                         className="px-2 py-1 text-xs font-semibold uppercase rounded"
@@ -196,7 +208,7 @@ const Dashboard = () => {
                           color: getStatusColor(order.status),
                         }}
                       >
-                        {order.status}
+                        {formatStatus(order.status)}
                       </span>
                     </div>
                     <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
@@ -207,23 +219,14 @@ const Dashboard = () => {
                       })}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {order.items.slice(0, 3).map((item) => {
-                        const product = getProduct(item.productId);
-                        if (!product) return null;
-                        return (
-                          <div key={item.productId} className="flex items-center gap-2">
-                            <div className="w-10 h-10 rounded overflow-hidden" style={{ backgroundColor: "var(--bg-tertiary)" }}>
-                              <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-                            </div>
-                            <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                              {product.name} × {item.quantity}
-                            </span>
-                          </div>
-                        );
-                      })}
-                      {order.items.length > 3 && (
+                      {(order.items || []).slice(0, 3).map((item, i) => (
+                        <span key={i} className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                          {item.name ?? "Item"} × {item.quantity}
+                        </span>
+                      ))}
+                      {(order.items?.length ?? 0) > 3 && (
                         <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-                          +{order.items.length - 3} more
+                          +{(order.items?.length ?? 0) - 3} more
                         </span>
                       )}
                     </div>
@@ -231,19 +234,16 @@ const Dashboard = () => {
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <p className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
-                        ৳{order.total.toFixed(2)}
+                        ৳{Number(order.total).toFixed(2)}
                       </p>
                       <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                        {order.items.length} item{order.items.length !== 1 ? "s" : ""}
+                        {order.items?.length ?? 0} item{(order.items?.length ?? 0) !== 1 ? "s" : ""}
                       </p>
                     </div>
                     <Link
-                      to={`/account/orders/${order.id}`}
+                      to={`/account/orders/${order._id}`}
                       className="px-4 py-2 border-2 rounded-lg font-semibold text-sm transition-colors"
-                      style={{
-                        borderColor: "var(--border-primary)",
-                        color: "var(--text-primary)",
-                      }}
+                      style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.borderColor = "var(--color-primary)";
                         e.currentTarget.style.backgroundColor = "var(--color-primary)";
@@ -287,10 +287,7 @@ const Dashboard = () => {
         <Link
           to="/account/wishlist"
           className="p-6 rounded-lg border-2 transition-all group"
-          style={{
-            borderColor: "var(--border-primary)",
-            backgroundColor: "var(--bg-secondary)",
-          }}
+          style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)" }}
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = "var(--color-primary)";
             e.currentTarget.style.transform = "translateY(-4px)";
@@ -301,21 +298,14 @@ const Dashboard = () => {
           }}
         >
           <FiHeart size={32} className="mb-3" style={{ color: "var(--color-primary)" }} />
-          <h4 className="font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
-            My Wishlist
-          </h4>
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            {wishlistCount} items saved
-          </p>
+          <h4 className="font-semibold mb-2" style={{ color: "var(--text-primary)" }}>My Wishlist</h4>
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{wishlistCount} items saved</p>
         </Link>
 
         <Link
           to="/account/addresses"
           className="p-6 rounded-lg border-2 transition-all group"
-          style={{
-            borderColor: "var(--border-primary)",
-            backgroundColor: "var(--bg-secondary)",
-          }}
+          style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)" }}
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = "var(--color-primary)";
             e.currentTarget.style.transform = "translateY(-4px)";
@@ -326,21 +316,14 @@ const Dashboard = () => {
           }}
         >
           <FiPackage size={32} className="mb-3" style={{ color: "var(--color-primary)" }} />
-          <h4 className="font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
-            Address Book
-          </h4>
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            Manage shipping addresses
-          </p>
+          <h4 className="font-semibold mb-2" style={{ color: "var(--text-primary)" }}>Address Book</h4>
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Manage shipping addresses</p>
         </Link>
 
         <Link
           to="/account/membership"
           className="p-6 rounded-lg border-2 transition-all group"
-          style={{
-            borderColor: "var(--border-primary)",
-            backgroundColor: "var(--bg-secondary)",
-          }}
+          style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)" }}
           onMouseEnter={(e) => {
             e.currentTarget.style.borderColor = "var(--color-primary)";
             e.currentTarget.style.transform = "translateY(-4px)";
@@ -351,12 +334,8 @@ const Dashboard = () => {
           }}
         >
           <FiTrendingUp size={32} className="mb-3" style={{ color: "var(--color-primary)" }} />
-          <h4 className="font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
-            Membership
-          </h4>
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            {mockUser.membershipTier} Member
-          </p>
+          <h4 className="font-semibold mb-2" style={{ color: "var(--text-primary)" }}>Membership</h4>
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{membershipTier} Member</p>
         </Link>
       </motion.div>
     </div>

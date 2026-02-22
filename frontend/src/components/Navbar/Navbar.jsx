@@ -18,6 +18,7 @@ import {
   FiLayout,
   FiPackage,
   FiMapPin,
+  FiShoppingCart,
   FiShield,
   FiSliders,
   FiChevronRight,
@@ -536,6 +537,7 @@ const Navbar = () => {
                             { path: "/account/orders", label: "Orders", icon: FiPackage },
                             { path: "/account/addresses", label: "Addresses", icon: FiMapPin },
                             { path: "/account/wishlist", label: "Wishlist", icon: FiHeart },
+                            { path: "/account/cart", label: "Cart", icon: FiShoppingCart },
                             { path: "/account/security", label: "Security", icon: FiShield },
                             { path: "/account/settings", label: "Settings", icon: FiSliders },
                           ].map((item) => {
@@ -873,6 +875,7 @@ const Navbar = () => {
                         { path: "/account/orders", label: "Orders", icon: FiPackage },
                         { path: "/account/addresses", label: "Addresses", icon: FiMapPin },
                         { path: "/account/wishlist", label: "Wishlist", icon: FiHeart },
+                        { path: "/account/cart", label: "Cart", icon: FiShoppingCart },
                         { path: "/account/security", label: "Security", icon: FiShield },
                         { path: "/account/settings", label: "Settings", icon: FiSliders },
                       ].map((item) => {

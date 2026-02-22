@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Session from "../models/Session.js";
 import { verifyToken } from "../utils/generateToken.js";
 
 const COOKIE_NAME = "access_token";
@@ -17,8 +18,8 @@ function getTokenFromRequest(req) {
 }
 
 /**
- * Protect middleware: extract JWT from cookie or Bearer header, verify, attach user to req.user.
- * Denies with 401 if no token or invalid token.
+ * Protect middleware: extract JWT, verify, validate session if sid present, attach user to req.user and sessionId to req.sessionId.
+ * Denies with 401 if no token, invalid token, or session revoked.
  */
 export async function protect(req, res, next) {
   const token = getTokenFromRequest(req);
@@ -30,6 +31,14 @@ export async function protect(req, res, next) {
   const decoded = verifyToken(token);
   if (!decoded?.id) {
     return res.status(401).json({ success: false, message: "Invalid or expired token" });
+  }
+
+  if (decoded.sid) {
+    const session = await Session.findById(decoded.sid).lean();
+    if (!session || String(session.user) !== decoded.id) {
+      return res.status(401).json({ success: false, message: "Session invalid or revoked" });
+    }
+    req.sessionId = decoded.sid;
   }
 
   const user = await User.findById(decoded.id).select("-password").lean();

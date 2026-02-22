@@ -14,6 +14,7 @@ import {
   QuickView,
   ProductCardSkeleton,
 } from "../../components";
+import { FiGrid, FiList } from "react-icons/fi";
 import { productsData } from "../../data/products";
 import { categoriesData } from "../../data/categories";
 import { motion } from "framer-motion";
@@ -53,11 +54,12 @@ function findCategoryBySlug(categoryName, categoriesData) {
 const Category = () => {
   const { categoryName, section: sectionSlug, subcategory: subcategorySlug } = useParams();
   const [filters, setFilters] = useState({
-    priceRange: { min: 0, max: 1000 },
+    priceRange: { min: "", max: "" },
     sizes: [],
     colors: [],
   });
   const [sortOption, setSortOption] = useState("default");
+  const [viewMode, setViewMode] = useState("grid");
   const [currentPage, setCurrentPage] = useState(1);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [apiProducts, setApiProducts] = useState([]);
@@ -179,7 +181,7 @@ const Category = () => {
   };
 
   const handleClearFilters = () => {
-    setFilters({ priceRange: { min: 0, max: 1000 }, sizes: [], colors: [] });
+    setFilters({ priceRange: { min: "", max: "" }, sizes: [], colors: [] });
     setCurrentPage(1);
   };
 
@@ -286,7 +288,39 @@ const Category = () => {
                       {sortedProducts.length} products
                     </p>
                   )}
-                  <div className="sm:ml-auto">
+                  <div className="sm:ml-auto flex items-center gap-3">
+                    <div className="flex items-center gap-1" role="group" aria-label="View mode">
+                      <motion.button
+                        type="button"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setViewMode("grid")}
+                        className="p-2 rounded-lg transition-colors"
+                        style={{
+                          backgroundColor: viewMode === "grid" ? "var(--color-primary)" : "var(--bg-secondary)",
+                          color: viewMode === "grid" ? "white" : "var(--text-secondary)",
+                        }}
+                        aria-label="Grid view"
+                        aria-pressed={viewMode === "grid"}
+                      >
+                        <FiGrid size={20} />
+                      </motion.button>
+                      <motion.button
+                        type="button"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setViewMode("list")}
+                        className="p-2 rounded-lg transition-colors"
+                        style={{
+                          backgroundColor: viewMode === "list" ? "var(--color-primary)" : "var(--bg-secondary)",
+                          color: viewMode === "list" ? "white" : "var(--text-secondary)",
+                        }}
+                        aria-label="List view"
+                        aria-pressed={viewMode === "list"}
+                      >
+                        <FiList size={20} />
+                      </motion.button>
+                    </div>
                     <ProductSort currentSort={sortOption} onSortChange={handleSortChange} />
                   </div>
                 </div>
@@ -344,7 +378,13 @@ const Category = () => {
                   {/* Direct subcategory view: single product grid with sort/filter already above */}
                   {isDirectSubcategory && (
                     <>
-                      <ProductGrid products={sortedProducts} onQuickView={setQuickViewProduct} />
+                      <ProductGrid
+                        products={sortedProducts}
+                        viewMode={viewMode}
+                        onViewModeChange={setViewMode}
+                        onQuickView={setQuickViewProduct}
+                        hideViewToggle
+                      />
                       {totalPages > 1 && (
                         <Pagination
                           currentPage={currentPage}
@@ -360,15 +400,17 @@ const Category = () => {
                     <div className="space-y-8">
                       <section className="space-y-6">
                         <div className="pb-3 border-b" style={{ borderColor: "var(--border-primary)" }}>
-                          <h2 className="text-lg font-medium tracking-tight uppercase" style={{ color: "var(--text-primary)", letterSpacing: "0.08em" }}>
+                          <h2 className="text-xl font-bold tracking-tight uppercase" style={{ color: "var(--text-primary)", letterSpacing: "0.08em" }}>
                             {sectionWithSubcategories.sectionName}
                           </h2>
                         </div>
                         {sectionWithSubcategories.subcategories.map(({ subcategoryName, products }) => (
                           <div key={subcategoryName} className="space-y-4">
-                            <h3 className="text-base font-medium" style={{ color: "var(--text-secondary)" }}>
-                              {subcategoryName}
-                            </h3>
+                            <div className="pb-3 border-b" style={{ borderColor: "var(--border-primary)" }}>
+                              <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+                                {subcategoryName}
+                              </h3>
+                            </div>
                             <ProductGrid products={products} onQuickView={setQuickViewProduct} hideViewToggle />
                           </div>
                         ))}
@@ -382,15 +424,17 @@ const Category = () => {
                       {sectionsWithSubcategories.map(({ sectionName, subcategories }) => (
                         <section key={sectionName} className="space-y-6">
                           <div className="pb-3 border-b" style={{ borderColor: "var(--border-primary)" }}>
-                            <h2 className="text-lg font-medium tracking-tight uppercase" style={{ color: "var(--text-primary)", letterSpacing: "0.08em" }}>
+                            <h2 className="text-xl font-bold tracking-tight uppercase" style={{ color: "var(--text-primary)", letterSpacing: "0.08em" }}>
                               {sectionName}
                             </h2>
                           </div>
                           {subcategories.map(({ subcategoryName, products }) => (
                             <div key={subcategoryName} className="space-y-4">
-                              <h3 className="text-base font-medium" style={{ color: "var(--text-secondary)" }}>
-                                {subcategoryName}
-                              </h3>
+                              <div className="pb-3 border-b" style={{ borderColor: "var(--border-primary)" }}>
+                                <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+                                  {subcategoryName}
+                                </h3>
+                              </div>
                               <ProductGrid products={products} onQuickView={setQuickViewProduct} hideViewToggle />
                             </div>
                           ))}
@@ -402,7 +446,13 @@ const Category = () => {
                   {/* Non-gender or flat list */}
                   {(!useBackendForGender || (useBackendForGender && !sectionSlug && sectionsWithSubcategories.length === 0)) && !isDirectSubcategory && (
                     <>
-                      <ProductGrid products={paginatedProducts} onQuickView={setQuickViewProduct} />
+                      <ProductGrid
+                        products={paginatedProducts}
+                        viewMode={viewMode}
+                        onViewModeChange={setViewMode}
+                        onQuickView={setQuickViewProduct}
+                        hideViewToggle
+                      />
                       {totalPages > 1 && (
                         <Pagination
                           currentPage={currentPage}

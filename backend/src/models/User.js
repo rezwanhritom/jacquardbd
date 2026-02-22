@@ -1,8 +1,23 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
+const addressSchema = new mongoose.Schema(
+  {
+    label: { type: String, trim: true, default: "" },
+    name: { type: String, trim: true, default: "" },
+    phone: { type: String, trim: true, default: "" },
+    address: { type: String, trim: true, default: "" },
+    city: { type: String, trim: true, default: "" },
+    state: { type: String, trim: true, default: "" },
+    zip: { type: String, trim: true, default: "" },
+    country: { type: String, trim: true, default: "" },
+    isDefault: { type: Boolean, default: false },
+  },
+  { _id: true }
+);
+
 /**
- * User schema: name, email (unique), hashed password, role.
+ * User schema: name, email (unique), hashed password, role, addresses.
  * Passwords are hashed in pre-save middleware; never store plain text.
  */
 const userSchema = new mongoose.Schema(
@@ -12,6 +27,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true, minlength: 8, select: false },
     role: { type: String, enum: ["user", "admin", "premium"], default: "user" },
     avatar: { type: String, trim: true, default: "" },
+    phone: { type: String, trim: true, default: "" },
     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
     cart: [
       {
@@ -19,6 +35,7 @@ const userSchema = new mongoose.Schema(
         quantity: { type: Number, default: 1, min: 1 },
       },
     ],
+    addresses: [addressSchema],
   },
   { timestamps: true }
 );

@@ -25,6 +25,7 @@ const mapApiProductForDetail = (p) => ({
   tags: p.tags || [],
   attributes: p.attributes || {},
   variantMatrix: p.variantMatrix || [],
+  variants: p.variants || { size: [], color: [] },
   stockQuantity: p.stockQuantity ?? 0,
 });
 
@@ -217,7 +218,7 @@ const ProductDetail = () => {
             <div className="space-y-6">
               {/* Category & Rating */}
               <div>
-                <p className="text-sm uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
+                <p className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
                   {getDisplayCategory(product)}
                 </p>
                 <div className="flex items-center gap-4 mb-3">
@@ -266,8 +267,9 @@ const ProductDetail = () => {
                 )}
               </div>
 
-              {/* Variants */}
+              {/* Variants: only sizes and colors available for this product */}
               <ProductVariants
+                product={product}
                 selectedSize={selectedSize}
                 selectedColor={selectedColor}
                 onSizeChange={setSelectedSize}
@@ -394,7 +396,7 @@ const ProductDetail = () => {
                     </h3>
                     {comp.length > 0 && (
                       <div>
-                        <h4 className="text-sm font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
+                        <h4 className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
                           Composition
                         </h4>
                         <ul className="list-disc list-inside space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
@@ -404,7 +406,7 @@ const ProductDetail = () => {
                     )}
                     {fit.length > 0 && (
                       <div>
-                        <h4 className="text-sm font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
+                        <h4 className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
                           Size &amp; Fit
                         </h4>
                         <ul className="list-disc list-inside space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
@@ -414,7 +416,7 @@ const ProductDetail = () => {
                     )}
                     {care.length > 0 && (
                       <div>
-                        <h4 className="text-sm font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
+                        <h4 className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
                           Care
                         </h4>
                         <ul className="list-disc list-inside space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
@@ -424,7 +426,7 @@ const ProductDetail = () => {
                     )}
                     {trace.length > 0 && (
                       <div>
-                        <h4 className="text-sm font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
+                        <h4 className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
                           Traceability
                         </h4>
                         <ul className="list-disc list-inside space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>

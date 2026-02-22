@@ -16,6 +16,7 @@ export async function getCampaigns(req, res, next) {
       endDate: c.endDate,
       discount: c.discount ?? 0,
       targetAudience: c.targetAudience,
+      products: (c.products || []).map((id) => id?.toString?.() || id).filter(Boolean),
       conversions: c.conversions ?? 0,
       revenue: c.revenue ?? 0,
       createdAt: c.createdAt,
@@ -47,6 +48,10 @@ export async function createCampaign(req, res, next) {
       return res.status(400).json({ success: false, message: "Valid end date is required" });
     }
 
+    const productIds = Array.isArray(body.products)
+      ? body.products.filter((id) => id && String(id).match(/^[a-fA-F0-9]{24}$/))
+      : [];
+
     const campaign = new Campaign({
       name,
       type: body.type || "Discount",
@@ -55,6 +60,7 @@ export async function createCampaign(req, res, next) {
       endDate,
       discount: Math.min(100, Math.max(0, Number(body.discount) || 0)),
       targetAudience: body.targetAudience || "All Customers",
+      products: productIds,
       conversions: Math.max(0, Number(body.conversions) || 0),
       revenue: Math.max(0, Number(body.revenue) || 0),
     });
@@ -73,6 +79,7 @@ export async function createCampaign(req, res, next) {
         endDate: saved.endDate,
         discount: saved.discount ?? 0,
         targetAudience: saved.targetAudience,
+        products: (saved.products || []).map((id) => id?.toString?.() || id),
         conversions: saved.conversions ?? 0,
         revenue: saved.revenue ?? 0,
       },
@@ -112,6 +119,11 @@ export async function updateCampaign(req, res, next) {
     }
     if (body.discount !== undefined) campaign.discount = Math.min(100, Math.max(0, Number(body.discount) || 0));
     if (body.targetAudience !== undefined) campaign.targetAudience = body.targetAudience;
+    if (body.products !== undefined) {
+      campaign.products = Array.isArray(body.products)
+        ? body.products.filter((id) => id && String(id).match(/^[a-fA-F0-9]{24}$/))
+        : [];
+    }
     if (body.conversions !== undefined) campaign.conversions = Math.max(0, Number(body.conversions) || 0);
     if (body.revenue !== undefined) campaign.revenue = Math.max(0, Number(body.revenue) || 0);
 
@@ -129,6 +141,7 @@ export async function updateCampaign(req, res, next) {
         endDate: updated.endDate,
         discount: updated.discount ?? 0,
         targetAudience: updated.targetAudience,
+        products: (updated.products || []).map((id) => id?.toString?.() || id),
         conversions: updated.conversions ?? 0,
         revenue: updated.revenue ?? 0,
       },

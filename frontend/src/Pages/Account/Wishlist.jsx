@@ -8,12 +8,32 @@ import toast from "react-hot-toast";
 import { getDisplayCategory } from "../../utils/productUtils";
 import { useAuth } from "../../context/AuthContext";
 import { useWishlist } from "../../context/WishlistContext";
+import { useCart } from "../../context/CartContext";
 import Loading from "../../components/Loading";
 
 const Wishlist = () => {
   const { isAuthenticated } = useAuth();
   const { wishlistItems, loading, removeFromWishlist } = useWishlist();
+  const { addToCart } = useCart();
   const [removingId, setRemovingId] = useState(null);
+  const [movingToCartId, setMovingToCartId] = useState(null);
+
+  const handleMoveToCart = async (product) => {
+    const id = product._id ?? product.id;
+    if (!id) {
+      toast.error("Invalid product");
+      return;
+    }
+    setMovingToCartId(id);
+    const { success, message } = await addToCart(product, 1);
+    setMovingToCartId(null);
+    if (success) {
+      toast.success(`${product.name ?? "Item"} added to cart!`);
+      removeFromWishlist(id).catch(() => {});
+    } else {
+      toast.error(message || "Could not add to cart");
+    }
+  };
 
   const handleRemove = async (productId) => {
     const item = wishlistItems.find((p) => (p._id || p.id) === productId);
@@ -113,6 +133,9 @@ const Wishlist = () => {
               : "/images/product-placeholder.png";
             const price = product.finalPrice ?? product.price ?? 0;
             const isRemoving = removingId === id;
+            const isMovingToCart = movingToCartId === id;
+            const inStock = product.stockQuantity == null || product.stockQuantity > 0;
+            const moveDisabled = !inStock || isMovingToCart;
 
             return (
               <motion.div
@@ -195,6 +218,24 @@ const Wishlist = () => {
                         </span>
                       )}
                     </div>
+                    <motion.button
+                      whileHover={!moveDisabled ? { scale: 1.02 } : {}}
+                      whileTap={!moveDisabled ? { scale: 0.98 } : {}}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleMoveToCart(product);
+                      }}
+                      disabled={moveDisabled}
+                      className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{
+                        backgroundColor: inStock && !isMovingToCart ? "var(--color-primary)" : "var(--bg-tertiary)",
+                        color: inStock && !isMovingToCart ? "white" : "var(--text-tertiary)",
+                      }}
+                    >
+                      <FiShoppingBag size={16} />
+                      {isMovingToCart ? "Adding…" : inStock ? "Move to Cart" : "Out of Stock"}
+                    </motion.button>
                   </div>
                 </Link>
               </motion.div>
