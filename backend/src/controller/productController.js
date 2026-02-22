@@ -57,19 +57,39 @@ export async function getProductsByCollection(req, res, next) {
   }
 }
 
+/** Slugify for matching: lowercase, spaces to hyphens. */
+function toSlug(s) {
+  if (s == null || typeof s !== "string") return "";
+  return s.trim().toLowerCase().replace(/\s+/g, "-");
+}
+
 /**
- * GET /api/products?gender=men|women
- * Returns active products filtered by categoryPath[0] (Male = men, Female = women).
+ * GET /api/products?gender=men|women&section=winter-wear&subcategory=sweatshirts
+ * Returns active products by gender; optional section and/or subcategory filter by categoryPath[1] and [2].
  */
 export async function getProducts(req, res, next) {
   try {
     const gender = (req.query.gender || "").toLowerCase();
-    const filter = { status: "active" };
+    const sectionSlug = (req.query.section || "").toLowerCase().replace(/\s+/g, "-");
+    const subcategorySlug = (req.query.subcategory || "").toLowerCase().replace(/\s+/g, "-");
 
+    const filter = { status: "active" };
     if (gender === "men") filter["categoryPath.0"] = "Male";
     else if (gender === "women") filter["categoryPath.0"] = "Female";
 
-    const products = await Product.find(filter).lean().sort({ createdAt: -1 });
+    let products = await Product.find(filter).lean().sort({ createdAt: -1 });
+
+    if (sectionSlug || subcategorySlug) {
+      products = products.filter((p) => {
+        const path = p.categoryPath || [];
+        const pSection = path[1];
+        const pSub = path[2];
+        if (sectionSlug && toSlug(pSection) !== sectionSlug) return false;
+        if (subcategorySlug && toSlug(pSub) !== subcategorySlug) return false;
+        return true;
+      });
+    }
+
     res.json({ success: true, products });
   } catch (err) {
     next(err);

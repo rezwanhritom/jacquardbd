@@ -1,6 +1,7 @@
 /**
- * Category page: /category/:categoryName (men, women, accessories, footwear).
- * Gender routes (men/women) fetch from API and group products by level-2 category; others use local data with flat grid.
+ * Category page: /category/:categoryName (men, women, ...) with optional /:section?/:subcategory?
+ * Gender routes fetch from API (with optional section/subcategory); others use local data.
+ * Structure: section → subcategory → products; empty sections/subcategories are not rendered.
  */
 import { useState, useMemo, useEffect } from "react";
 import { useParams } from "react-router";
@@ -22,13 +23,24 @@ import {
   sortProducts,
   paginateProducts,
   getLevel2Category,
+  getLevel3Category,
   mapApiProduct,
+  toCategorySlug,
 } from "../../utils/productUtils";
 import { getProductsByGender } from "../../services/productApi";
 
 const isGenderCategory = (name) => name === "men" || name === "women";
 
-/** Find category from route param (men, women, accessories, footwear) using categoriesData. */
+/** Slug to display name: "winter-wear" -> "Winter Wear". */
+function slugToDisplayName(slug) {
+  if (!slug) return "";
+  return slug
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
+/** Find category from route param using categoriesData. */
 function findCategoryBySlug(categoryName, categoriesData) {
   const normalized = categoryName?.toLowerCase();
   if (!normalized) return null;
@@ -39,7 +51,7 @@ function findCategoryBySlug(categoryName, categoriesData) {
 }
 
 const Category = () => {
-  const { categoryName } = useParams();
+  const { categoryName, section: sectionSlug, subcategory: subcategorySlug } = useParams();
   const [filters, setFilters] = useState({
     priceRange: { min: 0, max: 1000 },
     sizes: [],
@@ -56,13 +68,17 @@ const Category = () => {
   const normalizedCategoryName = categoryName?.toLowerCase();
   const category = findCategoryBySlug(categoryName, categoriesData);
   const useBackendForGender = isGenderCategory(normalizedCategoryName);
+  const isDirectSubcategory = useBackendForGender && sectionSlug && subcategorySlug;
 
   useEffect(() => {
     if (!useBackendForGender || !normalizedCategoryName) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
-    getProductsByGender(normalizedCategoryName)
+    const options = {};
+    if (sectionSlug) options.section = sectionSlug;
+    if (subcategorySlug) options.subcategory = subcategorySlug;
+    getProductsByGender(normalizedCategoryName, options)
       .then((res) => {
         if (cancelled) return;
         setLoading(false);
@@ -78,65 +94,92 @@ const Category = () => {
     return () => {
       cancelled = true;
     };
-  }, [normalizedCategoryName, useBackendForGender]);
+  }, [normalizedCategoryName, useBackendForGender, sectionSlug, subcategorySlug]);
 
   const categoryProducts = useMemo(() => {
     if (useBackendForGender) return apiProducts;
     return productsData.filter((product) => {
-      const productCategory = product.category.toLowerCase();
+      const productCategory = (product.category || "").toLowerCase();
       return (
         productCategory === normalizedCategoryName ||
         productCategory.includes(normalizedCategoryName) ||
-        (normalizedCategoryName === "accessories" &&
-          productCategory === "accessories") ||
-        (normalizedCategoryName === "footwear" &&
-          productCategory === "footwear")
+        (normalizedCategoryName === "accessories" && productCategory === "accessories") ||
+        (normalizedCategoryName === "footwear" && productCategory === "footwear")
       );
     });
   }, [useBackendForGender, apiProducts, normalizedCategoryName]);
 
-  const filteredProducts = useMemo(() => {
-    return filterProducts(categoryProducts, filters);
-  }, [categoryProducts, filters]);
+  const filteredProducts = useMemo(() => filterProducts(categoryProducts, filters), [categoryProducts, filters]);
+  const sortedProducts = useMemo(() => sortProducts(filteredProducts, sortOption), [filteredProducts, sortOption]);
+  const { paginatedProducts, totalPages } = useMemo(
+    () => paginateProducts(sortedProducts, currentPage, itemsPerPage),
+    [sortedProducts, currentPage, itemsPerPage]
+  );
 
-  const sortedProducts = useMemo(() => {
-    return sortProducts(filteredProducts, sortOption);
-  }, [filteredProducts, sortOption]);
-
-  const { paginatedProducts, totalPages } = useMemo(() => {
-    return paginateProducts(sortedProducts, currentPage, itemsPerPage);
-  }, [sortedProducts, currentPage, itemsPerPage]);
-
-  /** For gender pages: group sorted products by level-2 category. Sections ordered by first occurrence. */
-  const sectionsByLevel2 = useMemo(() => {
-    if (!useBackendForGender || !sortedProducts.length) return [];
-    const order = [];
-    const map = new Map();
+  /** Sections with subcategories that have products only. For gender full view (no section/sub in URL). */
+  const sectionsWithSubcategories = useMemo(() => {
+    if (!useBackendForGender || sortedProducts.length === 0) return [];
+    const sectionMap = new Map(); // sectionName -> Map(subcategoryName -> products[])
+    const sectionOrder = [];
     for (const product of sortedProducts) {
-      const level2 = getLevel2Category(product);
-      if (!map.has(level2)) {
-        order.push(level2);
-        map.set(level2, []);
+      const sec = getLevel2Category(product);
+      const sub = getLevel3Category(product);
+      if (!sectionMap.has(sec)) {
+        sectionOrder.push(sec);
+        sectionMap.set(sec, new Map());
       }
-      map.get(level2).push(product);
+      const subMap = sectionMap.get(sec);
+      if (!subMap.has(sub)) subMap.set(sub, []);
+      subMap.get(sub).push(product);
     }
-    return order.map((sectionName) => ({
+    return sectionOrder.map((sectionName) => ({
       sectionName,
-      products: map.get(sectionName),
+      subcategories: Array.from(sectionMap.get(sectionName).entries()).map(([subName, products]) => ({
+        subcategoryName: subName,
+        products,
+      })),
     }));
   }, [useBackendForGender, sortedProducts]);
 
+  /** Single section with subcategories (when URL has section only). */
+  const sectionWithSubcategories = useMemo(() => {
+    if (!useBackendForGender || !sectionSlug || subcategorySlug || sortedProducts.length === 0) return null;
+    const sectionName = slugToDisplayName(sectionSlug);
+    const subcategories = [];
+    const subMap = new Map();
+    for (const product of sortedProducts) {
+      if (toCategorySlug(getLevel2Category(product)) !== sectionSlug) continue;
+      const sub = getLevel3Category(product);
+      if (!subMap.has(sub)) {
+        subMap.set(sub, []);
+        subcategories.push(sub);
+      }
+      subMap.get(sub).push(product);
+    }
+    if (subcategories.length === 0) return null;
+    return {
+      sectionName,
+      subcategories: subcategories.map((subName) => ({
+        subcategoryName: subName,
+        products: subMap.get(subName),
+      })),
+    };
+  }, [useBackendForGender, sectionSlug, subcategorySlug, sortedProducts]);
+
+  const hasProducts = categoryProducts.length > 0;
+  /** Flag: show filter sidebar only when products are present. */
+  const showFilter = hasProducts;
+  /** Flag: no products → show hierarchy + "Stay tuned, coming soon." (never show blank). */
+  const showNoProductsMessage =
+    useBackendForGender && !loading && !error && !hasProducts;
+
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   };
 
   const handleClearFilters = () => {
-    setFilters({
-      priceRange: { min: 0, max: 1000 },
-      sizes: [],
-      colors: [],
-    });
+    setFilters({ priceRange: { min: 0, max: 1000 }, sizes: [], colors: [] });
     setCurrentPage(1);
   };
 
@@ -154,10 +197,7 @@ const Category = () => {
     return (
       <div className="min-h-[60vh] py-16">
         <Container>
-          <h1
-            className="text-4xl font-bold"
-            style={{ color: "var(--color-primary)" }}
-          >
+          <h1 className="text-4xl font-bold" style={{ color: "var(--color-primary)" }}>
             Category not found
           </h1>
         </Container>
@@ -165,60 +205,93 @@ const Category = () => {
     );
   }
 
+  /* Flag: no products → show hierarchy + "Stay tuned, coming soon." (no animations so content is never hidden). */
+  if (showNoProductsMessage) {
+    return (
+      <div className="min-h-screen py-16">
+        <Container>
+          <div className="max-w-2xl mx-auto text-center space-y-3">
+            <h1 className="text-3xl md:text-4xl font-bold" style={{ color: "var(--color-primary)" }}>
+              {category.name}
+            </h1>
+            {sectionSlug && (
+              <p className="text-lg md:text-xl" style={{ color: "var(--text-secondary)" }}>
+                {slugToDisplayName(sectionSlug)}
+              </p>
+            )}
+            {subcategorySlug && (
+              <p className="text-xl font-medium" style={{ color: "var(--text-primary)" }}>
+                {slugToDisplayName(subcategorySlug)}
+              </p>
+            )}
+            <p className="text-2xl md:text-4xl font-semibold pt-8" style={{ color: "var(--text-primary)" }}>
+              Stay tuned, coming soon.
+            </p>
+          </div>
+        </Container>
+      </div>
+    );
+  }
+
+  /* Hierarchy line for header */
+  const sectionDisplay = sectionSlug ? slugToDisplayName(sectionSlug) : null;
+  const subcategoryDisplay = subcategorySlug ? slugToDisplayName(subcategorySlug) : null;
+
   return (
     <div className="min-h-screen py-16">
       <Container>
-        <motion.div
-          initial="initial"
-          animate="animate"
-          variants={staggerContainer}
-          className="space-y-8"
-        >
-          {/* Header */}
-          <motion.div variants={fadeInUp} className="text-center">
-            <h1
-              className="text-4xl md:text-5xl font-bold"
-              style={{ color: "var(--color-primary)" }}
-            >
+        <motion.div initial="initial" animate="animate" variants={staggerContainer} className="space-y-8">
+          {/* Header: category + optional section + subcategory */}
+          <motion.div variants={fadeInUp} className="text-center space-y-2">
+            <h1 className="text-4xl md:text-5xl font-bold" style={{ color: "var(--color-primary)" }}>
               {category.name}
             </h1>
+            {sectionDisplay && (
+              <p className="text-base md:text-lg" style={{ color: "var(--text-secondary)" }}>
+                {sectionDisplay}
+              </p>
+            )}
+            {subcategoryDisplay && (
+              <p className="text-lg font-medium" style={{ color: "var(--text-primary)" }}>
+                {subcategoryDisplay}
+              </p>
+            )}
           </motion.div>
 
-          {/* Main Content */}
+          {/* Main: filter on left when products exist (showFilter), then content */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Filters Sidebar */}
-            <motion.aside variants={fadeInUp} className="lg:col-span-1">
-              <div className="sticky top-24">
-                <ProductFilters
-                  filters={filters}
-                  onFilterChange={handleFilterChange}
-                  onClearFilters={handleClearFilters}
-                />
-              </div>
-            </motion.aside>
-
-            {/* Products Section */}
-            <div className="lg:col-span-3 space-y-6">
-              {/* Sort and Results */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                {!(useBackendForGender && sectionsByLevel2.length > 0) && (
-                  <p
-                    className="text-sm"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    Showing {paginatedProducts.length} of{" "}
-                    {sortedProducts.length} products
-                  </p>
-                )}
-                <div className="sm:ml-auto">
-                  <ProductSort
-                    currentSort={sortOption}
-                    onSortChange={handleSortChange}
+            {/* Filter sidebar — left side, only when products exist */}
+            {showFilter && (
+              <aside className="lg:col-span-1">
+                <div className="sticky top-24">
+                  <ProductFilters
+                    filters={filters}
+                    onFilterChange={handleFilterChange}
+                    onClearFilters={handleClearFilters}
                   />
                 </div>
-              </div>
+              </aside>
+            )}
+            <div className={showFilter ? "lg:col-span-3 space-y-6" : "space-y-6"}>
+              {/* Sort and count: only when products */}
+              {hasProducts && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  {!useBackendForGender && (
+                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                      Showing {paginatedProducts.length} of {sortedProducts.length} products
+                    </p>
+                  )}
+                  {useBackendForGender && !sectionSlug && sectionsWithSubcategories.length === 0 && (
+                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                      {sortedProducts.length} products
+                    </p>
+                  )}
+                  <div className="sm:ml-auto">
+                    <ProductSort currentSort={sortOption} onSortChange={handleSortChange} />
+                  </div>
+                </div>
+              )}
 
-              {/* Loading state (men/women only) */}
               {useBackendForGender && loading && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {Array.from({ length: 8 }).map((_, i) => (
@@ -227,7 +300,6 @@ const Category = () => {
                 </div>
               )}
 
-              {/* Error state (men/women only) */}
               {useBackendForGender && !loading && error && (
                 <motion.div
                   variants={fadeInUp}
@@ -239,53 +311,98 @@ const Category = () => {
                   }}
                 >
                   <p className="font-medium">{error}</p>
-                  <p
-                    className="text-sm mt-2"
-                    style={{ color: "var(--text-tertiary)" }}
-                  >
+                  <p className="text-sm mt-2" style={{ color: "var(--text-tertiary)" }}>
                     Please try again later.
                   </p>
                 </motion.div>
               )}
 
-              {/* Product Grid or Sections (when not loading and no error for gender pages) */}
-              {(!useBackendForGender || (!loading && !error)) && (
+              {/* Fallback: gender + no products (same as early return so we never show blank) */}
+              {useBackendForGender && !loading && !error && !hasProducts && (
+                <div className="max-w-2xl mx-auto text-center space-y-3 pt-8">
+                  <h2 className="text-2xl md:text-3xl font-bold" style={{ color: "var(--color-primary)" }}>
+                    {category.name}
+                  </h2>
+                  {sectionSlug && (
+                    <p className="text-lg md:text-xl" style={{ color: "var(--text-secondary)" }}>
+                      {slugToDisplayName(sectionSlug)}
+                    </p>
+                  )}
+                  {subcategorySlug && (
+                    <p className="text-xl font-medium" style={{ color: "var(--text-primary)" }}>
+                      {slugToDisplayName(subcategorySlug)}
+                    </p>
+                  )}
+                  <p className="text-2xl md:text-4xl font-semibold pt-8" style={{ color: "var(--text-primary)" }}>
+                    Stay tuned, coming soon.
+                  </p>
+                </div>
+              )}
+
+              {(!useBackendForGender || (!loading && !error)) && hasProducts && (
                 <>
-                  {useBackendForGender && sectionsByLevel2.length > 0 ? (
-                    /* Gender page: sections by level-2 category */
+                  {/* Direct subcategory view: single product grid with sort/filter already above */}
+                  {isDirectSubcategory && (
+                    <>
+                      <ProductGrid products={sortedProducts} onQuickView={setQuickViewProduct} />
+                      {totalPages > 1 && (
+                        <Pagination
+                          currentPage={currentPage}
+                          totalPages={totalPages}
+                          onPageChange={handlePageChange}
+                        />
+                      )}
+                    </>
+                  )}
+
+                  {/* Section-only view: one section with its subcategory blocks */}
+                  {useBackendForGender && sectionSlug && !subcategorySlug && sectionWithSubcategories && (
                     <div className="space-y-8">
-                      {sectionsByLevel2.map(({ sectionName, products }) => (
-                        <section key={sectionName} className="space-y-5">
-                          <div
-                            className="pb-3 border-b"
-                            style={{
-                              borderColor: "var(--border-primary)",
-                            }}
-                          >
-                            <h2
-                              className="text-lg font-medium tracking-tight uppercase"
-                              style={{
-                                color: "var(--text-primary)",
-                                letterSpacing: "0.08em",
-                              }}
-                            >
+                      <section className="space-y-6">
+                        <div className="pb-3 border-b" style={{ borderColor: "var(--border-primary)" }}>
+                          <h2 className="text-lg font-medium tracking-tight uppercase" style={{ color: "var(--text-primary)", letterSpacing: "0.08em" }}>
+                            {sectionWithSubcategories.sectionName}
+                          </h2>
+                        </div>
+                        {sectionWithSubcategories.subcategories.map(({ subcategoryName, products }) => (
+                          <div key={subcategoryName} className="space-y-4">
+                            <h3 className="text-base font-medium" style={{ color: "var(--text-secondary)" }}>
+                              {subcategoryName}
+                            </h3>
+                            <ProductGrid products={products} onQuickView={setQuickViewProduct} hideViewToggle />
+                          </div>
+                        ))}
+                      </section>
+                    </div>
+                  )}
+
+                  {/* Full gender view: sections → subcategories → products */}
+                  {useBackendForGender && !sectionSlug && sectionsWithSubcategories.length > 0 && (
+                    <div className="space-y-8">
+                      {sectionsWithSubcategories.map(({ sectionName, subcategories }) => (
+                        <section key={sectionName} className="space-y-6">
+                          <div className="pb-3 border-b" style={{ borderColor: "var(--border-primary)" }}>
+                            <h2 className="text-lg font-medium tracking-tight uppercase" style={{ color: "var(--text-primary)", letterSpacing: "0.08em" }}>
                               {sectionName}
                             </h2>
                           </div>
-                          <ProductGrid
-                            products={products}
-                            onQuickView={setQuickViewProduct}
-                          />
+                          {subcategories.map(({ subcategoryName, products }) => (
+                            <div key={subcategoryName} className="space-y-4">
+                              <h3 className="text-base font-medium" style={{ color: "var(--text-secondary)" }}>
+                                {subcategoryName}
+                              </h3>
+                              <ProductGrid products={products} onQuickView={setQuickViewProduct} hideViewToggle />
+                            </div>
+                          ))}
                         </section>
                       ))}
                     </div>
-                  ) : (
-                    /* Non-gender or no level-2 data: flat grid with pagination */
+                  )}
+
+                  {/* Non-gender or flat list */}
+                  {(!useBackendForGender || (useBackendForGender && !sectionSlug && sectionsWithSubcategories.length === 0)) && !isDirectSubcategory && (
                     <>
-                      <ProductGrid
-                        products={paginatedProducts}
-                        onQuickView={setQuickViewProduct}
-                      />
+                      <ProductGrid products={paginatedProducts} onQuickView={setQuickViewProduct} />
                       {totalPages > 1 && (
                         <Pagination
                           currentPage={currentPage}
@@ -302,7 +419,6 @@ const Category = () => {
         </motion.div>
       </Container>
 
-      {/* Quick View Modal */}
       <QuickView
         product={quickViewProduct}
         isOpen={!!quickViewProduct}

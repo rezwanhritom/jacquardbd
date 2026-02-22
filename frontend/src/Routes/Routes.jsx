@@ -110,7 +110,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: "category/:categoryName",
+        path: "category/:categoryName/:section?/:subcategory?",
         element: (
           <LazyWrapper>
             <Category />

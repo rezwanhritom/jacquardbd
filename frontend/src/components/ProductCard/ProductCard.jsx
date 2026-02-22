@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiHeart, FiShoppingBag, FiChevronLeft, FiChevronRight, FiEye } from "react-icons/fi";
 import toast from "react-hot-toast";
-import { getDisplayCategory } from "../../utils/productUtils";
 import { useAuth } from "../../context/AuthContext";
 import { useWishlist } from "../../context/WishlistContext";
 import { useCart } from "../../context/CartContext";
@@ -16,7 +15,6 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
   const inWishlist = isInWishlist(product);
   const inCart = isInCart(product);
   const outOfStock = (product?.stockQuantity ?? 1) <= 0;
-  const displayCategory = getDisplayCategory(product);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -112,9 +110,6 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
             </div>
             <div className="flex-1 space-y-3">
               <div>
-                <p className="text-xs uppercase tracking-wider mb-1" style={{ color: "var(--text-tertiary)" }}>
-                  {displayCategory}
-                </p>
                 <h3 className="text-2xl font-semibold mb-2 group-hover:underline" style={{ color: "var(--text-primary)" }}>
                   {product.name}
                 </h3>
@@ -404,9 +399,6 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", onQuickView }) => 
 
           {/* Product Info */}
           <div className="space-y-2">
-            <p className="text-xs uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
-              {displayCategory}
-            </p>
             <h3 className="font-semibold text-lg group-hover:underline transition-all" style={{ color: "var(--text-primary)" }}>
               {product.name}
             </h3>
