@@ -7,13 +7,34 @@ import { ORDER_STATUS } from "../models/Order.js";
 const MONGO_ID_REGEX = /^[a-fA-F0-9]{24}$/;
 const PRODUCT_SELECT = "name price images category slug _id originalPrice discount finalPrice stockQuantity";
 
+/** Normalize addresses: at most one isDefault; ensure each has _id for frontend. */
+function normalizeAddresses(list) {
+  if (!Array.isArray(list) || list.length === 0) return [];
+  const arr = list.map((a, i) => ({
+    _id: a._id || undefined,
+    label: String(a.label ?? "").trim(),
+    name: String(a.name ?? "").trim(),
+    phone: String(a.phone ?? "").trim(),
+    address: String(a.address ?? "").trim(),
+    city: String(a.city ?? "").trim(),
+    state: String(a.state ?? "").trim(),
+    zip: String(a.zip ?? "").trim(),
+    country: String(a.country ?? "").trim(),
+    isDefault: i === 0 ? true : !!a.isDefault,
+  }));
+  const defaultIndex = arr.findIndex((a) => a.isDefault);
+  if (defaultIndex === -1) arr[0].isDefault = true;
+  else arr.forEach((a, i) => { a.isDefault = i === defaultIndex; });
+  return arr;
+}
+
 /**
  * GET /api/users/admin/list
  * Admin only. Returns all users (customers) with order count and total spent (from paid orders).
  */
 export async function getAdminCustomers(req, res, next) {
   try {
-    const users = await User.find({}).select("name email avatar role createdAt").lean().sort({ createdAt: -1 });
+    const users = await User.find({}).select("name email avatar role phone createdAt").lean().sort({ createdAt: -1 });
 
     const orderStats = await Order.aggregate([
       { $match: { status: ORDER_STATUS.PAID } },
@@ -29,6 +50,7 @@ export async function getAdminCustomers(req, res, next) {
         email: u.email,
         avatar: u.avatar ?? "",
         role: u.role ?? "user",
+        phone: u.phone ?? "",
         joined: u.createdAt,
         orders: stats.orderCount,
         totalSpent: stats.totalSpent,
@@ -37,6 +59,50 @@ export async function getAdminCustomers(req, res, next) {
     });
 
     res.json({ success: true, customers: list });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * GET /api/users/admin/:userId
+ * Admin only. Returns one user with addresses (for edit form).
+ */
+export async function getOneUserAdmin(req, res, next) {
+  try {
+    const { userId } = req.params;
+    if (!userId || !MONGO_ID_REGEX.test(userId)) {
+      return res.status(400).json({ success: false, message: "Invalid user ID" });
+    }
+    const user = await User.findById(userId).select("name email avatar role phone createdAt addresses").lean();
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    const addresses = (user.addresses || []).map((a) => ({
+      _id: a._id,
+      label: a.label ?? "",
+      name: a.name ?? "",
+      phone: a.phone ?? "",
+      address: a.address ?? "",
+      city: a.city ?? "",
+      state: a.state ?? "",
+      zip: a.zip ?? "",
+      country: a.country ?? "",
+      isDefault: !!a.isDefault,
+    }));
+    res.json({
+      success: true,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar ?? "",
+        role: user.role ?? "user",
+        phone: user.phone ?? "",
+        createdAt: user.createdAt,
+        addresses,
+      },
+    });
   } catch (err) {
     next(err);
   }
@@ -106,7 +172,7 @@ export async function updateUserAdmin(req, res, next) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    const { name, email, password, role } = req.body || {};
+    const { name, email, password, role, phone, addresses: addressesBody } = req.body || {};
 
     if (name !== undefined) {
       const trimmed = String(name).trim();
@@ -132,10 +198,31 @@ export async function updateUserAdmin(req, res, next) {
       if (!ROLES.includes(role)) return res.status(400).json({ success: false, message: "Invalid role" });
       user.role = role;
     }
+    if (phone !== undefined) {
+      user.phone = String(phone).trim();
+    }
+    if (addressesBody !== undefined) {
+      if (!Array.isArray(addressesBody)) {
+        return res.status(400).json({ success: false, message: "addresses must be an array" });
+      }
+      const normalized = normalizeAddresses(addressesBody);
+      user.addresses = normalized.map((a) => ({
+        _id: a._id && MONGO_ID_REGEX.test(String(a._id)) ? a._id : new mongoose.Types.ObjectId(),
+        label: a.label,
+        name: a.name,
+        phone: a.phone,
+        address: a.address,
+        city: a.city,
+        state: a.state,
+        zip: a.zip,
+        country: a.country,
+        isDefault: a.isDefault,
+      }));
+    }
 
     await user.save();
 
-    const updated = await User.findById(userId).select("name email avatar role createdAt").lean();
+    const updated = await User.findById(userId).select("name email avatar role phone createdAt addresses").lean();
     res.json({ success: true, user: updated, message: "User updated" });
   } catch (err) {
     next(err);
@@ -261,11 +348,24 @@ export async function getProfile(req, res, next) {
     }
 
     const user = await User.findById(userId)
-      .select("name email avatar createdAt updatedAt")
+      .select("name email avatar phone createdAt updatedAt addresses")
       .lean();
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
+
+    const addresses = (user.addresses || []).map((a) => ({
+      _id: a._id,
+      label: a.label ?? "",
+      name: a.name ?? "",
+      phone: a.phone ?? "",
+      address: a.address ?? "",
+      city: a.city ?? "",
+      state: a.state ?? "",
+      zip: a.zip ?? "",
+      country: a.country ?? "",
+      isDefault: !!a.isDefault,
+    }));
 
     res.json({
       success: true,
@@ -274,8 +374,10 @@ export async function getProfile(req, res, next) {
         name: user.name,
         email: user.email,
         avatar: user.avatar ?? "",
+        phone: user.phone ?? "",
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
+        addresses,
       },
     });
   } catch (err) {
@@ -285,7 +387,7 @@ export async function getProfile(req, res, next) {
 
 /**
  * PUT /api/users/:userId
- * Update name, email, avatar. Same-user only. Validation required.
+ * Update name, email, avatar, phone, addresses. Same-user only. Validation required.
  */
 export async function updateProfile(req, res, next) {
   try {
@@ -294,7 +396,7 @@ export async function updateProfile(req, res, next) {
       return res.status(400).json({ success: false, message: "Invalid user ID" });
     }
 
-    const { name, email, avatar } = req.body || {};
+    const { name, email, avatar, phone, addresses: addressesBody } = req.body || {};
     const updates = {};
 
     if (name !== undefined) {
@@ -324,10 +426,43 @@ export async function updateProfile(req, res, next) {
     if (avatar !== undefined) {
       updates.avatar = String(avatar).trim();
     }
+    if (phone !== undefined) {
+      updates.phone = String(phone).trim();
+    }
+    if (addressesBody !== undefined) {
+      if (!Array.isArray(addressesBody)) {
+        return res.status(400).json({ success: false, message: "addresses must be an array" });
+      }
+      const normalized = normalizeAddresses(addressesBody);
+      updates.addresses = normalized.map((a) => ({
+        _id: a._id && MONGO_ID_REGEX.test(String(a._id)) ? a._id : new mongoose.Types.ObjectId(),
+        label: a.label,
+        name: a.name,
+        phone: a.phone,
+        address: a.address,
+        city: a.city,
+        state: a.state,
+        zip: a.zip,
+        country: a.country,
+        isDefault: a.isDefault,
+      }));
+    }
 
     if (Object.keys(updates).length === 0) {
-      const user = await User.findById(userId).select("name email avatar createdAt updatedAt").lean();
+      const user = await User.findById(userId).select("name email avatar phone createdAt updatedAt addresses").lean();
       if (!user) return res.status(404).json({ success: false, message: "User not found" });
+      const addresses = (user.addresses || []).map((a) => ({
+        _id: a._id,
+        label: a.label ?? "",
+        name: a.name ?? "",
+        phone: a.phone ?? "",
+        address: a.address ?? "",
+        city: a.city ?? "",
+        state: a.state ?? "",
+        zip: a.zip ?? "",
+        country: a.country ?? "",
+        isDefault: !!a.isDefault,
+      }));
       return res.json({
         success: true,
         message: "No changes",
@@ -336,8 +471,10 @@ export async function updateProfile(req, res, next) {
           name: user.name,
           email: user.email,
           avatar: user.avatar ?? "",
+          phone: user.phone ?? "",
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
+          addresses,
         },
       });
     }
@@ -347,12 +484,25 @@ export async function updateProfile(req, res, next) {
       { $set: updates },
       { new: true, runValidators: true }
     )
-      .select("name email avatar createdAt updatedAt")
+      .select("name email avatar phone createdAt updatedAt addresses")
       .lean();
 
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
+
+    const addresses = (user.addresses || []).map((a) => ({
+      _id: a._id,
+      label: a.label ?? "",
+      name: a.name ?? "",
+      phone: a.phone ?? "",
+      address: a.address ?? "",
+      city: a.city ?? "",
+      state: a.state ?? "",
+      zip: a.zip ?? "",
+      country: a.country ?? "",
+      isDefault: !!a.isDefault,
+    }));
 
     res.json({
       success: true,
@@ -362,8 +512,10 @@ export async function updateProfile(req, res, next) {
         name: user.name,
         email: user.email,
         avatar: user.avatar ?? "",
+        phone: user.phone ?? "",
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
+        addresses,
       },
     });
   } catch (err) {

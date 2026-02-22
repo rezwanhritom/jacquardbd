@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { FiUser, FiMail, FiEdit, FiTrash2, FiSearch, FiShoppingBag, FiPlus, FiX } from "react-icons/fi";
+import { FiUser, FiMail, FiEdit, FiTrash2, FiSearch, FiShoppingBag, FiPlus, FiX, FiMapPin, FiEdit2 } from "react-icons/fi";
 import { EmptyState } from "../../components";
 import toast from "react-hot-toast";
-import { getAdminCustomers, deleteUserAdmin, createUserAdmin, updateUserAdmin } from "../../services/user.service";
+import { getAdminCustomers, getOneUserAdmin, deleteUserAdmin, createUserAdmin, updateUserAdmin } from "../../services/user.service";
 
 const ROLE_OPTIONS = [
   { value: "user", label: "User" },
@@ -24,9 +24,14 @@ const Users = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
     password: "",
     role: "user",
+    addresses: [],
   });
+  const [loadingUser, setLoadingUser] = useState(false);
+  const [editingAddressIndex, setEditingAddressIndex] = useState(null);
+  const [addressForm, setAddressForm] = useState(null);
 
   const fetchCustomers = async () => {
     setLoading(true);
@@ -53,34 +58,108 @@ const Users = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const emptyAddress = () => ({
+    _id: `new-${Date.now()}`,
+    label: "",
+    name: "",
+    phone: "",
+    address: "",
+    city: "",
+    state: "",
+    zip: "",
+    country: "",
+    isDefault: false,
+  });
+
   const openCreateForm = () => {
     setEditingUser(null);
-    setFormData({ name: "", email: "", password: "", role: "user" });
+    setFormData({ name: "", email: "", phone: "", password: "", role: "user", addresses: [] });
+    setEditingAddressIndex(null);
+    setAddressForm(null);
     setShowForm(true);
   };
 
-  const openEditForm = (customer) => {
+  const openEditForm = async (customer) => {
     setEditingUser(customer);
     setFormData({
       name: customer.name || "",
       email: customer.email || "",
+      phone: customer.phone || "",
       password: "",
       role: customer.role || "user",
+      addresses: [],
     });
+    setEditingAddressIndex(null);
+    setAddressForm(null);
     setShowForm(true);
+    setLoadingUser(true);
+    const result = await getOneUserAdmin(customer._id);
+    setLoadingUser(false);
+    if (result.success && result.user) {
+      setFormData((prev) => ({
+        ...prev,
+        phone: result.user.phone || "",
+        addresses: Array.isArray(result.user.addresses) ? result.user.addresses : [],
+      }));
+    }
   };
 
   const handleCancelForm = () => {
     setShowForm(false);
     setEditingUser(null);
-    setFormData({ name: "", email: "", password: "", role: "user" });
+    setFormData({ name: "", email: "", phone: "", password: "", role: "user", addresses: [] });
+    setEditingAddressIndex(null);
+    setAddressForm(null);
+  };
+
+  const addAddress = () => {
+    const newAddr = emptyAddress();
+    setFormData((prev) => ({ ...prev, addresses: [...(prev.addresses || []), newAddr] }));
+    setEditingAddressIndex(formData.addresses?.length ?? 0);
+    setAddressForm(newAddr);
+  };
+  const updateAddressAtIndex = (index, updates) => {
+    setFormData((prev) => {
+      const next = [...(prev.addresses || [])];
+      next[index] = { ...next[index], ...updates };
+      return { ...prev, addresses: next };
+    });
+  };
+  const removeAddress = (index) => {
+    setFormData((prev) => ({ ...prev, addresses: (prev.addresses || []).filter((_, i) => i !== index) }));
+    setEditingAddressIndex(null);
+    setAddressForm(null);
+  };
+  const setDefaultAddress = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      addresses: (prev.addresses || []).map((a, i) => ({ ...a, isDefault: i === index })),
+    }));
+  };
+  const startEditAddress = (index) => {
+    setEditingAddressIndex(index);
+    setAddressForm({ ...(formData.addresses || [])[index] });
+  };
+  const saveAddressEdit = () => {
+    if (addressForm && editingAddressIndex !== null) {
+      updateAddressAtIndex(editingAddressIndex, addressForm);
+      setEditingAddressIndex(null);
+      setAddressForm(null);
+    }
   };
 
   const handleSubmitUser = async (e) => {
     e.preventDefault();
     if (editingUser) {
-      const payload = { name: formData.name.trim(), email: formData.email.trim(), role: formData.role };
+      const payload = { name: formData.name.trim(), email: formData.email.trim(), phone: (formData.phone || "").trim(), role: formData.role };
       if (formData.password.trim()) payload.password = formData.password;
+      if (Array.isArray(formData.addresses)) {
+        const defaultIdx = formData.addresses.findIndex((a) => a.isDefault);
+        payload.addresses = formData.addresses.map((a, i) => ({
+          ...a,
+          isDefault: defaultIdx === -1 ? i === 0 : i === defaultIdx,
+        }));
+      }
       setSubmitting(true);
       const result = await updateUserAdmin(editingUser._id, payload);
       setSubmitting(false);
@@ -229,6 +308,23 @@ const Users = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="e.g. +880 1712 345678"
+                    className="w-full px-4 py-3 border-2 rounded-lg outline-none"
+                    style={{
+                      borderColor: "var(--border-primary)",
+                      backgroundColor: "var(--bg-primary)",
+                      color: "var(--text-primary)",
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
                     Password {editingUser ? "(leave blank to keep current)" : "*"}
                   </label>
                   <input
@@ -266,6 +362,78 @@ const Users = () => {
                   </select>
                 </div>
               </div>
+
+              {editingUser && (
+                <div className="border-t pt-4 mt-4" style={{ borderColor: "var(--border-primary)" }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                      <FiMapPin size={18} style={{ color: "var(--color-primary)" }} />
+                      Addresses
+                    </span>
+                    <motion.button
+                      type="button"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={addAddress}
+                      className="flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg border-2"
+                      style={{ borderColor: "var(--color-primary)", color: "var(--color-primary)" }}
+                    >
+                      <FiPlus size={14} /> Add
+                    </motion.button>
+                  </div>
+                  {loadingUser ? (
+                    <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>Loading addresses…</p>
+                  ) : (
+                    <div className="space-y-3 max-h-48 overflow-y-auto">
+                      {(formData.addresses || []).map((addr, index) => (
+                        <div
+                          key={addr._id || index}
+                          className="p-3 rounded-lg border-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+                          style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-primary)" }}
+                        >
+                          {editingAddressIndex === index && addressForm ? (
+                            <div className="flex-1 grid grid-cols-2 gap-2 text-sm">
+                              <input placeholder="Label" value={addressForm.label} onChange={(e) => setAddressForm((p) => ({ ...p, label: e.target.value }))} className="px-2 py-1 border rounded" style={ { borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)", color: "var(--text-primary)" }} />
+                              <input placeholder="Name" value={addressForm.name} onChange={(e) => setAddressForm((p) => ({ ...p, name: e.target.value }))} className="px-2 py-1 border rounded" style={ { borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)", color: "var(--text-primary)" }} />
+                              <input placeholder="Address" value={addressForm.address} onChange={(e) => setAddressForm((p) => ({ ...p, address: e.target.value }))} className="col-span-2 px-2 py-1 border rounded" style={ { borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)", color: "var(--text-primary)" }} />
+                              <input placeholder="City" value={addressForm.city} onChange={(e) => setAddressForm((p) => ({ ...p, city: e.target.value }))} className="px-2 py-1 border rounded" style={ { borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)", color: "var(--text-primary)" }} />
+                              <input placeholder="State" value={addressForm.state} onChange={(e) => setAddressForm((p) => ({ ...p, state: e.target.value }))} className="px-2 py-1 border rounded" style={ { borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)", color: "var(--text-primary)" }} />
+                              <input placeholder="ZIP" value={addressForm.zip} onChange={(e) => setAddressForm((p) => ({ ...p, zip: e.target.value }))} className="px-2 py-1 border rounded" style={ { borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)", color: "var(--text-primary)" }} />
+                              <input placeholder="Country" value={addressForm.country} onChange={(e) => setAddressForm((p) => ({ ...p, country: e.target.value }))} className="px-2 py-1 border rounded" style={ { borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)", color: "var(--text-primary)" }} />
+                              <div className="col-span-2 flex items-center gap-2">
+                                <label className="flex items-center gap-1 text-xs"><input type="checkbox" checked={!!addressForm.isDefault} onChange={(e) => setAddressForm((p) => ({ ...p, isDefault: e.target.checked }))} /> Default</label>
+                                <button type="button" onClick={saveAddressEdit} className="text-xs px-2 py-1 rounded font-medium" style={{ backgroundColor: "var(--color-primary)", color: "white" }}>Save</button>
+                                <button type="button" onClick={() => { setEditingAddressIndex(null); setAddressForm(null); }} className="text-xs px-2 py-1 rounded border" style={{ borderColor: "var(--border-primary)", color: "var(--text-secondary)" }}>Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {addr.label && <span className="text-xs font-semibold" style={{ color: "var(--color-primary)" }}>{addr.label}</span>}
+                                  {addr.isDefault && <span className="px-1.5 py-0.5 text-xs rounded" style={{ backgroundColor: "var(--color-primary)", color: "white" }}>Default</span>}
+                                </div>
+                                <p className="text-xs truncate" style={{ color: "var(--text-secondary)" }}>{[addr.address, addr.city, addr.state, addr.zip, addr.country].filter(Boolean).join(", ") || "—"}</p>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {!addr.isDefault && (formData.addresses || []).length > 1 && (
+                                  <button type="button" onClick={() => setDefaultAddress(index)} className="text-xs px-2 py-1 rounded border" style={{ borderColor: "var(--border-primary)", color: "var(--text-secondary)" }}>Set default</button>
+                                )}
+                                <motion.button type="button" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => startEditAddress(index)} className="p-1.5 rounded" style={{ color: "var(--color-primary)" }} title="Edit address"><FiEdit2 size={14} /></motion.button>
+                                <motion.button type="button" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => removeAddress(index)} className="p-1.5 rounded" style={{ color: "var(--text-tertiary)" }} title="Remove"><FiX size={14} /></motion.button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                      {(formData.addresses || []).length === 0 && !loadingUser && (
+                        <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>No addresses. Click Add to add one.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex justify-end gap-2 pt-2">
                 <motion.button
                   type="button"

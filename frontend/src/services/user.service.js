@@ -117,6 +117,18 @@ export async function getAdminCustomers() {
 }
 
 /**
+ * GET /api/users/admin/:userId — admin only. Get one user with addresses (for edit form).
+ */
+export async function getOneUserAdmin(userId) {
+  const res = await userFetch(`/admin/${userId}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, user: null, message: data.message || "Failed to load user" };
+  }
+  return { success: true, user: data.user, message: data.message };
+}
+
+/**
  * POST /api/users/admin — admin only. Create user. Body: { name, email, password, role? }.
  */
 export async function createUserAdmin(payload) {
