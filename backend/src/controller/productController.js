@@ -1,12 +1,14 @@
 import Product from "../models/Product.js";
+import Campaign from "../models/Campaign.js";
 import { slugify } from "../utils/slugify.js";
 import { validateProductBody } from "../utils/productValidation.js";
 import { parseOriginalPrice, parseDiscount, computeFinalPrice, resolveSellingPrice } from "../utils/priceUtils.js";
 import { parseCategoryPath } from "../utils/categoryUtils.js";
 import { DEFAULT_PRODUCT_IMAGE_URL } from "../constants/defaults.js";
+import { applyCampaignToProduct, removeCampaignFromProduct } from "../utils/campaignProductSync.js";
 
 const MONGO_ID_REGEX = /^[a-fA-F0-9]{24}$/;
-const ALLOWED_COLLECTIONS = ["regular", "new-arrivals", "sale", "featured", "campaigns"];
+const ALLOWED_COLLECTIONS = ["regular", "new-arrivals", "featured", "campaigns"];
 
 /**
  * GET /api/products/:identifier
@@ -20,13 +22,15 @@ export async function getProductById(req, res, next) {
     }
 
     const isMongoId = MONGO_ID_REGEX.test(identifier);
-    const product = isMongoId
-      ? await Product.findById(identifier).lean()
-      : await Product.findOne({ slug: identifier, status: "active" }).lean();
+    let product = isMongoId
+      ? await Product.findById(identifier).populate("campaign", "name").lean()
+      : await Product.findOne({ slug: identifier, status: "active" }).populate("campaign", "name").lean();
 
     if (!product) {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
+    const campaignName = product.campaign?.name ?? null;
+    if (campaignName) product = { ...product, campaignName };
 
     res.json({ success: true, product });
   } catch (err) {
@@ -37,6 +41,7 @@ export async function getProductById(req, res, next) {
 /**
  * GET /api/products/collection/:collectionName
  * Returns active products where collection matches. Sorted by createdAt desc.
+ * For "new-arrivals", only products created in the last 30 days are returned.
  */
 export async function getProductsByCollection(req, res, next) {
   try {
@@ -49,11 +54,18 @@ export async function getProductsByCollection(req, res, next) {
       });
     }
     const collectionFilter = collectionName === "campaigns"
-      ? { $in: ["campaigns", "featured"] }
+      ? "campaigns"
       : collectionName;
-    const products = await Product.find({ status: "active", collection: collectionFilter })
-      .lean()
-      .sort({ createdAt: -1 });
+    const filter = { status: "active", collection: collectionFilter };
+    if (collectionName === "new-arrivals") {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      filter.createdAt = { $gte: thirtyDaysAgo };
+    }
+    let products = await Product.find(filter).populate("campaign", "name").lean().sort({ createdAt: -1 });
+    if (collectionName === "campaigns") {
+      products = products.map((p) => ({ ...p, campaignName: p.campaign?.name ?? null }));
+    }
     res.json({ success: true, products });
   } catch (err) {
     next(err);
@@ -80,7 +92,8 @@ export async function getProducts(req, res, next) {
     if (gender === "men") filter["categoryPath.0"] = "Male";
     else if (gender === "women") filter["categoryPath.0"] = "Female";
 
-    let products = await Product.find(filter).lean().sort({ createdAt: -1 });
+    let products = await Product.find(filter).populate("campaign", "name").lean().sort({ createdAt: -1 });
+    products = products.map((p) => ({ ...p, campaignName: p.campaign?.name ?? null }));
 
     if (sectionSlug || subcategorySlug) {
       products = products.filter((p) => {
@@ -201,8 +214,12 @@ export async function createProduct(req, res, next) {
  */
 export async function getAdminProducts(req, res, next) {
   try {
-    const products = await Product.find({}).lean().sort({ createdAt: -1 });
-    res.json({ success: true, products });
+    const products = await Product.find({}).populate("campaign", "name").lean().sort({ createdAt: -1 });
+    const list = products.map((p) => ({
+      ...p,
+      campaignName: p.campaign?.name ?? null,
+    }));
+    res.json({ success: true, products: list });
   } catch (err) {
     next(err);
   }
@@ -286,8 +303,36 @@ export async function updateProduct(req, res, next) {
     if (body.images !== undefined && Array.isArray(body.images)) product.images = body.images;
     if (body.isFeatured !== undefined) product.isFeatured = Boolean(body.isFeatured);
 
+    if (body.removeFromCampaign === true && product.campaign) {
+      const campaignId = product.campaign.toString();
+      const restorePrice = product.originalPrice ?? product.price ?? 0;
+      product.campaign = undefined;
+      product.originalPrice = null;
+      product.discount = 0;
+      product.finalPrice = null;
+      product.price = restorePrice;
+      product.collection = "regular";
+      const campaign = await Campaign.findById(campaignId);
+      if (campaign) {
+        campaign.products = (campaign.products || []).filter((pid) => pid.toString() !== id);
+        await campaign.save();
+      }
+    }
     await product.save();
-    const updated = await Product.findById(id).lean();
+
+    if (body.addToCampaign && String(body.addToCampaign).match(/^[a-fA-F0-9]{24}$/)) {
+      const campaign = await Campaign.findById(body.addToCampaign);
+      if (campaign) {
+        const pid = id;
+        if (!(campaign.products || []).map((p) => p.toString()).includes(pid)) {
+          campaign.products = [...(campaign.products || []), pid];
+          await campaign.save();
+        }
+        await applyCampaignToProduct(pid, campaign._id.toString(), campaign.discount ?? 0);
+      }
+    }
+    let updated = await Product.findById(id).populate("campaign", "name").lean();
+    if (updated.campaign?.name) updated = { ...updated, campaignName: updated.campaign.name };
     res.json({ success: true, message: "Product updated successfully", product: updated });
   } catch (err) {
     next(err);

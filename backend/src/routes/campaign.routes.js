@@ -1,9 +1,10 @@
 import express from "express";
-import { getCampaigns, createCampaign, updateCampaign, deleteCampaign } from "../controller/campaign.controller.js";
+import { getCampaigns, getActiveCampaigns, createCampaign, updateCampaign, deleteCampaign } from "../controller/campaign.controller.js";
 import { protect, requireRole } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
+router.get("/active", getActiveCampaigns);
 router.get("/", protect, requireRole(["admin"]), getCampaigns);
 router.post("/", protect, requireRole(["admin"]), createCampaign);
 router.put("/:id", protect, requireRole(["admin"]), updateCampaign);

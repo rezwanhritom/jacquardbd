@@ -53,6 +53,16 @@ export function getDisplayCategory(product) {
   return cat ?? "";
 }
 
+/** Whether to show original price with strikethrough (only when there is a real discount). */
+export function hasDiscount(product) {
+  if (!product) return false;
+  const price = product.finalPrice ?? product.price ?? 0;
+  return (
+    (product.discount != null && Number(product.discount) > 0) ||
+    (product.originalPrice != null && Number(product.originalPrice) > price)
+  );
+}
+
 /** Normalize API product to shape expected by ProductCard (id, images, name, price, badge, slug). */
 export function mapApiProduct(p) {
   return {

@@ -17,12 +17,14 @@ const productSchema = new mongoose.Schema(
     category: { type: String, default: "" }, // full path e.g. "Male > Winter Wear > Jackets > Leather Jacket"
     categoryPath: [{ type: String }], // parsed path for filtering e.g. ["Male", "Winter Wear", "Jackets", "Leather Jacket"]
     collections: [{ type: String }],
-    /** Single collection for filtering. Values: regular | new-arrivals | sale | campaigns (featured kept for backward compat) */
+    /** Single collection for filtering. Values: regular | new-arrivals | campaigns (featured kept for backward compat) */
     collection: {
       type: String,
-      enum: ["regular", "new-arrivals", "sale", "featured", "campaigns"],
+      enum: ["regular", "new-arrivals", "featured", "campaigns"],
       default: "regular",
     },
+    /** When set, product is in this campaign; discount/originalPrice/finalPrice are driven by campaign. */
+    campaign: { type: mongoose.Schema.Types.ObjectId, ref: "Campaign", default: null },
     tags: [{ type: String }],
     /** Legacy: flat lists of size/color names. Kept for backward compat. */
     variants: {
@@ -60,5 +62,6 @@ const productSchema = new mongoose.Schema(
 
 // slug already has unique: true (creates index); avoid duplicate
 productSchema.index({ status: 1 });
+productSchema.index({ campaign: 1 });
 
 export default mongoose.model("Product", productSchema);

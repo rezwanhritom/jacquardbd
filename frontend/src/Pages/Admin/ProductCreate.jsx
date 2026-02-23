@@ -19,6 +19,7 @@ import { ImageUpload, TagInput, CascadingCategorySelect } from "../../components
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import toast from "react-hot-toast";
 import { getProduct, createProduct as createProductApi, updateProduct as updateProductApi, uploadProductImages as uploadProductImagesApi } from "../../services/productApi";
+import { getCampaigns } from "../../services/campaigns.service";
 import { categoryTree } from "../../data/categoryTree";
 
 const availableSizes = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
@@ -49,7 +50,6 @@ const presetColors = [
 const collectionOptions = [
   { value: "regular", label: "Regular" },
   { value: "new-arrivals", label: "New Arrivals" },
-  { value: "sale", label: "Sale" },
   { value: "campaigns", label: "Campaigns" },
 ];
 
@@ -60,6 +60,9 @@ const ProductCreate = () => {
   const [loadingProduct, setLoadingProduct] = useState(isEditMode);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeSection, setActiveSection] = useState("basic");
+  const [productCampaign, setProductCampaign] = useState(null);
+  const [campaignsList, setCampaignsList] = useState([]);
+  const [campaignActionLoading, setCampaignActionLoading] = useState(false);
 
   // Form state (originalPrice + discount; finalPrice is calculated)
   const [formData, setFormData] = useState({
@@ -142,6 +145,11 @@ const ProductCreate = () => {
             isPrimary: i === 0,
           }))
         );
+        setProductCampaign(
+          p.campaignName || p.campaign?.name
+            ? { id: p.campaign?._id || p.campaign, name: p.campaignName || p.campaign?.name }
+            : null
+        );
       })
       .catch(() => {
         toast.error("Failed to load product");
@@ -149,6 +157,95 @@ const ProductCreate = () => {
       })
       .finally(() => setLoadingProduct(false));
   }, [productId, navigate]);
+
+  useEffect(() => {
+    if (isEditMode) {
+      getCampaigns().then((res) => {
+        if (res.success && Array.isArray(res.campaigns)) setCampaignsList(res.campaigns);
+        else setCampaignsList([]);
+      });
+    }
+  }, [isEditMode]);
+
+  const refetchProduct = () => {
+    if (!productId) return;
+    getProduct(productId).then((res) => {
+      if (!res.success || !res.product) return;
+      const p = res.product;
+      const attrs = p.attributes || {};
+      const toLines = (v) => (Array.isArray(v) ? v : typeof v === "string" ? [v] : []).filter(Boolean);
+      setFormData({
+        name: p.name || "",
+        slug: p.slug || "",
+        sku: p.sku || "",
+        shortDescription: p.shortDescription || "",
+        fullDescription: p.description || "",
+        originalPrice: p.originalPrice != null ? String(p.originalPrice) : "",
+        discount: p.discount != null ? String(p.discount) : "",
+        variantMatrix: Array.isArray(p.variantMatrix) && p.variantMatrix.length > 0
+          ? p.variantMatrix.map((v) => ({
+              size: v.size || "",
+              color: v.color || "",
+              colorHex: v.colorHex || "",
+              stock: Number(v.stock) || 0,
+            }))
+          : [],
+        category: p.category || (p.categoryPath && p.categoryPath[0]) || "",
+        collection: p.collection || "regular",
+        collections: Array.isArray(p.collections) ? p.collections : [],
+        tags: Array.isArray(p.tags) ? p.tags : [],
+        isActive: p.status === "active",
+        isFeatured: Boolean(p.isFeatured),
+        attributes: {
+          composition: toLines(attrs.composition).join("\n"),
+          sizeAndFit: toLines(attrs.sizeAndFit).join("\n"),
+          care: toLines(attrs.care).join("\n"),
+          traceability: toLines(attrs.traceability).join("\n"),
+        },
+      });
+      const imgList = Array.isArray(p.images) ? p.images : [];
+      setImages(
+        imgList.map((url, i) => ({
+          id: `existing-${i}-${Date.now()}`,
+          url: typeof url === "string" ? url : url?.url || "",
+          isPrimary: i === 0,
+        }))
+      );
+      setProductCampaign(
+        p.campaignName || p.campaign?.name
+          ? { id: p.campaign?._id || p.campaign, name: p.campaignName || p.campaign?.name }
+          : null
+      );
+    });
+  };
+
+  const handleRemoveFromCampaign = async () => {
+    if (!productId || !productCampaign) return;
+    setCampaignActionLoading(true);
+    const result = await updateProductApi(productId, { removeFromCampaign: true });
+    if (result.success) {
+      toast.success("Removed from campaign");
+      refetchProduct();
+    } else {
+      toast.error(result.message || "Failed to remove from campaign");
+    }
+    setCampaignActionLoading(false);
+  };
+
+  const handleAddToCampaign = async (e) => {
+    const campaignId = e.target.value;
+    if (!productId || !campaignId) return;
+    setCampaignActionLoading(true);
+    const result = await updateProductApi(productId, { addToCampaign: campaignId });
+    if (result.success) {
+      toast.success("Added to campaign");
+      refetchProduct();
+    } else {
+      toast.error(result.message || "Failed to add to campaign");
+    }
+    setCampaignActionLoading(false);
+    e.target.value = "";
+  };
 
   // Auto-generate slug from name
   const handleNameChange = (e) => {
@@ -819,6 +916,62 @@ const ProductCreate = () => {
                 </p>
               </div>
             </div>
+
+            {/* Campaign (edit only) */}
+            {isEditMode && (
+              <div className="mt-6 pt-6 border-t" style={{ borderColor: "var(--border-primary)" }}>
+                <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                  Campaign
+                </label>
+                {productCampaign ? (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                      Under campaign: <strong style={{ color: "var(--color-primary)" }}>{productCampaign.name}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      disabled={campaignActionLoading}
+                      onClick={handleRemoveFromCampaign}
+                      className="px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors disabled:opacity-50"
+                      style={{ borderColor: "var(--color-tertiary)", color: "var(--color-tertiary)" }}
+                    >
+                      {campaignActionLoading ? "…" : "Remove from campaign"}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-sm mb-2" style={{ color: "var(--text-tertiary)" }}>
+                    This product is not in any campaign.
+                  </p>
+                )}
+                {campaignsList.length > 0 && (
+                  <div className="mt-2">
+                    <label className="block text-xs font-medium mb-1" style={{ color: "var(--text-tertiary)" }}>
+                      Add to campaign
+                    </label>
+                    <select
+                      disabled={campaignActionLoading}
+                      onChange={handleAddToCampaign}
+                      className="w-full max-w-xs px-4 py-2 border-2 rounded-lg text-sm outline-none"
+                      style={{
+                        borderColor: "var(--border-primary)",
+                        backgroundColor: "var(--bg-primary)",
+                        color: "var(--text-primary)",
+                      }}
+                      defaultValue=""
+                    >
+                      <option value="">Select campaign…</option>
+                      {campaignsList
+                        .filter((c) => c._id !== productCampaign?.id)
+                        .map((c) => (
+                          <option key={c._id} value={c._id}>
+                            {c.name} {c.discount ? `(${c.discount}% off)` : ""}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
           </motion.section>
 
           {/* Variants (size × color × stock) */}

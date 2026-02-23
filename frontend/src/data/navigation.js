@@ -42,7 +42,7 @@ export const navigationData = {
     { id: 2, label: "Men", path: "/category/men", hasMegaMenu: true },
     { id: 3, label: "Women", path: "/category/women", hasMegaMenu: true },
     { id: 4, label: "New Arrivals", path: "/new-arrivals" },
-    { id: 5, label: "Sale", path: "/sale" },
+    { id: 5, label: "Campaigns", path: "/campaigns" },
   ],
   megaMenuCategories,
   iconActions: [

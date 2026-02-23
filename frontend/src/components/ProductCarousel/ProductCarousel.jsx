@@ -3,6 +3,8 @@ import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiChevronLeft, FiChevronRight, FiShoppingBag, FiHeart } from "react-icons/fi";
+import { hasDiscount } from "../../utils/productUtils";
+
 const ProductCarousel = ({ title, subtitle, products, showViewAll = true, compact = false }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollContainerRef = useRef(null);
@@ -146,7 +148,7 @@ const ProductCarousel = ({ title, subtitle, products, showViewAll = true, compac
                           {product.badge}
                         </motion.span>
                       )}
-                      {product.discount && (
+                      {hasDiscount(product) && (
                         <motion.span
                           initial={{ opacity: 0, scale: 0 }}
                           animate={{ opacity: 1, scale: 1 }}
@@ -189,11 +191,11 @@ const ProductCarousel = ({ title, subtitle, products, showViewAll = true, compac
                       <h3 className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>
                         {product.name}
                       </h3>
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-col gap-0.5">
                         <span className="text-xl font-bold" style={{ color: "var(--color-primary)" }}>
-                          ৳{product.price.toFixed(2)}
+                          ৳{(product.price ?? 0).toFixed(2)}
                         </span>
-                        {product.originalPrice && (
+                        {hasDiscount(product) && product.originalPrice != null && (
                           <span className="text-sm line-through" style={{ color: "var(--text-tertiary)" }}>
                             ৳{product.originalPrice.toFixed(2)}
                           </span>

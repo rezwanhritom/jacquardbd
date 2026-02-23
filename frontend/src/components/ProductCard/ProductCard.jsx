@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 import { useWishlist } from "../../context/WishlistContext";
 import { useCart } from "../../context/CartContext";
+import { hasDiscount } from "../../utils/productUtils";
 
 const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
   const navigate = useNavigate();
@@ -116,18 +117,25 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
                   </p>
                 )}
               </div>
-              <div className="flex items-center gap-4 flex-wrap">
-                <span className="text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
-                  ৳{(product.price ?? 0).toFixed(2)}
-                </span>
-                {product.originalPrice != null && product.originalPrice > (product.price ?? 0) && (
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
+                    ৳{(product.price ?? 0).toFixed(2)}
+                  </span>
+                  {hasDiscount(product) && product.discount != null && product.discount > 0 && (
+                    <span className="text-sm font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: "var(--color-tertiary)", color: "white" }}>
+                      -{product.discount}%
+                    </span>
+                  )}
+                </div>
+                {hasDiscount(product) && product.originalPrice != null && (
                   <span className="text-lg line-through" style={{ color: "var(--text-tertiary)" }}>
                     ৳{product.originalPrice.toFixed(2)}
                   </span>
                 )}
-                {product.discount != null && product.discount > 0 && (
-                  <span className="text-sm font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: "var(--color-tertiary)", color: "white" }}>
-                    -{product.discount}%
+                {product.campaignName && (
+                  <span className="text-xs font-medium" style={{ color: "var(--color-primary)" }}>
+                    {product.campaignName}
                   </span>
                 )}
               </div>
@@ -224,7 +232,7 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
 
             {/* No tags/badges above image per design */}
 
-            {product.discount && (
+            {hasDiscount(product) && product.discount != null && product.discount > 0 && (
               <motion.span
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -349,18 +357,25 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
             <h3 className="font-semibold text-lg group-hover:underline transition-all" style={{ color: "var(--text-primary)" }}>
               {product.name}
             </h3>
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-xl font-bold" style={{ color: "var(--color-primary)" }}>
-                ৳{(product.price ?? 0).toFixed(2)}
-              </span>
-              {product.originalPrice != null && product.originalPrice > (product.price ?? 0) && (
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-xl font-bold" style={{ color: "var(--color-primary)" }}>
+                  ৳{(product.price ?? 0).toFixed(2)}
+                </span>
+                {hasDiscount(product) && product.discount != null && product.discount > 0 && (
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: "var(--color-tertiary)", color: "white" }}>
+                    -{product.discount}%
+                  </span>
+                )}
+              </div>
+              {hasDiscount(product) && product.originalPrice != null && (
                 <span className="text-sm line-through" style={{ color: "var(--text-tertiary)" }}>
                   ৳{product.originalPrice.toFixed(2)}
                 </span>
               )}
-              {product.discount != null && product.discount > 0 && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: "var(--color-tertiary)", color: "white" }}>
-                  -{product.discount}%
+              {product.campaignName && (
+                <span className="text-xs font-medium" style={{ color: "var(--color-primary)" }}>
+                  {product.campaignName}
                 </span>
               )}
             </div>

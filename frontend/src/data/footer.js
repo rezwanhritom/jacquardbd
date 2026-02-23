@@ -11,7 +11,7 @@ export const footerData = {
         { id: 1, label: "Men's Collection", path: "/category/men" },
         { id: 2, label: "Women's Collection", path: "/category/women" },
         { id: 3, label: "New Arrivals", path: "/collection/new-arrivals" },
-        { id: 4, label: "Sale", path: "/collection/sale" },
+        { id: 4, label: "Campaigns", path: "/campaigns" },
       ],
     },
     {

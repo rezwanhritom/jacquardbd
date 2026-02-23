@@ -29,7 +29,7 @@ const Newsletter = () => {
 
   const preferenceLabels = {
     newArrivals: "New Arrivals",
-    sales: "Sales & Promotions",
+    sales: "Campaigns & Promotions",
     exclusiveOffers: "Exclusive Offers",
     styleTips: "Style Tips & Trends",
     events: "Events & Workshops",
@@ -137,7 +137,7 @@ const Newsletter = () => {
                     </p>
                     <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
                       {key === "newArrivals" && "Get notified when new products arrive"}
-                      {key === "sales" && "Receive updates about sales and special promotions"}
+                      {key === "sales" && "Receive updates about campaigns and special promotions"}
                       {key === "exclusiveOffers" && "Access to member-only deals and offers"}
                       {key === "styleTips" && "Fashion tips, trends, and styling advice"}
                       {key === "events" && "Invitations to events, workshops, and launches"}
@@ -209,7 +209,7 @@ const Newsletter = () => {
           </li>
           <li className="flex items-start gap-2">
             <FiCheck size={16} className="mt-1 flex-shrink-0" style={{ color: "var(--color-primary)" }} />
-            <span>Get early access to sales and special promotions</span>
+            <span>Get early access to campaigns and special promotions</span>
           </li>
           <li className="flex items-start gap-2">
             <FiCheck size={16} className="mt-1 flex-shrink-0" style={{ color: "var(--color-primary)" }} />

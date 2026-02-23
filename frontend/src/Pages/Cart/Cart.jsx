@@ -7,6 +7,7 @@ import { Link } from "react-router";
 import toast from "react-hot-toast";
 import { useCart } from "../../context/CartContext";
 import Loading from "../../components/Loading";
+import { hasDiscount } from "../../utils/productUtils";
 
 const Cart = () => {
   const { cartItems, loading, updateQuantity, removeFromCart, getCartTotal } = useCart();
@@ -164,9 +165,9 @@ const Cart = () => {
                               >
                                 ৳{(price * item.quantity).toFixed(2)}
                               </span>
-                              {product?.originalPrice > 0 && (
+                              {hasDiscount(product) && product?.originalPrice != null && (
                                 <span
-                                  className="text-sm line-through"
+                                  className="text-sm line-through block"
                                   style={{ color: "var(--text-tertiary)" }}
                                 >
                                   ৳{(product.originalPrice * item.quantity).toFixed(2)}

@@ -1,5 +1,5 @@
 /**
- * Admin campaigns API. Uses credentials (cookies). Requires admin role.
+ * Campaigns API. getActiveCampaigns is public; others require admin.
  */
 
 const getBaseUrl = () => {
@@ -19,6 +19,18 @@ const campaignFetch = (path, options = {}) => {
     },
   });
 };
+
+/**
+ * Public. Get active campaigns with their products (for Campaigns page).
+ */
+export async function getActiveCampaigns() {
+  const res = await fetch(`${getBaseUrl()}/api/campaigns/active`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, campaigns: [], message: data.message || "Failed to load campaigns" };
+  }
+  return { success: true, campaigns: Array.isArray(data.campaigns) ? data.campaigns : [] };
+}
 
 export async function getCampaigns() {
   const res = await campaignFetch("/");

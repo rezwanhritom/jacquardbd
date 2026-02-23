@@ -1,4 +1,45 @@
 import Campaign from "../models/Campaign.js";
+import Product from "../models/Product.js";
+import { syncCampaignProducts, removeCampaignFromAllProducts } from "../utils/campaignProductSync.js";
+
+/**
+ * GET /api/campaigns/active
+ * Public. Returns campaigns that are currently active (status Active, now between startDate and endDate) with their products.
+ */
+export async function getActiveCampaigns(req, res, next) {
+  try {
+    const now = new Date();
+    const campaigns = await Campaign.find({
+      status: "Active",
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+    })
+      .lean()
+      .sort({ startDate: -1 });
+    const productIds = [...new Set(campaigns.flatMap((c) => (c.products || []).map((id) => id?.toString?.()).filter(Boolean)))];
+    const productsMap = {};
+    if (productIds.length > 0) {
+      const products = await Product.find({ _id: { $in: productIds }, status: "active" }).lean();
+      products.forEach((p) => {
+        productsMap[p._id.toString()] = p;
+      });
+    }
+    const list = campaigns.map((c) => ({
+      _id: c._id,
+      name: c.name,
+      type: c.type,
+      discount: c.discount ?? 0,
+      startDate: c.startDate,
+      endDate: c.endDate,
+      products: (c.products || [])
+        .map((id) => productsMap[id?.toString?.()])
+        .filter(Boolean),
+    }));
+    res.json({ success: true, campaigns: list });
+  } catch (err) {
+    next(err);
+  }
+}
 
 /**
  * GET /api/campaigns
@@ -65,6 +106,7 @@ export async function createCampaign(req, res, next) {
       revenue: Math.max(0, Number(body.revenue) || 0),
     });
     await campaign.save();
+    await syncCampaignProducts(campaign._id.toString(), campaign.discount ?? 0, productIds);
 
     const saved = await Campaign.findById(campaign._id).lean();
     res.status(201).json({
@@ -119,6 +161,7 @@ export async function updateCampaign(req, res, next) {
     }
     if (body.discount !== undefined) campaign.discount = Math.min(100, Math.max(0, Number(body.discount) || 0));
     if (body.targetAudience !== undefined) campaign.targetAudience = body.targetAudience;
+    const previousProductIds = (campaign.products || []).map((pid) => pid?.toString?.() || pid).filter(Boolean);
     if (body.products !== undefined) {
       campaign.products = Array.isArray(body.products)
         ? body.products.filter((id) => id && String(id).match(/^[a-fA-F0-9]{24}$/))
@@ -128,6 +171,14 @@ export async function updateCampaign(req, res, next) {
     if (body.revenue !== undefined) campaign.revenue = Math.max(0, Number(body.revenue) || 0);
 
     await campaign.save();
+    if (body.products !== undefined) {
+      await syncCampaignProducts(
+        id,
+        campaign.discount ?? 0,
+        (campaign.products || []).map((pid) => pid?.toString?.() || pid),
+        previousProductIds
+      );
+    }
     const updated = await Campaign.findById(id).lean();
     res.json({
       success: true,
@@ -158,6 +209,7 @@ export async function updateCampaign(req, res, next) {
 export async function deleteCampaign(req, res, next) {
   try {
     const { id } = req.params;
+    await removeCampaignFromAllProducts(id);
     const campaign = await Campaign.findByIdAndDelete(id);
     if (!campaign) {
       return res.status(404).json({ success: false, message: "Campaign not found" });

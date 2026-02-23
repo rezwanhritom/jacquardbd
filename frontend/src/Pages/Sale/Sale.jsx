@@ -20,7 +20,7 @@ import {
 } from "../../components";
 import { productsData } from "../../data/products";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { filterProducts, paginateProducts, getDisplayCategory } from "../../utils/productUtils";
+import { filterProducts, paginateProducts, getDisplayCategory, hasDiscount } from "../../utils/productUtils";
 
 // Create sale products with enhanced discount data
 const saleProducts = productsData
@@ -657,12 +657,14 @@ const SaleProductCard = ({ product, index, onQuickView }) => {
         transition={{ delay: index * 0.05 + 0.2, type: "spring" }}
         className="absolute top-3 left-3 z-20"
       >
-        <div
-          className="px-3 py-1.5 rounded-lg font-bold text-white text-sm shadow-lg"
-          style={{ backgroundColor: "var(--color-tertiary)" }}
-        >
-          -{product.discount}%
-        </div>
+        {hasDiscount(product) && (
+          <div
+            className="px-3 py-1.5 rounded-lg font-bold text-white text-sm shadow-lg"
+            style={{ backgroundColor: "var(--color-tertiary)" }}
+          >
+            -{product.discount}%
+          </div>
+        )}
       </motion.div>
 
       {/* Urgency Badges */}
@@ -744,29 +746,33 @@ const SaleProductCard = ({ product, index, onQuickView }) => {
         </Link>
 
         {/* Price Display - Emphasized */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-0.5">
           <motion.span
             animate={{ scale: isHovered ? 1.1 : 1 }}
             className="text-xl font-bold"
             style={{ color: "var(--color-tertiary)" }}
           >
-            ৳{product.price.toFixed(2)}
+            ৳{(product.price ?? 0).toFixed(2)}
           </motion.span>
-          <span
-            className="text-sm line-through"
-            style={{ color: "var(--text-tertiary)" }}
-          >
-            ৳{product.originalPrice.toFixed(2)}
-          </span>
-          <span
-            className="text-xs font-semibold px-2 py-0.5 rounded"
-            style={{
-              backgroundColor: "rgba(239, 68, 68, 0.1)",
-              color: "var(--color-tertiary)",
-            }}
-          >
-            Save ৳{(product.originalPrice - product.price).toFixed(2)}
-          </span>
+          {hasDiscount(product) && product.originalPrice != null && (
+            <>
+              <span
+                className="text-sm line-through"
+                style={{ color: "var(--text-tertiary)" }}
+              >
+                ৳{product.originalPrice.toFixed(2)}
+              </span>
+              <span
+                className="text-xs font-semibold px-2 py-0.5 rounded w-fit"
+                style={{
+                  backgroundColor: "rgba(239, 68, 68, 0.1)",
+                  color: "var(--color-tertiary)",
+                }}
+              >
+                Save ৳{((product.originalPrice ?? 0) - (product.price ?? 0)).toFixed(2)}
+              </span>
+            </>
+          )}
         </div>
       </div>
     </motion.div>

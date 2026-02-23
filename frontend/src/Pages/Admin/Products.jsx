@@ -5,7 +5,7 @@ import { staggerContainer } from "../../utils/animations";
 import { FiEdit, FiTrash2, FiSearch, FiFilter } from "react-icons/fi";
 import { EmptyState } from "../../components";
 import toast from "react-hot-toast";
-import { getDisplayCategory } from "../../utils/productUtils";
+import { getDisplayCategory, hasDiscount } from "../../utils/productUtils";
 import { getAdminProducts, deleteProduct } from "../../services/productApi";
 
 const Products = () => {
@@ -113,6 +113,9 @@ const Products = () => {
                   Price
                 </th>
                 <th className="text-left py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Campaign
+                </th>
+                <th className="text-left py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>
                   Stock
                 </th>
                 <th className="text-left py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>
@@ -151,7 +154,7 @@ const Products = () => {
                         </p>
                         {product.collection && product.collection !== "regular" && (
                           <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: "var(--color-primary)20", color: "var(--color-primary)" }}>
-                            {{ "new-arrivals": "New Arrivals", "sale": "Sale", "featured": "Campaigns", "campaigns": "Campaigns" }[product.collection] || product.collection}
+                            {{ "new-arrivals": "New Arrivals", "featured": "Campaigns", "campaigns": "Campaigns" }[product.collection] || product.collection}
                           </span>
                         )}
                       </div>
@@ -163,16 +166,21 @@ const Products = () => {
                     </span>
                   </td>
                   <td className="py-4 px-4">
-                    <div>
+                    <div className="flex flex-col gap-0.5">
                       <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
                         ৳{(product.price != null ? product.price : 0).toFixed(2)}
                       </span>
-                      {product.originalPrice != null && product.originalPrice > (product.price ?? 0) && (
-                        <span className="text-sm line-through ml-2" style={{ color: "var(--text-tertiary)" }}>
+                      {hasDiscount(product) && product.originalPrice != null && (
+                        <span className="text-sm line-through" style={{ color: "var(--text-tertiary)" }}>
                           ৳{product.originalPrice.toFixed(2)}
                         </span>
                       )}
                     </div>
+                  </td>
+                  <td className="py-4 px-4">
+                    <span className="text-sm" style={{ color: product.campaignName ? "var(--color-primary)" : "var(--text-tertiary)" }}>
+                      {product.campaignName || "—"}
+                    </span>
                   </td>
                   <td className="py-4 px-4">
                     <span className="font-semibold" style={{ color: "var(--text-primary)" }}>

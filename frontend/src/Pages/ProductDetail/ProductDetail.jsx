@@ -8,7 +8,7 @@ import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiShoppingBag, FiHeart, FiChevronLeft, FiShare2, FiCheck, FiStar } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { getProduct, getProductsByGender } from "../../services/productApi";
-import { getDisplayCategory } from "../../utils/productUtils";
+import { getDisplayCategory, hasDiscount } from "../../utils/productUtils";
 
 const mapApiProductForDetail = (p) => ({
   ...p,
@@ -246,24 +246,31 @@ const ProductDetail = () => {
               </div>
 
               {/* Price */}
-              <div className="flex items-center gap-4 flex-wrap">
-                <span className="text-4xl font-bold" style={{ color: "var(--color-primary)" }}>
-                  ৳{(product.price ?? 0).toFixed(2)}
-                </span>
-                {product.originalPrice != null && product.originalPrice > (product.price ?? 0) && (
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-4xl font-bold" style={{ color: "var(--color-primary)" }}>
+                    ৳{(product.price ?? 0).toFixed(2)}
+                  </span>
+                  {hasDiscount(product) && product.discount != null && product.discount > 0 && (
+                    <span className="px-4 py-2 text-sm font-bold text-white rounded-lg" style={{ backgroundColor: "var(--color-tertiary)" }}>
+                      -{product.discount}% off
+                    </span>
+                  )}
+                </div>
+                {hasDiscount(product) && product.originalPrice != null && (
                   <>
                     <span className="text-2xl line-through" style={{ color: "var(--text-tertiary)" }}>
                       ৳{product.originalPrice.toFixed(2)}
                     </span>
-                    <span className="px-4 py-2 text-sm font-semibold text-white rounded-lg" style={{ backgroundColor: "var(--color-tertiary)" }}>
+                    <span className="px-4 py-2 text-sm font-semibold text-white rounded-lg w-fit" style={{ backgroundColor: "var(--color-tertiary)" }}>
                       Save ৳{(product.originalPrice - (product.price ?? 0)).toFixed(2)}
                     </span>
                   </>
                 )}
-                {product.discount != null && product.discount > 0 && (
-                  <span className="px-4 py-2 text-sm font-bold text-white rounded-lg" style={{ backgroundColor: "var(--color-tertiary)" }}>
-                    -{product.discount}% off
-                  </span>
+                {product.campaignName && (
+                  <p className="text-sm font-medium mt-1" style={{ color: "var(--color-primary)" }}>
+                    Campaign: {product.campaignName}
+                  </p>
                 )}
               </div>
 

@@ -5,7 +5,7 @@ import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiHeart, FiShoppingBag, FiTrash2, FiEye } from "react-icons/fi";
 import { EmptyState } from "../../components";
 import toast from "react-hot-toast";
-import { getDisplayCategory } from "../../utils/productUtils";
+import { getDisplayCategory, hasDiscount } from "../../utils/productUtils";
 import { useAuth } from "../../context/AuthContext";
 import { useWishlist } from "../../context/WishlistContext";
 import { useCart } from "../../context/CartContext";
@@ -208,11 +208,11 @@ const Wishlist = () => {
                     <h3 className="font-semibold group-hover:underline transition-all" style={{ color: "var(--text-primary)" }}>
                       {product.name}
                     </h3>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-col gap-0.5">
                       <span className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
                         ৳{Number(price).toFixed(2)}
                       </span>
-                      {product.originalPrice != null && product.originalPrice > price && (
+                      {hasDiscount(product) && product.originalPrice != null && (
                         <span className="text-sm line-through" style={{ color: "var(--text-tertiary)" }}>
                           ৳{Number(product.originalPrice).toFixed(2)}
                         </span>

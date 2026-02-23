@@ -4,7 +4,7 @@ import { FiX, FiHeart, FiShoppingBag } from "react-icons/fi";
 import ImageGallery from "../ImageGallery";
 import ProductVariants from "../ProductVariants";
 import toast from "react-hot-toast";
-import { getDisplayCategory } from "../../utils/productUtils";
+import { getDisplayCategory, hasDiscount } from "../../utils/productUtils";
 
 const QuickView = ({ product, isOpen, onClose, onAddToCart, onAddToWishlist }) => {
   const [selectedSize, setSelectedSize] = useState(null);
@@ -101,17 +101,17 @@ const QuickView = ({ product, isOpen, onClose, onAddToCart, onAddToWishlist }) =
                       <h1 className="text-3xl font-bold mb-4" style={{ color: "var(--text-primary)" }}>
                         {product.name}
                       </h1>
-                      <div className="flex items-center gap-4 mb-4">
+                      <div className="flex flex-col gap-1 mb-4">
                         <span className="text-3xl font-bold" style={{ color: "var(--color-primary)" }}>
-                          ৳{product.price.toFixed(2)}
+                          ৳{(product.price ?? 0).toFixed(2)}
                         </span>
-                        {product.originalPrice && (
+                        {hasDiscount(product) && product.originalPrice != null && (
                           <>
                             <span className="text-xl line-through" style={{ color: "var(--text-tertiary)" }}>
                               ৳{product.originalPrice.toFixed(2)}
                             </span>
-                            <span className="px-3 py-1 text-sm font-semibold text-white rounded" style={{ backgroundColor: "var(--color-tertiary)" }}>
-                              Save ৳{(product.originalPrice - product.price).toFixed(2)}
+                            <span className="px-3 py-1 text-sm font-semibold text-white rounded w-fit" style={{ backgroundColor: "var(--color-tertiary)" }}>
+                              Save ৳{((product.originalPrice ?? 0) - (product.price ?? 0)).toFixed(2)}
                             </span>
                           </>
                         )}

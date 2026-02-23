@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { productsData } from "../../data/products";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiHeart, FiShoppingBag, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { hasDiscount } from "../../utils/productUtils";
+
 const Products = () => {
   const [hoveredProduct, setHoveredProduct] = useState(null);
   const [imageIndices, setImageIndices] = useState({});
@@ -142,7 +144,7 @@ const Products = () => {
                     </motion.span>
                   )}
 
-                  {product.discount && (
+                  {hasDiscount(product) && (
                     <motion.span
                       initial={{ opacity: 0, scale: 0 }}
                       animate={{
@@ -193,11 +195,11 @@ const Products = () => {
 
                 <div className="p-4 space-y-2">
                   <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>{product.name}</h3>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex flex-col gap-0.5">
                     <span className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
-                      ৳{product.price.toFixed(2)}
+                      ৳{(product.price ?? 0).toFixed(2)}
                     </span>
-                    {product.originalPrice && (
+                    {hasDiscount(product) && product.originalPrice != null && (
                       <span className="text-sm line-through" style={{ color: "var(--text-tertiary)" }}>
                         ৳{product.originalPrice.toFixed(2)}
                       </span>

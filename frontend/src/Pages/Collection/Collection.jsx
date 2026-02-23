@@ -14,9 +14,9 @@ const collections = [
     products: productsData.filter((p) => p.badge === "New" || p.id === 2 || p.id === 6 || p.id === 8),
   },
   {
-    id: "sale",
-    name: "Sale Collection",
-    description: "Special discounts on selected items",
+    id: "campaigns",
+    name: "Campaigns",
+    description: "Active campaign promotions",
     products: productsData.filter((p) => p.discount),
   },
   {

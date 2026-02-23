@@ -184,37 +184,6 @@ const NewArrivals = () => {
               Discover our latest collection of premium fashion pieces. Fresh styles, 
               timeless designs, and exceptional quality — curated just for you.
             </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
-              className="flex flex-wrap justify-center gap-4"
-            >
-              {categories.map((cat, idx) => (
-                <motion.button
-                  key={cat}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.6 + idx * 0.1 }}
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleCategoryToggle(cat)}
-                  className="px-5 py-2.5 rounded-full text-sm font-medium transition-all"
-                  style={{
-                    backgroundColor: filters.categories?.includes(cat)
-                      ? "var(--color-primary)"
-                      : "var(--bg-primary)",
-                    color: filters.categories?.includes(cat)
-                      ? "white"
-                      : "var(--text-secondary)",
-                    border: "1px solid var(--border-primary)",
-                  }}
-                >
-                  {cat}
-                </motion.button>
-              ))}
-            </motion.div>
           </div>
 
           {/* Decorative Elements */}
@@ -247,11 +216,11 @@ const NewArrivals = () => {
           <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-12 text-white text-center md:text-left">
             <div className="flex items-center gap-2">
               <FiTruck size={20} />
-              <span className="text-sm font-medium">Free shipping on orders ৳100+</span>
+              <span className="text-sm font-medium">Free shipping only</span>
             </div>
             <div className="flex items-center gap-2">
               <FiRefreshCw size={20} />
-              <span className="text-sm font-medium">30-day easy returns</span>
+              <span className="text-sm font-medium">15 day return option</span>
             </div>
             <div className="flex items-center gap-2">
               <FiStar size={20} />

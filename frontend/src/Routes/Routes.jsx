@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import Root from "../Pages/Root";
 import Loading from "../components/Loading";
 import PrivateRoute from "../components/PrivateRoute";
@@ -16,7 +16,7 @@ const Search = lazy(() => import("../Pages/Search"));
 const Cart = lazy(() => import("../Pages/Cart"));
 const Wishlist = lazy(() => import("../Pages/Wishlist"));
 const NewArrivals = lazy(() => import("../Pages/NewArrivals"));
-const Sale = lazy(() => import("../Pages/Sale"));
+const Campaigns = lazy(() => import("../Pages/Campaigns"));
 const Checkout = lazy(() => import("../Pages/Checkout"));
 const OrderSuccess = lazy(() => import("../Pages/OrderSuccess"));
 const Account = lazy(() => import("../Pages/Account/Account"));
@@ -223,12 +223,16 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: "sale",
+        path: "campaigns",
         element: (
           <LazyWrapper>
-            <Sale />
+            <Campaigns />
           </LazyWrapper>
         ),
+      },
+      {
+        path: "sale",
+        element: <Navigate to="/campaigns" replace />,
       },
       {
         path: "checkout",

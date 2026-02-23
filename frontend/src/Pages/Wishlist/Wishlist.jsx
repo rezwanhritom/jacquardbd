@@ -13,7 +13,7 @@ import { Container } from "../../components";
 import { useWishlist } from "../../context/WishlistContext";
 import { useCart } from "../../context/CartContext";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { getDisplayCategory } from "../../utils/productUtils";
+import { getDisplayCategory, hasDiscount } from "../../utils/productUtils";
 import toast from "react-hot-toast";
 import Loading from "../../components/Loading";
 
@@ -292,7 +292,7 @@ const WishlistCard = ({ product, index, isRemoving, isMovingToCart, onRemove, on
             transition={{ duration: 0.4 }}
             onLoad={() => setImageLoaded(true)}
           />
-          {product.discount > 0 && (
+          {hasDiscount(product) && (
             <motion.span
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -353,14 +353,14 @@ const WishlistCard = ({ product, index, isRemoving, isMovingToCart, onRemove, on
             </h3>
           </Link>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-0.5">
           <span
             className="text-lg font-bold"
             style={{ color: "var(--color-primary)" }}
           >
             ৳{(product.price ?? 0).toFixed(2)}
           </span>
-          {product.originalPrice > 0 && (
+          {hasDiscount(product) && product.originalPrice != null && (
             <span
               className="text-sm line-through"
               style={{ color: "var(--text-tertiary)" }}
