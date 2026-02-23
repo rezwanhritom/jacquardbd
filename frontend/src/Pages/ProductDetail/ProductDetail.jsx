@@ -5,7 +5,7 @@ import { productsData } from "../../data/products";
 import { getReviewsForProduct, getAverageRating } from "../../data/reviews";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { FiShoppingBag, FiHeart, FiChevronLeft, FiShare2, FiCheck, FiStar } from "react-icons/fi";
+import { FiShoppingBag, FiHeart, FiChevronLeft, FiShare2, FiCheck, FiStar, FiChevronDown } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { getProduct, getProductsByGender } from "../../services/productApi";
 import { getDisplayCategory, hasDiscount } from "../../utils/productUtils";
@@ -52,6 +52,11 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
+  const [specsOpen, setSpecsOpen] = useState(false);
+  const [specCompositionOpen, setSpecCompositionOpen] = useState(false);
+  const [specSizeFitOpen, setSpecSizeFitOpen] = useState(false);
+  const [specCareOpen, setSpecCareOpen] = useState(false);
+  const [specTraceabilityOpen, setSpecTraceabilityOpen] = useState(false);
 
   const isNumericId = /^\d+$/.test(productId);
   const fromApi = !isNumericId;
@@ -386,7 +391,7 @@ const ProductDetail = () => {
                 </p>
               </div>
 
-              {/* Attributes (Composition, Size & Fit, Care, Traceability) */}
+              {/* Specifications: main dropdown, then Composition / Size & Fit / Care / Traceability as nested dropdowns */}
               {(() => {
                 const attrs = product.attributes || {};
                 const toList = (v) => (Array.isArray(v) ? v : v ? [String(v)] : []).filter(Boolean);
@@ -397,48 +402,123 @@ const ProductDetail = () => {
                 const hasAny = comp.length > 0 || fit.length > 0 || care.length > 0 || trace.length > 0;
                 if (!hasAny) return null;
                 return (
-                  <div className="pt-6 border-t space-y-6" style={{ borderColor: "var(--border-primary)" }}>
-                    <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
-                      Specifications
-                    </h3>
-                    {comp.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
-                          Composition
-                        </h4>
-                        <ul className="list-disc list-inside space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                          {comp.map((line, i) => <li key={i}>{line}</li>)}
-                        </ul>
-                      </div>
-                    )}
-                    {fit.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
-                          Size &amp; Fit
-                        </h4>
-                        <ul className="list-disc list-inside space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                          {fit.map((line, i) => <li key={i}>{line}</li>)}
-                        </ul>
-                      </div>
-                    )}
-                    {care.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
-                          Care
-                        </h4>
-                        <ul className="list-disc list-inside space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                          {care.map((line, i) => <li key={i}>{line}</li>)}
-                        </ul>
-                      </div>
-                    )}
-                    {trace.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
-                          Traceability
-                        </h4>
-                        <ul className="list-disc list-inside space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                          {trace.map((line, i) => <li key={i}>{line}</li>)}
-                        </ul>
+                  <div className="pt-6 border-t" style={{ borderColor: "var(--border-primary)" }}>
+                    <button
+                      type="button"
+                      onClick={() => setSpecsOpen((o) => !o)}
+                      className="w-full flex items-center justify-between py-3 text-left"
+                      style={{ color: "var(--text-primary)" }}
+                      aria-expanded={specsOpen}
+                    >
+                      <h3 className="text-xl font-semibold">Specifications</h3>
+                      <FiChevronDown
+                        size={22}
+                        className="shrink-0 transition-transform duration-200"
+                        style={{ transform: specsOpen ? "rotate(180deg)" : "rotate(0deg)", color: "var(--text-secondary)" }}
+                      />
+                    </button>
+                    {specsOpen && (
+                      <div className="space-y-1 pb-2">
+                        {comp.length > 0 && (
+                          <div className="rounded-lg border" style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)" }}>
+                            <button
+                              type="button"
+                              onClick={() => setSpecCompositionOpen((o) => !o)}
+                              className="w-full flex items-center justify-between px-4 py-3 text-left"
+                              style={{ color: "var(--text-primary)" }}
+                              aria-expanded={specCompositionOpen}
+                            >
+                              <span className="text-sm font-bold uppercase tracking-wider">Composition</span>
+                              <FiChevronDown
+                                size={18}
+                                className="shrink-0 transition-transform duration-200"
+                                style={{ transform: specCompositionOpen ? "rotate(180deg)" : "rotate(0deg)", color: "var(--text-tertiary)" }}
+                              />
+                            </button>
+                            {specCompositionOpen && (
+                              <ul className="list-disc list-inside px-4 pb-3 pt-0 space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                                {comp.map((line, i) => (
+                                  <li key={i}>{line}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+                        {fit.length > 0 && (
+                          <div className="rounded-lg border" style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)" }}>
+                            <button
+                              type="button"
+                              onClick={() => setSpecSizeFitOpen((o) => !o)}
+                              className="w-full flex items-center justify-between px-4 py-3 text-left"
+                              style={{ color: "var(--text-primary)" }}
+                              aria-expanded={specSizeFitOpen}
+                            >
+                              <span className="text-sm font-bold uppercase tracking-wider">Size &amp; Fit</span>
+                              <FiChevronDown
+                                size={18}
+                                className="shrink-0 transition-transform duration-200"
+                                style={{ transform: specSizeFitOpen ? "rotate(180deg)" : "rotate(0deg)", color: "var(--text-tertiary)" }}
+                              />
+                            </button>
+                            {specSizeFitOpen && (
+                              <ul className="list-disc list-inside px-4 pb-3 pt-0 space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                                {fit.map((line, i) => (
+                                  <li key={i}>{line}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+                        {care.length > 0 && (
+                          <div className="rounded-lg border" style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)" }}>
+                            <button
+                              type="button"
+                              onClick={() => setSpecCareOpen((o) => !o)}
+                              className="w-full flex items-center justify-between px-4 py-3 text-left"
+                              style={{ color: "var(--text-primary)" }}
+                              aria-expanded={specCareOpen}
+                            >
+                              <span className="text-sm font-bold uppercase tracking-wider">Care</span>
+                              <FiChevronDown
+                                size={18}
+                                className="shrink-0 transition-transform duration-200"
+                                style={{ transform: specCareOpen ? "rotate(180deg)" : "rotate(0deg)", color: "var(--text-tertiary)" }}
+                              />
+                            </button>
+                            {specCareOpen && (
+                              <ul className="list-disc list-inside px-4 pb-3 pt-0 space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                                {care.map((line, i) => (
+                                  <li key={i}>{line}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+                        {trace.length > 0 && (
+                          <div className="rounded-lg border" style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)" }}>
+                            <button
+                              type="button"
+                              onClick={() => setSpecTraceabilityOpen((o) => !o)}
+                              className="w-full flex items-center justify-between px-4 py-3 text-left"
+                              style={{ color: "var(--text-primary)" }}
+                              aria-expanded={specTraceabilityOpen}
+                            >
+                              <span className="text-sm font-bold uppercase tracking-wider">Traceability</span>
+                              <FiChevronDown
+                                size={18}
+                                className="shrink-0 transition-transform duration-200"
+                                style={{ transform: specTraceabilityOpen ? "rotate(180deg)" : "rotate(0deg)", color: "var(--text-tertiary)" }}
+                              />
+                            </button>
+                            {specTraceabilityOpen && (
+                              <ul className="list-disc list-inside px-4 pb-3 pt-0 space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                                {trace.map((line, i) => (
+                                  <li key={i}>{line}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

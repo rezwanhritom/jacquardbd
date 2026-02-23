@@ -21,6 +21,29 @@ const campaignFetch = (path, options = {}) => {
 };
 
 /**
+ * Upload campaign banner image. Returns { success, url } for use in create/update payload.
+ * Requires admin auth.
+ */
+export async function uploadCampaignBanner(file) {
+  if (!file || !(file instanceof File)) {
+    return { success: false, url: null, message: "No file provided" };
+  }
+  const baseUrl = getBaseUrl();
+  const formData = new FormData();
+  formData.append("banner", file);
+  const res = await fetch(`${baseUrl}/api/images/upload/campaign`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, url: null, message: data.message || "Banner upload failed" };
+  }
+  return { success: true, url: data.url || null, message: data.message };
+}
+
+/**
  * Public. Get active campaigns with their products (for Campaigns page).
  */
 export async function getActiveCampaigns() {

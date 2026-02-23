@@ -76,6 +76,29 @@ export async function uploadProductImages(req, res, next) {
 }
 
 /**
+ * POST /api/images/upload/campaign
+ * Upload single campaign banner image. Folder: campaigns/
+ * Returns { url } for use in campaign create/update.
+ */
+export async function uploadCampaignBanner(req, res, next) {
+  if (!req.file) return res.status(400).json({ success: false, message: "No file uploaded" });
+  const imagekit = getImageKit();
+  const folder = "campaigns";
+  try {
+    const ext = (req.file.mimetype && req.file.mimetype.split("/")[1]) || "jpg";
+    const result = await imagekit.upload({
+      file: req.file.buffer,
+      fileName: `banner_${Date.now()}.${ext}`,
+      folder,
+    });
+    if (!result?.url) return res.status(500).json({ success: false, message: "Upload failed" });
+    res.status(201).json({ success: true, message: "Banner uploaded", url: result.url });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * POST /api/images/upload/profile
  * Upload single profile image. Folder: /users/:userId
  */

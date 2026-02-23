@@ -9,7 +9,11 @@ import { EmptyState } from "../../components";
 function getStatusColor(status) {
   switch (status) {
     case "paid":
+    case "delivered":
       return "var(--color-primary)";
+    case "confirmed":
+    case "shipped":
+      return "var(--color-secondary)";
     case "pending":
       return "var(--color-tertiary)";
     case "cancelled":

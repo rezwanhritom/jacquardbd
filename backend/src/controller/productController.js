@@ -1,5 +1,7 @@
 import Product from "../models/Product.js";
 import Campaign from "../models/Campaign.js";
+import Order from "../models/Order.js";
+import { PAYMENT_STATUS } from "../models/Order.js";
 import { slugify } from "../utils/slugify.js";
 import { validateProductBody } from "../utils/productValidation.js";
 import { parseOriginalPrice, parseDiscount, computeFinalPrice, resolveSellingPrice } from "../utils/priceUtils.js";
@@ -9,6 +11,57 @@ import { applyCampaignToProduct, removeCampaignFromProduct } from "../utils/camp
 
 const MONGO_ID_REGEX = /^[a-fA-F0-9]{24}$/;
 const ALLOWED_COLLECTIONS = ["regular", "new-arrivals", "featured", "campaigns"];
+
+/**
+ * GET /api/products/home
+ * Public. Returns { newArrivals: latest 4 products, bestSellers: top 2 by quantity sold or latest 2 }.
+ */
+export async function getHomeProducts(req, res, next) {
+  try {
+    const latest = await Product.find({ status: "active" })
+      .populate("campaign", "name")
+      .lean()
+      .sort({ createdAt: -1 })
+      .limit(4);
+    const newArrivals = latest.map((p) => ({
+      ...p,
+      campaignName: p.campaign?.name ?? null,
+    }));
+
+    const topByQuantity = await Order.aggregate([
+      { $match: { $or: [{ paymentStatus: PAYMENT_STATUS.PAID }, { status: "paid" }] } },
+      { $unwind: "$items" },
+      { $group: { _id: "$items.productId", quantitySold: { $sum: "$items.quantity" } } },
+      { $sort: { quantitySold: -1 } },
+      { $limit: 2 },
+    ]);
+    const topIds = topByQuantity.map((t) => t._id).filter(Boolean);
+    let bestSellers = [];
+    if (topIds.length > 0) {
+      const soldProducts = await Product.find({ _id: { $in: topIds }, status: "active" })
+        .populate("campaign", "name")
+        .lean();
+      const order = topIds.map((id) => soldProducts.find((p) => p._id.toString() === id.toString())).filter(Boolean);
+      bestSellers = order.map((p) => ({ ...p, campaignName: p.campaign?.name ?? null }));
+    }
+    if (bestSellers.length < 2) {
+      const need = 2 - bestSellers.length;
+      const excludeIds = bestSellers.map((p) => p._id);
+      const fill = await Product.find({
+        status: "active",
+        _id: { $nin: excludeIds },
+      })
+        .populate("campaign", "name")
+        .lean()
+        .sort({ createdAt: -1 })
+        .limit(need);
+      bestSellers = [...bestSellers, ...fill.map((p) => ({ ...p, campaignName: p.campaign?.name ?? null }))];
+    }
+    res.json({ success: true, newArrivals, bestSellers });
+  } catch (err) {
+    next(err);
+  }
+}
 
 /**
  * GET /api/products/:identifier

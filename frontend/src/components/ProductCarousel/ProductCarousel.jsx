@@ -76,13 +76,10 @@ const ProductCarousel = ({ title, subtitle, products, showViewAll = true, compac
         <div className="relative">
           {/* Navigation Buttons */}
           {canScrollPrev && (
-            <motion.button
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+            <button
+              type="button"
               onClick={() => scroll("prev")}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-12 h-12 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm"
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-12 h-12 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm opacity-40 hover:opacity-70 transition-opacity"
               style={{
                 backgroundColor: "var(--bg-primary)",
                 color: "var(--text-primary)",
@@ -91,17 +88,14 @@ const ProductCarousel = ({ title, subtitle, products, showViewAll = true, compac
               aria-label="Previous"
             >
               <FiChevronLeft size={20} />
-            </motion.button>
+            </button>
           )}
 
           {canScrollNext && (
-            <motion.button
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+            <button
+              type="button"
               onClick={() => scroll("next")}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-12 h-12 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm"
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-12 h-12 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm opacity-40 hover:opacity-70 transition-opacity"
               style={{
                 backgroundColor: "var(--bg-primary)",
                 color: "var(--text-primary)",
@@ -110,7 +104,7 @@ const ProductCarousel = ({ title, subtitle, products, showViewAll = true, compac
               aria-label="Next"
             >
               <FiChevronRight size={20} />
-            </motion.button>
+            </button>
           )}
 
           {/* Product Grid */}

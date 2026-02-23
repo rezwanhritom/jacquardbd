@@ -68,6 +68,54 @@ export async function getAdminOrders() {
 }
 
 /**
+ * GET /api/orders/admin/:id — single order for admin (same shape as user order detail).
+ */
+export async function getAdminOrderById(orderId) {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(`${baseUrl}/api/orders/admin/${orderId}`, { credentials: "include" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, order: null, message: data.message || "Order not found" };
+  }
+  return { success: true, order: data.order };
+}
+
+/**
+ * DELETE /api/orders/:id — admin only. Deletes the order.
+ */
+export async function deleteOrder(orderId) {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(`${baseUrl}/api/orders/${orderId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, message: data.message || "Failed to delete order" };
+  }
+  return { success: true, message: data.message };
+}
+
+/**
+ * PUT /api/orders/:id — admin only. Update items and/or shippingAddress.
+ * Body: { items?: [{ productId, name, quantity, price }], shippingAddress?: { name, phone, address, city, state, zip } }
+ */
+export async function updateOrder(orderId, payload) {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(`${baseUrl}/api/orders/${orderId}`, {
+    method: "PUT",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, order: null, message: data.message || "Failed to update order" };
+  }
+  return { success: true, order: data.order, message: data.message };
+}
+
+/**
  * Update order status. Body: { status: "pending" | "paid" | "failed" | "cancelled" }
  */
 export async function updateOrderStatus(orderId, status) {

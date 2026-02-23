@@ -16,6 +16,7 @@ const Register = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    agreeToTerms: false,
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -93,8 +94,11 @@ const Register = () => {
     }
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = "Please confirm your password";
-    } else if (formData.password !== formData.confirmPassword) {
+    } else     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
+    }
+    if (!formData.agreeToTerms) {
+      newErrors.agreeToTerms = "You must agree to the Terms of Service and Privacy Policy";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -247,6 +251,35 @@ const Register = () => {
           required
           autoComplete="new-password"
         />
+
+        {/* Terms and Privacy */}
+        <div className="space-y-2">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              name="agreeToTerms"
+              checked={formData.agreeToTerms}
+              onChange={handleChange}
+              className="mt-1 rounded"
+              style={{ accentColor: "var(--color-primary)" }}
+            />
+            <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              I agree to the{" "}
+              <Link to="/terms" className="font-medium underline" style={{ color: "var(--color-primary)" }}>
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link to="/privacy" className="font-medium underline" style={{ color: "var(--color-primary)" }}>
+                Privacy Policy
+              </Link>
+            </span>
+          </label>
+          {errors.agreeToTerms && (
+            <p className="text-sm" style={{ color: "var(--color-tertiary)" }}>
+              {errors.agreeToTerms}
+            </p>
+          )}
+        </div>
 
         {/* Submit button */}
         <FormButton type="submit" loading={isLoading} disabled={showSuccess}>

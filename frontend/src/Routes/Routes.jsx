@@ -35,6 +35,8 @@ const Admin = lazy(() => import("../Pages/Admin/Admin"));
 const AdminDashboard = lazy(() => import("../Pages/Admin/Dashboard"));
 const AdminProducts = lazy(() => import("../Pages/Admin/Products"));
 const AdminOrders = lazy(() => import("../Pages/Admin/Orders"));
+const AdminOrdersLayout = lazy(() => import("../Pages/Admin/OrdersLayout"));
+const AdminOrderDetail = lazy(() => import("../Pages/Admin/OrderDetail"));
 const AdminUsers = lazy(() => import("../Pages/Admin/Users"));
 const AdminCampaigns = lazy(() => import("../Pages/Admin/Campaigns"));
 const AdminFaq = lazy(() => import("../Pages/Admin/Faq"));
@@ -404,9 +406,27 @@ export const router = createBrowserRouter([
             path: "orders",
             element: (
               <LazyWrapper>
-                <AdminOrders />
+                <AdminOrdersLayout />
               </LazyWrapper>
             ),
+            children: [
+              {
+                index: true,
+                element: (
+                  <LazyWrapper>
+                    <AdminOrders />
+                  </LazyWrapper>
+                ),
+              },
+              {
+                path: ":orderId",
+                element: (
+                  <LazyWrapper>
+                    <AdminOrderDetail />
+                  </LazyWrapper>
+                ),
+              },
+            ],
           },
           {
             path: "users",

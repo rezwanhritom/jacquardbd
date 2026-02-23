@@ -26,5 +26,11 @@ export const uploadProfileImage = multer({
   limits: { fileSize: MAX_FILE_SIZE, files: MAX_FILES_PROFILE },
 }).single("image");
 
+export const uploadCampaignBanner = multer({
+  storage: memoryStorage,
+  fileFilter,
+  limits: { fileSize: MAX_FILE_SIZE, files: 1 },
+}).single("banner");
+
 export const ALLOWED_MIMES_LIST = ALLOWED_MIMES;
 export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE;

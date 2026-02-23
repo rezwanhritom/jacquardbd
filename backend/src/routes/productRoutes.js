@@ -4,6 +4,7 @@ import {
   getProductById,
   createProduct,
   getProductsByCollection,
+  getHomeProducts,
   getAdminProducts,
   updateProduct,
   deleteProduct,
@@ -14,6 +15,8 @@ const router = express.Router();
 
 // List by gender (query: ?gender=men|women) or all active
 router.get("/", getProducts);
+// Homepage: latest 4 + top 2 best sellers
+router.get("/home", getHomeProducts);
 // List by collection (e.g. new-arrivals) - must be before /:identifier
 router.get("/collection/:collectionName", getProductsByCollection);
 // Admin: list all products (active + draft)

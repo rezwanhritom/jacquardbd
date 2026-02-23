@@ -1,35 +1,27 @@
 import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { FiStar, FiGift, FiTruck, FiShield } from "react-icons/fi";
+import { FiStar, FiGift, FiShield } from "react-icons/fi";
+import { useAuth } from "../../context/AuthContext";
 
 const Membership = () => {
+  const { user, isAuthenticated } = useAuth();
+
+  const role = user?.role ?? "user";
+  if (role === "premium" || role === "admin") {
+    return null;
+  }
+
   const benefits = [
-    {
-      icon: FiStar,
-      title: "Exclusive Access",
-      description: "Early access to new collections and limited editions",
-    },
-    {
-      icon: FiGift,
-      title: "Special Offers",
-      description: "Members-only discounts and birthday rewards",
-    },
-    {
-      icon: FiTruck,
-      title: "Free Shipping",
-      description: "Complimentary shipping on all orders, no minimum",
-    },
-    {
-      icon: FiShield,
-      title: "VIP Support",
-      description: "Priority customer service and dedicated support",
-    },
+    { icon: FiStar, title: "Exclusive Access", description: "Early access to new collections and limited editions" },
+    { icon: FiGift, title: "Special Offers", description: "Members-only discounts and birthday rewards" },
+    { icon: FiShield, title: "VIP Support", description: "Priority customer service and dedicated support" },
   ];
 
+  const becomeMemberTo = isAuthenticated ? "/account" : "/login";
+
   return (
-    <section className="py-24 px-4 sm:px-6 lg:px-8 transition-colors duration-300 relative overflow-hidden" style={{ backgroundColor: "var(--bg-secondary)" }}>
-      {/* Decorative Elements */}
+    <section className="py-16 md:py-20 px-4 sm:px-6 lg:px-8 transition-colors duration-300 relative overflow-hidden" style={{ backgroundColor: "var(--bg-secondary)" }}>
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-0 right-0 w-96 h-96 rounded-full" style={{ backgroundColor: "var(--color-primary)", filter: "blur(100px)" }} />
         <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full" style={{ backgroundColor: "var(--color-secondary)", filter: "blur(100px)" }} />
@@ -41,7 +33,7 @@ const Membership = () => {
           whileInView="animate"
           viewport={{ once: true, amount: 0.2 }}
           variants={staggerContainer}
-          className="text-center mb-16"
+          className="text-center mb-12"
         >
           <motion.h2
             variants={fadeInUp}
@@ -64,7 +56,7 @@ const Membership = () => {
           whileInView="animate"
           viewport={{ once: true, amount: 0.2 }}
           variants={staggerContainer}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10"
         >
           {benefits.map((benefit, index) => {
             const Icon = benefit.icon;
@@ -102,8 +94,9 @@ const Membership = () => {
           transition={{ delay: 0.4 }}
           className="text-center"
         >
-          <Link to="/account/profile">
+          <Link to={becomeMemberTo}>
             <motion.button
+              type="button"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="px-10 py-4 uppercase tracking-wider text-sm font-semibold text-white"
@@ -118,9 +111,6 @@ const Membership = () => {
               Become a Member
             </motion.button>
           </Link>
-          <p className="text-sm mt-4" style={{ color: "var(--text-tertiary)" }}>
-            Free to join • Cancel anytime
-          </p>
         </motion.div>
       </div>
     </section>

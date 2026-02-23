@@ -1,10 +1,23 @@
 import mongoose from "mongoose";
 
+/** Order fulfillment status (admin workflow). */
 export const ORDER_STATUS = Object.freeze({
   PENDING: "pending",
-  PAID: "paid",
-  FAILED: "failed",
   CANCELLED: "cancelled",
+  CONFIRMED: "confirmed",
+  SHIPPED: "shipped",
+  DELIVERED: "delivered",
+  /** @deprecated Legacy; use paymentStatus "paid" and status "delivered" */
+  PAID: "paid",
+  /** @deprecated Legacy; use status "cancelled" */
+  FAILED: "failed",
+});
+
+/** Payment status: pending (default), cancelled when order cancelled, paid when delivered. */
+export const PAYMENT_STATUS = Object.freeze({
+  PENDING: "pending",
+  CANCELLED: "cancelled",
+  PAID: "paid",
 });
 
 const orderItemSchema = new mongoose.Schema({
@@ -23,6 +36,11 @@ const orderSchema = new mongoose.Schema(
       type: String,
       enum: Object.values(ORDER_STATUS),
       default: ORDER_STATUS.PENDING,
+    },
+    paymentStatus: {
+      type: String,
+      enum: Object.values(PAYMENT_STATUS),
+      default: PAYMENT_STATUS.PENDING,
     },
     items: [orderItemSchema],
     shippingAddress: {

@@ -15,6 +15,8 @@ const campaignSchema = new mongoose.Schema(
     targetAudience: { type: String, enum: TARGET_AUDIENCES, default: "All Customers" },
     /** Product IDs this campaign applies to. Empty = all products; non-empty = only these products. */
     products: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
+    /** Banner image URL for homepage. Required when creating campaign; shown only on home page. */
+    banner: { type: String, default: "", trim: true },
     conversions: { type: Number, min: 0, default: 0 },
     revenue: { type: Number, min: 0, default: 0 },
   },

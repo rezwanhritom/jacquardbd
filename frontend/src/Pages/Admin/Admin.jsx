@@ -65,6 +65,7 @@ const Admin = () => {
                   const isActive = location.pathname === tab.path ||
                     (tab.path === "/admin" && location.pathname === "/admin") ||
                     (tab.id === "products" && location.pathname.startsWith("/admin/products")) ||
+                    (tab.id === "orders" && location.pathname.startsWith("/admin/orders")) ||
                     (tab.id === "faq" && location.pathname.startsWith("/admin/faq"));
                   return (
                     <Link

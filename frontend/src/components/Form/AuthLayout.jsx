@@ -34,7 +34,7 @@ const AuthLayout = ({ children, title, subtitle }) => {
                 className="text-3xl font-bold tracking-wider"
                 style={{ color: "var(--color-primary)" }}
               >
-                JACQUARD
+                jacquardbd
               </span>
             </Link>
           </motion.div>

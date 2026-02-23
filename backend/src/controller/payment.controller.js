@@ -1,6 +1,8 @@
 import Order from "../models/Order.js";
 import { getSSLCommerz } from "../config/sslcommerz.js";
-import { ORDER_STATUS } from "../models/Order.js";
+import { ORDER_STATUS, PAYMENT_STATUS } from "../models/Order.js";
+
+const isOrderPaid = (order) => order?.paymentStatus === PAYMENT_STATUS.PAID || order?.status === "paid";
 import crypto from "crypto";
 
 const BASE_URL = process.env.API_BASE_URL || process.env.BASE_URL || "http://localhost:5001";
@@ -101,7 +103,7 @@ export async function paymentSuccess(req, res, next) {
     if (!order) {
       return res.redirect(`${process.env.FRONTEND_URL || "http://localhost:5173"}/payment?status=fail&reason=order_not_found`);
     }
-    if (order.status === ORDER_STATUS.PAID) {
+    if (isOrderPaid(order)) {
       return res.redirect(`${process.env.FRONTEND_URL || "http://localhost:5173"}/payment/success?orderId=${order._id}&tran_id=${tran_id}`);
     }
     const sslcz = getSSLCommerz();
@@ -115,7 +117,8 @@ export async function paymentSuccess(req, res, next) {
       { _id: order._id },
       {
         $set: {
-          status: ORDER_STATUS.PAID,
+          status: ORDER_STATUS.CONFIRMED,
+          paymentStatus: PAYMENT_STATUS.PAID,
           "sslcommerz.val_id": validateRes?.val_id,
           "sslcommerz.card_type": validateRes?.card_type,
           "sslcommerz.card_no": validateRes?.card_no,
@@ -143,7 +146,10 @@ export async function paymentFail(req, res, next) {
   try {
     const { tran_id } = req.query;
     if (tran_id) {
-      await Order.updateOne({ "sslcommerz.tran_id": tran_id, status: ORDER_STATUS.PENDING }, { $set: { status: ORDER_STATUS.FAILED } });
+      await Order.updateOne(
+        { "sslcommerz.tran_id": tran_id, status: ORDER_STATUS.PENDING },
+        { $set: { status: ORDER_STATUS.FAILED } }
+      );
     }
     res.redirect(`${process.env.FRONTEND_URL || "http://localhost:5173"}/payment?status=fail&tran_id=${tran_id || ""}`);
   } catch (err) {
@@ -181,7 +187,7 @@ export async function paymentIpn(req, res, next) {
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
-    if (order.status === ORDER_STATUS.PAID) {
+    if (isOrderPaid(order)) {
       return res.json({ success: true, message: "Already confirmed" });
     }
     if (status !== "VALID" && status !== "VALIDATED") {
@@ -200,7 +206,8 @@ export async function paymentIpn(req, res, next) {
         { _id: order._id },
         {
           $set: {
-            status: ORDER_STATUS.PAID,
+            status: ORDER_STATUS.CONFIRMED,
+            paymentStatus: PAYMENT_STATUS.PAID,
             "sslcommerz.val_id": validateRes?.val_id,
             "sslcommerz.bank_tran_id": validateRes?.bank_tran_id,
             "sslcommerz.card_type": validateRes?.card_type,
@@ -213,7 +220,10 @@ export async function paymentIpn(req, res, next) {
         }
       );
     } else {
-      await Order.updateOne({ _id: order._id }, { $set: { status: ORDER_STATUS.PAID } });
+      await Order.updateOne(
+        { _id: order._id },
+        { $set: { status: ORDER_STATUS.CONFIRMED, paymentStatus: PAYMENT_STATUS.PAID } }
+      );
     }
     res.json({ success: true, message: "IPN processed" });
   } catch (err) {

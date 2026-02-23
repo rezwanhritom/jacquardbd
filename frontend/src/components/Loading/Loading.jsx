@@ -15,14 +15,14 @@ const Loading = () => {
       >
         <img
           src="/images/logo.png"
-          alt="JACQUARD"
+          alt="jacquardbd"
           className="h-14 w-auto object-contain"
         />
         <span
           className="text-2xl font-bold tracking-wider"
           style={{ color: "var(--color-primary)" }}
         >
-          JACQUARD
+          jacquardbd
         </span>
         <motion.div
           className="w-8 h-8 border-2 border-t-transparent rounded-full"

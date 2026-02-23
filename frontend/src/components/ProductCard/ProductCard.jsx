@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiHeart, FiShoppingBag, FiChevronUp, FiChevronDown } from "react-icons/fi";
@@ -17,23 +17,30 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
   const inCart = isInCart(product);
   const outOfStock = (product?.stockQuantity ?? 1) <= 0;
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [touchStartY, setTouchStartY] = useState(null);
-  const [touchEndY, setTouchEndY] = useState(null);
+  const touchStartYRef = useRef(null);
+  const touchEndYRef = useRef(null);
 
   const MIN_SWIPE = 50;
-  const onImageTouchStart = (e) => setTouchStartY(e.targetTouches[0].clientY);
-  const onImageTouchMove = (e) => setTouchEndY(e.targetTouches[0].clientY);
+  const onImageTouchStart = (e) => {
+    touchStartYRef.current = e.targetTouches[0].clientY;
+    touchEndYRef.current = e.targetTouches[0].clientY;
+  };
+  const onImageTouchMove = (e) => {
+    touchEndYRef.current = e.targetTouches[0].clientY;
+  };
   const onImageTouchEnd = () => {
-    if (touchStartY == null || touchEndY == null || product.images.length <= 1) {
-      setTouchStartY(null);
-      setTouchEndY(null);
+    const start = touchStartYRef.current;
+    const end = touchEndYRef.current;
+    if (start == null || end == null || product.images.length <= 1) {
+      touchStartYRef.current = null;
+      touchEndYRef.current = null;
       return;
     }
-    const delta = touchStartY - touchEndY;
+    const delta = start - end;
     if (delta > MIN_SWIPE) setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
     else if (delta < -MIN_SWIPE) setCurrentImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
-    setTouchStartY(null);
-    setTouchEndY(null);
+    touchStartYRef.current = null;
+    touchEndYRef.current = null;
   };
 
   const nextImage = (e) => {
@@ -92,7 +99,13 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
           aria-label={`View ${product.name} details`}
         >
           <div className="flex gap-6 p-6 rounded-lg" style={{ backgroundColor: "var(--bg-secondary)" }}>
-            <div className="relative overflow-hidden w-48 h-64 flex-shrink-0 rounded-lg" style={{ backgroundColor: "var(--bg-tertiary)" }}>
+            <div
+              className="relative overflow-hidden w-48 h-64 flex-shrink-0 rounded-lg touch-none select-none"
+              style={{ backgroundColor: "var(--bg-tertiary)" }}
+              onTouchStart={onImageTouchStart}
+              onTouchMove={onImageTouchMove}
+              onTouchEnd={onImageTouchEnd}
+            >
               <AnimatePresence mode="wait">
                 <motion.img
                   key={currentImageIndex}
@@ -243,16 +256,14 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
               </motion.span>
             )}
 
-            {/* Image navigation: up/down arrows for vertical swipe */}
+            {/* Image navigation: up/down arrows (low opacity, fixed position, no scale) */}
             {product.images.length > 1 && (
               <>
-                <motion.button
+                <button
                   type="button"
                   onClick={prevImage}
-                  className="absolute left-1/2 top-2 -translate-x-1/2 p-2 rounded-full backdrop-blur-sm z-10 transition-all"
+                  className="absolute left-1/2 top-2 -translate-x-1/2 p-2 rounded-full backdrop-blur-sm z-10 opacity-40 hover:opacity-70 transition-opacity"
                   style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
                   onFocus={(e) => {
                     e.currentTarget.style.outline = "2px solid var(--color-primary)";
                     e.currentTarget.style.outlineOffset = "2px";
@@ -263,14 +274,12 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
                   aria-label="Previous image"
                 >
                   <FiChevronUp size={18} style={{ color: "var(--text-primary)" }} />
-                </motion.button>
-                <motion.button
+                </button>
+                <button
                   type="button"
                   onClick={nextImage}
-                  className="absolute left-1/2 bottom-8 -translate-x-1/2 p-2 rounded-full backdrop-blur-sm z-10 transition-all"
+                  className="absolute left-1/2 bottom-8 -translate-x-1/2 p-2 rounded-full backdrop-blur-sm z-10 opacity-40 hover:opacity-70 transition-opacity"
                   style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
                   onFocus={(e) => {
                     e.currentTarget.style.outline = "2px solid var(--color-primary)";
                     e.currentTarget.style.outlineOffset = "2px";
@@ -281,7 +290,7 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
                   aria-label="Next image"
                 >
                   <FiChevronDown size={18} style={{ color: "var(--text-primary)" }} />
-                </motion.button>
+                </button>
               </>
             )}
 

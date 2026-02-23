@@ -1,6 +1,6 @@
 export const footerData = {
   brand: {
-    name: "JACQUARD",
+    name: "jacquardbd",
     tagline: "Elevating Style Since 2026",
     description: "Crafting premium fashion with timeless elegance and modern sophistication.",
   },
@@ -34,5 +34,5 @@ export const footerData = {
     { id: 1, label: "Privacy Policy", path: "/privacy" },
     { id: 2, label: "Terms of Service", path: "/terms" },
   ],
-  copyright: "© 2026 JACQUARD. All rights reserved.",
+  copyright: "© 2026 jacquardbd. All rights reserved.",
 };

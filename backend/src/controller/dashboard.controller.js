@@ -1,7 +1,9 @@
 import Order from "../models/Order.js";
 import User from "../models/User.js";
 import Product from "../models/Product.js";
-import { ORDER_STATUS } from "../models/Order.js";
+import { PAYMENT_STATUS } from "../models/Order.js";
+
+const PAID_MATCH = { $or: [{ paymentStatus: PAYMENT_STATUS.PAID }, { status: "paid" }] };
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -15,11 +17,11 @@ export async function getDashboard(req, res, next) {
     const now = new Date();
     const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
 
-    // KPIs: use all orders for totalOrders; only PAID for revenue
+    // KPIs: use all orders for totalOrders; only paid orders for revenue
     const [totalOrders, paidRevenueResult, totalCustomers, totalProducts, recentOrdersList] = await Promise.all([
       Order.countDocuments(),
       Order.aggregate([
-        { $match: { status: ORDER_STATUS.PAID } },
+        { $match: PAID_MATCH },
         { $group: { _id: null, totalRevenue: { $sum: "$amount" } } },
       ]).then((r) => r[0] || { totalRevenue: 0 }),
       User.countDocuments(),
@@ -33,9 +35,9 @@ export async function getDashboard(req, res, next) {
 
     const totalRevenue = paidRevenueResult.totalRevenue ?? 0;
 
-    // Sales overview: last 12 months, each with month+year, total income, total products sold (from paid orders)
+    // Sales overview: last 12 months (from paid orders)
     const salesByMonth = await Order.aggregate([
-      { $match: { status: ORDER_STATUS.PAID, createdAt: { $gte: twelveMonthsAgo } } },
+      { $match: { ...PAID_MATCH, createdAt: { $gte: twelveMonthsAgo } } },
       {
         $project: {
           year: { $year: "$createdAt" },
@@ -69,9 +71,9 @@ export async function getDashboard(req, res, next) {
       });
     }
 
-    // Top selling products: from paid orders, group by productId, sum quantity
+    // Top selling products: from paid orders
     const topByQuantity = await Order.aggregate([
-      { $match: { status: ORDER_STATUS.PAID } },
+      { $match: PAID_MATCH },
       { $unwind: "$items" },
       {
         $group: {

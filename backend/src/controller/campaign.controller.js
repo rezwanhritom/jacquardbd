@@ -31,6 +31,7 @@ export async function getActiveCampaigns(req, res, next) {
       discount: c.discount ?? 0,
       startDate: c.startDate,
       endDate: c.endDate,
+      banner: c.banner || "",
       products: (c.products || [])
         .map((id) => productsMap[id?.toString?.()])
         .filter(Boolean),
@@ -58,6 +59,7 @@ export async function getCampaigns(req, res, next) {
       discount: c.discount ?? 0,
       targetAudience: c.targetAudience,
       products: (c.products || []).map((id) => id?.toString?.() || id).filter(Boolean),
+      banner: c.banner ?? "",
       conversions: c.conversions ?? 0,
       revenue: c.revenue ?? 0,
       createdAt: c.createdAt,
@@ -89,6 +91,11 @@ export async function createCampaign(req, res, next) {
       return res.status(400).json({ success: false, message: "Valid end date is required" });
     }
 
+    const banner = (body.banner || "").trim();
+    if (!banner) {
+      return res.status(400).json({ success: false, message: "Campaign banner image is required. Upload a banner in the form." });
+    }
+
     const productIds = Array.isArray(body.products)
       ? body.products.filter((id) => id && String(id).match(/^[a-fA-F0-9]{24}$/))
       : [];
@@ -102,6 +109,7 @@ export async function createCampaign(req, res, next) {
       discount: Math.min(100, Math.max(0, Number(body.discount) || 0)),
       targetAudience: body.targetAudience || "All Customers",
       products: productIds,
+      banner,
       conversions: Math.max(0, Number(body.conversions) || 0),
       revenue: Math.max(0, Number(body.revenue) || 0),
     });
@@ -122,6 +130,7 @@ export async function createCampaign(req, res, next) {
         discount: saved.discount ?? 0,
         targetAudience: saved.targetAudience,
         products: (saved.products || []).map((id) => id?.toString?.() || id),
+        banner: saved.banner ?? "",
         conversions: saved.conversions ?? 0,
         revenue: saved.revenue ?? 0,
       },
@@ -161,6 +170,7 @@ export async function updateCampaign(req, res, next) {
     }
     if (body.discount !== undefined) campaign.discount = Math.min(100, Math.max(0, Number(body.discount) || 0));
     if (body.targetAudience !== undefined) campaign.targetAudience = body.targetAudience;
+    if (body.banner !== undefined) campaign.banner = (body.banner || "").trim();
     const previousProductIds = (campaign.products || []).map((pid) => pid?.toString?.() || pid).filter(Boolean);
     if (body.products !== undefined) {
       campaign.products = Array.isArray(body.products)
@@ -193,6 +203,7 @@ export async function updateCampaign(req, res, next) {
         discount: updated.discount ?? 0,
         targetAudience: updated.targetAudience,
         products: (updated.products || []).map((id) => id?.toString?.() || id),
+        banner: updated.banner ?? "",
         conversions: updated.conversions ?? 0,
         revenue: updated.revenue ?? 0,
       },

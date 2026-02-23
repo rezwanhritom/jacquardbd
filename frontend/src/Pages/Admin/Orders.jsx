@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { FiEye, FiPackage, FiSearch, FiDownload } from "react-icons/fi";
+import { FiEye, FiPackage, FiSearch, FiDownload, FiTrash2 } from "react-icons/fi";
 import { EmptyState } from "../../components";
 import toast from "react-hot-toast";
-import { getAdminOrders, updateOrderStatus } from "../../services/orders.service";
+import { getAdminOrders, updateOrderStatus, deleteOrder as deleteOrderApi } from "../../services/orders.service";
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "Pending" },
-  { value: "paid", label: "Paid" },
-  { value: "failed", label: "Failed" },
   { value: "cancelled", label: "Cancelled" },
+  { value: "confirmed", label: "Confirmed" },
+  { value: "shipped", label: "Shipped" },
+  { value: "delivered", label: "Delivered" },
 ];
 
 const Orders = () => {
@@ -44,16 +46,20 @@ const Orders = () => {
       orderIdStr.includes(searchQuery.toLowerCase()) ||
       customer.includes(searchQuery.toLowerCase()) ||
       email.includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
+    const matchesStatus =
+      statusFilter === "all" ||
+      order.status === statusFilter ||
+      (statusFilter === "delivered" && order.status === "paid") ||
+      (statusFilter === "cancelled" && order.status === "failed");
     return matchesSearch && matchesStatus;
   });
 
   const getStatusColor = (status) => {
     const s = (status || "").toLowerCase();
-    if (s === "paid") return "var(--color-primary)";
+    if (s === "delivered" || s === "paid") return "var(--color-primary)";
+    if (s === "confirmed" || s === "shipped") return "var(--color-secondary)";
     if (s === "pending") return "var(--color-tertiary)";
-    if (s === "failed") return "var(--color-tertiary)";
-    if (s === "cancelled") return "var(--text-tertiary)";
+    if (s === "cancelled" || s === "failed") return "var(--text-tertiary)";
     return "var(--text-tertiary)";
   };
 
@@ -72,6 +78,19 @@ const Orders = () => {
       toast.success(`Order status updated to ${getStatusLabel(newStatus)}`);
     } else {
       toast.error(result.message || "Failed to update status");
+    }
+    setUpdatingId(null);
+  };
+
+  const handleDelete = async (order) => {
+    if (!window.confirm(`Delete order ${order.orderId || order._id}? This cannot be undone.`)) return;
+    setUpdatingId(order._id);
+    const result = await deleteOrderApi(order._id);
+    if (result.success) {
+      setOrders((prev) => prev.filter((o) => o._id !== order._id));
+      toast.success("Order deleted");
+    } else {
+      toast.error(result.message || "Failed to delete order");
     }
     setUpdatingId(null);
   };
@@ -228,7 +247,7 @@ const Orders = () => {
                   </td>
                   <td className="py-4 px-4">
                     <select
-                      value={order.status || "pending"}
+                      value={order.status === "paid" ? "delivered" : order.status === "failed" ? "cancelled" : (order.status || "pending")}
                       onChange={(e) => handleStatusChange(order._id, e.target.value)}
                       disabled={updatingId === order._id}
                       className="px-3 py-1 text-xs font-semibold uppercase rounded-lg border-0 outline-none disabled:opacity-60"
@@ -251,13 +270,11 @@ const Orders = () => {
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex items-center justify-end gap-2">
-                      <motion.button
-                        type="button"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="p-2 rounded-lg transition-colors"
+                      <Link
+                        to={`/admin/orders/${order._id}`}
+                        className="p-2 rounded-lg transition-colors inline-flex"
                         style={{ color: "var(--color-primary)" }}
-                        title={`Order ${order.orderId || order._id}`}
+                        title="View order details"
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = "var(--bg-tertiary)";
                         }}
@@ -266,6 +283,24 @@ const Orders = () => {
                         }}
                       >
                         <FiEye size={18} />
+                      </Link>
+                      <motion.button
+                        type="button"
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        className="p-2 rounded-lg transition-colors"
+                        style={{ color: "var(--color-tertiary)" }}
+                        title="Delete order"
+                        disabled={updatingId === order._id}
+                        onClick={() => handleDelete(order)}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "var(--bg-tertiary)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        <FiTrash2 size={18} />
                       </motion.button>
                     </div>
                   </td>
@@ -286,7 +321,10 @@ const Orders = () => {
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {STATUS_OPTIONS.map(({ value, label }) => {
-          const count = orders.filter((o) => (o.status || "").toLowerCase() === value).length;
+          const count = orders.filter((o) => {
+          const s = (o.status || "").toLowerCase();
+          return s === value || (value === "delivered" && s === "paid") || (value === "cancelled" && s === "failed");
+        }).length;
           return (
             <motion.div
               key={value}

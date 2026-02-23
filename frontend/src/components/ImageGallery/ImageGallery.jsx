@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiChevronUp, FiChevronDown, FiZoomIn, FiX } from "react-icons/fi";
 
@@ -8,8 +8,8 @@ const ImageGallery = ({ images, productName }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
-  const [touchStartY, setTouchStartY] = useState(null);
-  const [touchEndY, setTouchEndY] = useState(null);
+  const touchStartYRef = useRef(null);
+  const touchEndYRef = useRef(null);
 
   const nextImage = () => {
     setSelectedIndex((prev) => (prev + 1) % images.length);
@@ -19,19 +19,26 @@ const ImageGallery = ({ images, productName }) => {
     setSelectedIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
-  const onTouchStart = (e) => setTouchStartY(e.targetTouches[0].clientY);
-  const onTouchMove = (e) => setTouchEndY(e.targetTouches[0].clientY);
+  const onTouchStart = (e) => {
+    touchStartYRef.current = e.targetTouches[0].clientY;
+    touchEndYRef.current = e.targetTouches[0].clientY;
+  };
+  const onTouchMove = (e) => {
+    touchEndYRef.current = e.targetTouches[0].clientY;
+  };
   const onTouchEnd = () => {
-    if (touchStartY == null || touchEndY == null || images.length <= 1) {
-      setTouchStartY(null);
-      setTouchEndY(null);
+    const start = touchStartYRef.current;
+    const end = touchEndYRef.current;
+    if (start == null || end == null || images.length <= 1) {
+      touchStartYRef.current = null;
+      touchEndYRef.current = null;
       return;
     }
-    const delta = touchStartY - touchEndY;
+    const delta = start - end;
     if (delta > MIN_SWIPE) nextImage();
     else if (delta < -MIN_SWIPE) prevImage();
-    setTouchStartY(null);
-    setTouchEndY(null);
+    touchStartYRef.current = null;
+    touchEndYRef.current = null;
   };
 
   const handleMouseMove = (e) => {
@@ -98,47 +105,41 @@ const ImageGallery = ({ images, productName }) => {
           </motion.button>
         )}
 
-        {/* Navigation Arrows: up/down for vertical swipe */}
+        {/* Navigation Arrows: up/down, low opacity, fixed position (no scale so they stay in place) */}
         {images.length > 1 && (
           <>
-            <motion.button
+            <button
+              type="button"
               onClick={prevImage}
-              className="absolute left-1/2 top-4 -translate-x-1/2 p-3 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity z-10"
+              className="absolute left-1/2 top-4 -translate-x-1/2 p-3 rounded-full backdrop-blur-sm opacity-40 hover:opacity-70 transition-opacity z-10"
               style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
               onFocus={(e) => {
-                e.currentTarget.style.opacity = "1";
                 e.currentTarget.style.outline = "2px solid var(--color-primary)";
                 e.currentTarget.style.outlineOffset = "2px";
               }}
               onBlur={(e) => {
-                e.currentTarget.style.opacity = "0";
                 e.currentTarget.style.outline = "none";
               }}
               aria-label="Previous image"
             >
               <FiChevronUp size={24} style={{ color: "var(--text-primary)" }} />
-            </motion.button>
-            <motion.button
+            </button>
+            <button
+              type="button"
               onClick={nextImage}
-              className="absolute left-1/2 bottom-4 -translate-x-1/2 p-3 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity z-10"
+              className="absolute left-1/2 bottom-4 -translate-x-1/2 p-3 rounded-full backdrop-blur-sm opacity-40 hover:opacity-70 transition-opacity z-10"
               style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
               onFocus={(e) => {
-                e.currentTarget.style.opacity = "1";
                 e.currentTarget.style.outline = "2px solid var(--color-primary)";
                 e.currentTarget.style.outlineOffset = "2px";
               }}
               onBlur={(e) => {
-                e.currentTarget.style.opacity = "0";
                 e.currentTarget.style.outline = "none";
               }}
               aria-label="Next image"
             >
               <FiChevronDown size={24} style={{ color: "var(--text-primary)" }} />
-            </motion.button>
+            </button>
           </>
         )}
 

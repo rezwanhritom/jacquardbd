@@ -64,6 +64,29 @@ export async function getProductsByGender(gender, options = {}) {
 }
 
 /**
+ * Fetch homepage products: latest 4 new arrivals + top 2 best sellers (or latest 2 if no sales).
+ * GET /api/products/home
+ */
+export async function getHomeProducts() {
+  const baseUrl = getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/products/home`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    return {
+      success: false,
+      newArrivals: [],
+      bestSellers: [],
+      message: data.message || "Failed to load",
+    };
+  }
+  return {
+    success: true,
+    newArrivals: Array.isArray(data.newArrivals) ? data.newArrivals : [],
+    bestSellers: Array.isArray(data.bestSellers) ? data.bestSellers : [],
+  };
+}
+
+/**
  * Fetch products by collection (GET /api/products/collection/:collectionName).
  * @param {string} collectionName - e.g. "new-arrivals", "sale", "campaigns"
  * @returns {Promise<{ success: boolean, products?: Array, message?: string }>}

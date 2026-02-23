@@ -1,26 +1,38 @@
-import { Hero, Newsletter, FeaturedBanner, HomeProductShowcase, Membership, SectionBar } from "../components";
-import { productsData } from "../data/products";
-import { footerData } from "../data/footer";
+import { useState, useEffect } from "react";
+import { Hero, Newsletter, HomeCampaignBanner, HomeProductShowcase, Membership, SectionBar } from "../components";
+import { getHomeProducts } from "../services/productApi";
 
 const Home = () => {
-  const newArrivals = productsData.filter((p) => p.badge === "New" || p.id === 2 || p.id === 6 || p.id === 8).slice(0, 2);
-  const bestSellers = productsData.filter((p) => p.badge === "Best Seller" || p.id === 1 || p.id === 3 || p.id === 5).slice(0, 2);
+  const [newArrivals, setNewArrivals] = useState([]);
+  const [bestSellers, setBestSellers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getHomeProducts()
+      .then((res) => {
+        if (res.success) {
+          setNewArrivals(res.newArrivals || []);
+          setBestSellers(res.bestSellers || []);
+        }
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <>
       <Hero />
 
-      <SectionBar variant="motto" text={footerData.brand.tagline} />
+      <SectionBar variant="motto" />
 
-      <FeaturedBanner />
+      <HomeCampaignBanner />
 
-      <SectionBar variant="section" title="New Arrivals" />
-      <HomeProductShowcase products={newArrivals} />
-      <SectionBar variant="viewMore" link="/collection/new-arrivals" />
+      <SectionBar variant="promo" />
 
-      <SectionBar variant="section" title="Best Sellers" />
-      <HomeProductShowcase products={bestSellers} />
-      <SectionBar variant="viewMore" link="/shop" />
+      <SectionBar variant="section" title="New Arrivals" centered />
+      {!loading && <HomeProductShowcase products={newArrivals} />}
+
+      <SectionBar variant="section" title="Best Sellers" centered />
+      {!loading && <HomeProductShowcase products={bestSellers} />}
 
       <Membership />
 

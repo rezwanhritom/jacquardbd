@@ -4,7 +4,7 @@ import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiPlus, FiEdit, FiTrash2, FiX, FiSave, FiCalendar, FiUsers, FiPackage, FiSearch } from "react-icons/fi";
 import { EmptyState } from "../../components";
 import toast from "react-hot-toast";
-import { getCampaigns, createCampaign, updateCampaign, deleteCampaign } from "../../services/campaigns.service";
+import { getCampaigns, createCampaign, updateCampaign, deleteCampaign, uploadCampaignBanner } from "../../services/campaigns.service";
 import { getAdminProducts } from "../../services/productApi";
 
 const toDateInput = (date) => {
@@ -29,7 +29,9 @@ const Campaigns = () => {
     discount: "",
     targetAudience: "All Customers",
     products: [],
+    banner: "",
   });
+  const [bannerFile, setBannerFile] = useState(null);
   const [allProducts, setAllProducts] = useState([]);
   const [productSearch, setProductSearch] = useState("");
 
@@ -101,7 +103,9 @@ const Campaigns = () => {
       discount: (campaign.discount != null ? campaign.discount : "").toString(),
       targetAudience: campaign.targetAudience || "All Customers",
       products: Array.isArray(campaign.products) ? campaign.products : [],
+      banner: campaign.banner || "",
     });
+    setBannerFile(null);
     setShowForm(true);
   };
 
@@ -119,6 +123,21 @@ const Campaigns = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+    let bannerUrl = formData.banner || "";
+    if (bannerFile) {
+      const uploadRes = await uploadCampaignBanner(bannerFile);
+      if (!uploadRes.success || !uploadRes.url) {
+        toast.error(uploadRes.message || "Banner upload failed");
+        setSubmitting(false);
+        return;
+      }
+      bannerUrl = uploadRes.url;
+    }
+    if (!bannerUrl.trim()) {
+      toast.error("Campaign banner is required. Please upload a banner image.");
+      setSubmitting(false);
+      return;
+    }
     const payload = {
       name: formData.name.trim(),
       type: formData.type,
@@ -128,6 +147,7 @@ const Campaigns = () => {
       discount: formData.discount ? parseFloat(formData.discount) : 0,
       targetAudience: formData.targetAudience,
       products: Array.isArray(formData.products) ? formData.products : [],
+      banner: bannerUrl,
     };
 
     if (editingCampaign) {
@@ -156,6 +176,7 @@ const Campaigns = () => {
     setShowForm(false);
     setEditingCampaign(null);
     setProductSearch("");
+    setBannerFile(null);
     setFormData({
       name: "",
       type: "Discount",
@@ -165,6 +186,7 @@ const Campaigns = () => {
       discount: "",
       targetAudience: "All Customers",
       products: [],
+      banner: "",
     });
   };
 
@@ -216,7 +238,9 @@ const Campaigns = () => {
       discount: "",
       targetAudience: "All Customers",
       products: [],
+      banner: "",
     });
+    setBannerFile(null);
     setShowForm(true);
   }}
           className="flex items-center gap-2 px-4 py-2 text-white font-semibold rounded-lg"
@@ -385,6 +409,34 @@ const Campaigns = () => {
                     <option value="VIP Members">VIP Members</option>
                     <option value="New Customers">New Customers</option>
                   </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
+                    Banner image * <span className="text-xs font-normal">(shown on homepage only)</span>
+                  </label>
+                  {editingCampaign && formData.banner && !bannerFile && (
+                    <div className="mb-2 rounded-lg overflow-hidden border" style={{ borderColor: "var(--border-primary)", maxWidth: 320 }}>
+                      <img src={formData.banner} alt="Current banner" className="w-full h-32 object-cover" />
+                      <p className="text-xs p-2" style={{ color: "var(--text-tertiary)" }}>Current banner. Choose a new file below to replace.</p>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) => setBannerFile(e.target.files?.[0] || null)}
+                    required={!editingCampaign || !formData.banner}
+                    className="w-full px-4 py-3 border-2 rounded-lg outline-none text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0"
+                    style={{
+                      borderColor: "var(--border-primary)",
+                      backgroundColor: "var(--bg-primary)",
+                      color: "var(--text-primary)",
+                    }}
+                  />
+                  {bannerFile && (
+                    <p className="text-xs mt-1" style={{ color: "var(--color-primary)" }}>
+                      New file selected: {bannerFile.name}
+                    </p>
+                  )}
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium mb-2 flex items-center gap-2" style={{ color: "var(--text-secondary)" }}>

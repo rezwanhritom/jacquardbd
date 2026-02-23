@@ -17,7 +17,7 @@ const Newsletter = () => {
   };
 
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 transition-colors duration-300" style={{ backgroundColor: "var(--bg-secondary)" }}>
+    <section className="pt-10 pb-20 px-4 sm:px-6 lg:px-8 transition-colors duration-300" style={{ backgroundColor: "var(--bg-secondary)" }}>
       <div className="max-w-4xl mx-auto text-center">
         <motion.div
           initial="initial"

@@ -2,7 +2,9 @@ import mongoose from "mongoose";
 import User from "../models/User.js";
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
-import { ORDER_STATUS } from "../models/Order.js";
+import { PAYMENT_STATUS } from "../models/Order.js";
+
+const PAID_MATCH = { $or: [{ paymentStatus: PAYMENT_STATUS.PAID }, { status: "paid" }] };
 
 const MONGO_ID_REGEX = /^[a-fA-F0-9]{24}$/;
 const PRODUCT_SELECT = "name price images category slug _id originalPrice discount finalPrice stockQuantity";
@@ -37,7 +39,7 @@ export async function getAdminCustomers(req, res, next) {
     const users = await User.find({}).select("name email avatar role phone createdAt premiumAppliedAt").lean().sort({ createdAt: -1 });
 
     const orderStats = await Order.aggregate([
-      { $match: { status: ORDER_STATUS.PAID } },
+      { $match: PAID_MATCH },
       { $group: { _id: "$user", orderCount: { $sum: 1 }, totalSpent: { $sum: "$amount" } } },
     ]);
     const statsByUser = Object.fromEntries(orderStats.map((s) => [String(s._id), { orderCount: s.orderCount, totalSpent: s.totalSpent }]));
@@ -306,7 +308,7 @@ export async function getAccountDashboard(req, res, next) {
           $facet: {
             all: [{ $count: "total" }],
             paid: [
-              { $match: { status: ORDER_STATUS.PAID } },
+              { $match: PAID_MATCH },
               { $group: { _id: null, count: { $sum: 1 }, totalSpent: { $sum: "$amount" } } },
             ],
           },

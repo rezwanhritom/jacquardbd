@@ -1,16 +1,21 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { productsData } from "../../data/products";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiHeart, FiShoppingBag, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { hasDiscount } from "../../utils/productUtils";
 
+const MIN_SWIPE = 50;
+
 const Products = () => {
   const [hoveredProduct, setHoveredProduct] = useState(null);
   const [imageIndices, setImageIndices] = useState({});
+  const touchStartXRef = useRef(null);
+  const touchEndXRef = useRef(null);
+  const touchProductIdRef = useRef(null);
 
   const handleNextImage = (productId, totalImages, e) => {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     setImageIndices((prev) => ({
       ...prev,
       [productId]: ((prev[productId] || 0) + 1) % totalImages,
@@ -18,11 +23,36 @@ const Products = () => {
   };
 
   const handlePrevImage = (productId, totalImages, e) => {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     setImageIndices((prev) => ({
       ...prev,
       [productId]: ((prev[productId] || 0) - 1 + totalImages) % totalImages,
     }));
+  };
+
+  const onImageTouchStart = (e, productId) => {
+    touchProductIdRef.current = productId;
+    touchStartXRef.current = e.targetTouches[0].clientX;
+    touchEndXRef.current = e.targetTouches[0].clientX;
+  };
+  const onImageTouchMove = (e) => {
+    touchEndXRef.current = e.targetTouches[0].clientX;
+  };
+  const onImageTouchEnd = (productId, totalImages) => {
+    const start = touchStartXRef.current;
+    const end = touchEndXRef.current;
+    if (start == null || end == null || touchProductIdRef.current !== productId || totalImages <= 1) {
+      touchStartXRef.current = null;
+      touchEndXRef.current = null;
+      touchProductIdRef.current = null;
+      return;
+    }
+    const delta = start - end;
+    if (delta > MIN_SWIPE) handleNextImage(productId, totalImages, null);
+    else if (delta < -MIN_SWIPE) handlePrevImage(productId, totalImages, null);
+    touchStartXRef.current = null;
+    touchEndXRef.current = null;
+    touchProductIdRef.current = null;
   };
 
   return (
@@ -71,7 +101,13 @@ const Products = () => {
                 onMouseEnter={() => setHoveredProduct(product.id)}
                 onMouseLeave={() => setHoveredProduct(null)}
               >
-                <div className="relative overflow-hidden aspect-[3/4]" style={{ backgroundColor: "var(--bg-tertiary)" }}>
+                <div
+                  className="relative overflow-hidden aspect-[3/4] touch-none select-none"
+                  style={{ backgroundColor: "var(--bg-tertiary)" }}
+                  onTouchStart={(e) => onImageTouchStart(e, product.id)}
+                  onTouchMove={onImageTouchMove}
+                  onTouchEnd={() => onImageTouchEnd(product.id, product.images.length)}
+                >
                   <AnimatePresence mode="wait">
                     <motion.img
                       key={currentImageIndex}
@@ -85,32 +121,26 @@ const Products = () => {
                     />
                   </AnimatePresence>
 
-                  {/* Image Navigation Arrows */}
-                  <div className="absolute inset-0 flex items-center justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <motion.button
+                  {/* Image Navigation Arrows: low opacity, fixed position (no scale) */}
+                  <div className="absolute inset-0 flex items-center justify-between px-2 pointer-events-none">
+                    <button
+                      type="button"
                       onClick={(e) => handlePrevImage(product.id, product.images.length, e)}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="p-2 rounded-full shadow-lg backdrop-blur-sm transition-colors z-10"
-                      style={{ backgroundColor: "var(--bg-primary)", opacity: 0.8 }}
-                      onMouseEnter={(e) => e.target.style.opacity = "1"}
-                      onMouseLeave={(e) => e.target.style.opacity = "0.8"}
+                      className="p-2 rounded-full shadow-lg backdrop-blur-sm z-10 pointer-events-auto opacity-40 hover:opacity-70 transition-opacity"
+                      style={{ backgroundColor: "var(--bg-primary)" }}
                       aria-label="Previous image"
                     >
                       <FiChevronLeft size={20} style={{ color: "var(--text-primary)" }} />
-                    </motion.button>
-                    <motion.button
+                    </button>
+                    <button
+                      type="button"
                       onClick={(e) => handleNextImage(product.id, product.images.length, e)}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="p-2 rounded-full shadow-lg backdrop-blur-sm transition-colors z-10"
-                      style={{ backgroundColor: "var(--bg-primary)", opacity: 0.8 }}
-                      onMouseEnter={(e) => e.target.style.opacity = "1"}
-                      onMouseLeave={(e) => e.target.style.opacity = "0.8"}
+                      className="p-2 rounded-full shadow-lg backdrop-blur-sm z-10 pointer-events-auto opacity-40 hover:opacity-70 transition-opacity"
+                      style={{ backgroundColor: "var(--bg-primary)" }}
                       aria-label="Next image"
                     >
                       <FiChevronRight size={20} style={{ color: "var(--text-primary)" }} />
-                    </motion.button>
+                    </button>
                   </div>
 
                   {/* Image Indicators */}

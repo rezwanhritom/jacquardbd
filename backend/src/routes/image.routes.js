@@ -1,13 +1,14 @@
 import express from "express";
 import {
   uploadProductImages as uploadProductImagesHandler,
+  uploadCampaignBanner as uploadCampaignBannerHandler,
   uploadProfileImage,
   deleteImage,
   updateProductImages,
   getUploadParams,
   imageKitReady,
 } from "../controller/image.controller.js";
-import { uploadProductImages as multerProduct, uploadProfileImage as multerProfile } from "../middlewares/upload.middleware.js";
+import { uploadProductImages as multerProduct, uploadProfileImage as multerProfile, uploadCampaignBanner as multerCampaignBanner } from "../middlewares/upload.middleware.js";
 import { protect, requireRole } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
@@ -27,6 +28,23 @@ router.post(
     });
   },
   uploadProductImagesHandler
+);
+
+router.post(
+  "/upload/campaign",
+  ...imageKitReady,
+  requireRole(["admin"]),
+  (req, res, next) => {
+    multerCampaignBanner(req, res, (err) => {
+      if (err) return res.status(400).json({ success: false, message: err.message });
+      next();
+    });
+  },
+  (req, res, next) => {
+    if (req.file) return next();
+    res.status(400).json({ success: false, message: "No file uploaded" });
+  },
+  uploadCampaignBannerHandler
 );
 
 router.post(
