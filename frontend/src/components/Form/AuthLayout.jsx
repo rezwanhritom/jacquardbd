@@ -102,20 +102,6 @@ const AuthLayout = ({ children, title, subtitle }) => {
               Discover premium fashion pieces curated for the modern individual.
               Experience luxury, quality, and style.
             </p>
-            <div className="flex justify-center gap-8 pt-4">
-              <div className="text-center">
-                <div className="text-3xl font-bold">500+</div>
-                <div className="text-sm opacity-80">Products</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold">50K+</div>
-                <div className="text-sm opacity-80">Customers</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold">4.9</div>
-                <div className="text-sm opacity-80">Rating</div>
-              </div>
-            </div>
           </motion.div>
 
           {/* Decorative shapes */}

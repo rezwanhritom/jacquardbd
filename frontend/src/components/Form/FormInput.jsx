@@ -44,7 +44,7 @@ const FormInput = ({
       <div className="relative">
         {Icon && (
           <div
-            className="absolute left-4 top-1/2 -translate-y-1/2 transition-colors"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 flex items-center justify-center pointer-events-none transition-colors"
             style={{ color: isFocused ? "var(--color-primary)" : "var(--text-tertiary)" }}
           >
             <Icon size={18} />
@@ -75,22 +75,19 @@ const FormInput = ({
             backgroundColor: "var(--bg-primary)",
             color: "var(--text-primary)",
           }}
-          whileFocus={{ scale: 1.01 }}
           transition={{ duration: 0.2 }}
         />
         {isPassword && (
-          <motion.button
+          <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded transition-colors"
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded transition-colors flex-shrink-0"
             style={{ color: "var(--text-tertiary)" }}
-            whileHover={{ scale: 1.1, color: "var(--color-primary)" }}
-            whileTap={{ scale: 0.9 }}
             tabIndex={-1}
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
             {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-          </motion.button>
+          </button>
         )}
         {/* Success/Error indicators */}
         <AnimatePresence>

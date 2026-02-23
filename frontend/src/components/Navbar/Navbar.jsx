@@ -55,6 +55,8 @@ const Navbar = () => {
   const [mobileExpandedGender, setMobileExpandedGender] = useState(null);
   /** Mobile only: which section is expanded (e.g. "Winter Wear") */
   const [mobileExpandedSection, setMobileExpandedSection] = useState(null);
+  /** Mobile only: whether Account dropdown is expanded */
+  const [mobileExpandedAccount, setMobileExpandedAccount] = useState(false);
   const [activeMegaMenu, setActiveMegaMenu] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -116,6 +118,7 @@ const Navbar = () => {
     setMobileMenuOpen(false);
     setMobileExpandedGender(null);
     setMobileExpandedSection(null);
+    setMobileExpandedAccount(false);
   };
 
   const handleLogoutConfirm = async () => {
@@ -746,13 +749,19 @@ const Navbar = () => {
                           className="space-y-0"
                         >
                           {/* Men / Women row: label = link to all products; arrow only = expand dropdown */}
-                          <div className="w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide">
+                          <div
+                            className="w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide"
+                            style={{
+                              color: isActive || expanded ? "white" : "var(--text-secondary)",
+                              backgroundColor: isActive || expanded ? "var(--color-primary)" : "transparent",
+                            }}
+                          >
                             <Link
                               to={allProductsPath}
                               onClick={closeMobileMenu}
                               className="flex-1 min-w-0"
                               style={{
-                                color: isActive || expanded ? "var(--color-primary)" : "var(--text-secondary)",
+                                color: "inherit",
                               }}
                             >
                               {link.label}
@@ -766,7 +775,7 @@ const Navbar = () => {
                                 if (mobileExpandedGender === link.label) setMobileExpandedSection(null);
                               }}
                               className="flex-shrink-0 p-2 -mr-2 touch-manipulation"
-                              style={{ color: "var(--text-secondary)" }}
+                              style={{ color: isActive || expanded ? "white" : "var(--text-secondary)" }}
                               aria-expanded={expanded}
                               aria-label={expanded ? "Collapse categories" : "Expand categories"}
                             >
@@ -865,70 +874,108 @@ const Navbar = () => {
                         <Link
                           to={link.path}
                           onClick={closeMobileMenu}
-                          className="block px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide transition-colors relative"
+                          className="block px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide transition-colors"
                           style={{
-                            color: isActive ? "var(--color-primary)" : "var(--text-secondary)",
+                            color: isActive ? "white" : "var(--text-secondary)",
+                            backgroundColor: isActive ? "var(--color-primary)" : "transparent",
                           }}
                           onMouseEnter={(e) => {
-                            e.target.style.color = "var(--color-primary)";
+                            if (!isActive) {
+                              e.currentTarget.style.color = "var(--color-primary)";
+                              e.currentTarget.style.backgroundColor = "transparent";
+                            }
                           }}
                           onMouseLeave={(e) => {
                             if (!isActive) {
-                              e.target.style.color = "var(--text-secondary)";
+                              e.currentTarget.style.color = "var(--text-secondary)";
+                              e.currentTarget.style.backgroundColor = "transparent";
                             }
                           }}
                         >
                           {link.label}
-                          {isActive && (
-                            <span
-                              className="absolute bottom-1 left-4 right-4 h-0.5"
-                              style={{ backgroundColor: "var(--color-primary)" }}
-                            />
-                          )}
                         </Link>
                       </motion.div>
                     );
                   })}
-                </nav>
 
-                {/* Mobile Account / Profile routes (when logged in) */}
-                {isAuthenticated && (
-                  <div className="mb-4 py-3 border-t border-b" style={{ borderColor: "var(--border-primary)" }}>
-                    <p className="px-4 text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "var(--text-tertiary)" }}>
-                      My Account
-                    </p>
-                    <div className="space-y-1">
-                      {[
-                        { path: "/account", label: "Dashboard", icon: FiLayout },
-                        { path: "/account/profile", label: "Profile", icon: FiUser },
-                        { path: "/account/orders", label: "Orders", icon: FiPackage },
-                        { path: "/account/addresses", label: "Addresses", icon: FiMapPin },
-                        { path: "/account/wishlist", label: "Wishlist", icon: FiHeart },
-                        { path: "/account/cart", label: "Cart", icon: FiShoppingCart },
-                        { path: "/account/security", label: "Security", icon: FiShield },
-                        { path: "/account/settings", label: "Settings", icon: FiSliders },
-                      ].map((item) => {
-                        const Icon = item.icon;
-                        const isActive = location.pathname === item.path || (item.path === "/account" && location.pathname === "/account");
-                        return (
-                          <Link
-                            key={item.path}
-                            to={item.path}
-                            onClick={closeMobileMenu}
-                            className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors"
-                            style={{
-                              color: isActive ? "var(--color-primary)" : "var(--text-secondary)",
-                              backgroundColor: isActive ? "var(--bg-secondary)" : "transparent",
-                            }}
+                  {/* Mobile Account (when logged in) — expandable like Men/Women */}
+                  {isAuthenticated && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="space-y-0"
+                    >
+                      <div
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide"
+                        style={{
+                          color: isActivePath("/account") || mobileExpandedAccount ? "white" : "var(--text-secondary)",
+                          backgroundColor: isActivePath("/account") || mobileExpandedAccount ? "var(--color-primary)" : "transparent",
+                        }}
+                      >
+                        <Link
+                          to="/account"
+                          onClick={closeMobileMenu}
+                          className="flex-1 min-w-0"
+                          style={{ color: "inherit" }}
+                        >
+                          Account
+                        </Link>
+                        <motion.button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setMobileExpandedAccount((a) => !a);
+                          }}
+                          className="flex-shrink-0 p-2 -mr-2 touch-manipulation"
+                          style={{ color: isActivePath("/account") || mobileExpandedAccount ? "white" : "var(--text-secondary)" }}
+                          aria-expanded={mobileExpandedAccount}
+                          aria-label={mobileExpandedAccount ? "Collapse account menu" : "Expand account menu"}
+                        >
+                          <motion.span
+                            animate={{ rotate: mobileExpandedAccount ? 90 : 0 }}
+                            transition={{ duration: 0.2 }}
                           >
-                            <Icon size={18} />
-                            {item.label}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+                            <FiChevronRight size={20} />
+                          </motion.span>
+                        </motion.button>
+                      </div>
+                      {mobileExpandedAccount && (
+                        <div className="pl-4 pr-2 pb-2 space-y-0">
+                          {[
+                            { path: "/account", label: "Dashboard", icon: FiLayout },
+                            { path: "/account/profile", label: "Profile", icon: FiUser },
+                            { path: "/account/orders", label: "Orders", icon: FiPackage },
+                            { path: "/account/addresses", label: "Addresses", icon: FiMapPin },
+                            { path: "/account/wishlist", label: "Wishlist", icon: FiHeart },
+                            { path: "/account/cart", label: "Cart", icon: FiShoppingCart },
+                            { path: "/account/security", label: "Security", icon: FiShield },
+                            { path: "/account/settings", label: "Settings", icon: FiSliders },
+                          ].map((item) => {
+                            const Icon = item.icon;
+                            const isActive = location.pathname === item.path || (item.path === "/account" && location.pathname === "/account");
+                            return (
+                              <Link
+                                key={item.path}
+                                to={item.path}
+                                onClick={closeMobileMenu}
+                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium transition-colors"
+                                style={{
+                                  color: isActive ? "var(--color-primary)" : "var(--text-secondary)",
+                                  backgroundColor: isActive ? "var(--bg-secondary)" : "transparent",
+                                }}
+                              >
+                                <Icon size={18} />
+                                {item.label}
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </nav>
 
                 {/* Mobile Admin — only when user role is admin */}
                 {user?.role === "admin" && (

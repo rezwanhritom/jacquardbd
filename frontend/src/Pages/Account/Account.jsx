@@ -1,7 +1,7 @@
-import { Link, Outlet, useLocation } from "react-router";
+import { useState, useRef, useEffect } from "react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { Container } from "../../components";
 import { motion, AnimatePresence } from "framer-motion";
-import { fadeInUp } from "../../utils/animations";
 import {
   FiLayout,
   FiUser,
@@ -14,7 +14,6 @@ import {
   FiLogOut,
   FiChevronRight,
 } from "react-icons/fi";
-import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 
@@ -28,6 +27,9 @@ const Account = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [mobileDropdownOpen, setMobileDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
   const displayName = user?.name?.trim() || "User";
   const membershipTier = membershipLabel(user?.role ?? "user");
 
@@ -47,6 +49,20 @@ const Account = () => {
     toast.success("Logged out successfully!");
     navigate("/");
   };
+
+  const currentTab = tabs.find(
+    (t) => t.path === location.pathname || (t.path === "/account" && location.pathname === "/account")
+  ) || tabs[0];
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setMobileDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <div className="min-h-screen py-12 md:py-16">
@@ -111,12 +127,12 @@ const Account = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Sidebar */}
+            {/* Sidebar — hidden on mobile, use dropdown instead */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
-              className="lg:col-span-1"
+              className="hidden lg:block lg:col-span-1"
             >
               <div
                 className="p-4 rounded-xl sticky top-24"
@@ -227,6 +243,85 @@ const Account = () => {
               transition={{ delay: 0.4 }}
               className="lg:col-span-3"
             >
+              {/* Mobile: dropdown to select section instead of full sidebar */}
+              <div ref={dropdownRef} className="relative mb-6 lg:hidden">
+                <motion.button
+                  type="button"
+                  onClick={() => setMobileDropdownOpen((o) => !o)}
+                  className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border-2 transition-colors"
+                  style={{
+                    borderColor: "var(--border-primary)",
+                    backgroundColor: "var(--bg-primary)",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  <span className="flex items-center gap-2">
+                    {(() => {
+                      const Icon = currentTab.icon;
+                      return <Icon size={20} style={{ color: "var(--color-primary)" }} />;
+                    })()}
+                    <span className="font-medium">{currentTab.label}</span>
+                  </span>
+                  <motion.span
+                    animate={{ rotate: mobileDropdownOpen ? -90 : 90 }}
+                    transition={{ duration: 0.2 }}
+                    style={{ display: "inline-block" }}
+                  >
+                    <FiChevronRight size={20} style={{ color: "var(--text-tertiary)" }} />
+                  </motion.span>
+                </motion.button>
+                <AnimatePresence>
+                  {mobileDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute left-0 right-0 top-full mt-1 z-20 py-2 rounded-xl shadow-lg border overflow-hidden"
+                      style={{
+                        backgroundColor: "var(--bg-primary)",
+                        borderColor: "var(--border-primary)",
+                      }}
+                    >
+                      {tabs.map((tab) => {
+                        const Icon = tab.icon;
+                        const isActive =
+                          location.pathname === tab.path ||
+                          (tab.path === "/account" && location.pathname === "/account");
+                        return (
+                          <Link
+                            key={tab.id}
+                            to={tab.path}
+                            onClick={() => setMobileDropdownOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors"
+                            style={{
+                              color: isActive ? "var(--color-primary)" : "var(--text-secondary)",
+                              backgroundColor: isActive ? "var(--bg-secondary)" : "transparent",
+                            }}
+                          >
+                            <Icon size={18} />
+                            {tab.label}
+                          </Link>
+                        );
+                      })}
+                      <div className="my-2 border-t" style={{ borderColor: "var(--border-primary)" }} />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMobileDropdownOpen(false);
+                          handleLogout();
+                        }}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm w-full text-left transition-colors"
+                        style={{ color: "var(--color-tertiary)" }}
+                      >
+                        <FiLogOut size={18} />
+                        Logout
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               <AnimatePresence mode="wait">
                 <motion.div
                   key={location.pathname}

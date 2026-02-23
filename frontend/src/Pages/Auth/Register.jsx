@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiUser, FiMail, FiLock, FiAlertCircle, FiCheck } from "react-icons/fi";
 import { FcGoogle } from "react-icons/fc";
-import { AuthLayout, FormInput, FormButton, FormCheckbox, PasswordStrength } from "../../components/Form";
+import { AuthLayout, FormInput, FormButton, PasswordStrength } from "../../components/Form";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 
@@ -16,7 +16,6 @@ const Register = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    agreeToTerms: false,
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -97,9 +96,6 @@ const Register = () => {
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
-    if (!formData.agreeToTerms) {
-      newErrors.agreeToTerms = "You must agree to the terms and conditions";
-    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -177,7 +173,7 @@ const Register = () => {
             name="firstName"
             value={formData.firstName}
             onChange={handleChange}
-            placeholder="John"
+            placeholder="First name"
             error={errors.firstName}
             icon={FiUser}
             required
@@ -189,7 +185,7 @@ const Register = () => {
             name="lastName"
             value={formData.lastName}
             onChange={handleChange}
-            placeholder="Doe"
+            placeholder="Last name"
             error={errors.lastName}
             required
             autoComplete="family-name"
@@ -204,7 +200,7 @@ const Register = () => {
           value={formData.email}
           onChange={handleChange}
           onBlur={handleBlur}
-          placeholder="john@example.com"
+          placeholder="Provide a Gmail"
           error={errors.email}
           success={formData.email && validateEmail(formData.email) && !errors.email}
           icon={FiMail}
@@ -250,34 +246,6 @@ const Register = () => {
           icon={FiLock}
           required
           autoComplete="new-password"
-        />
-
-        {/* Terms and conditions */}
-        <FormCheckbox
-          name="agreeToTerms"
-          checked={formData.agreeToTerms}
-          onChange={handleChange}
-          error={errors.agreeToTerms}
-          label={
-            <span>
-              I agree to the{" "}
-              <Link
-                to="/terms"
-                className="font-medium underline"
-                style={{ color: "var(--color-primary)" }}
-              >
-                Terms of Service
-              </Link>{" "}
-              and{" "}
-              <Link
-                to="/privacy"
-                className="font-medium underline"
-                style={{ color: "var(--color-primary)" }}
-              >
-                Privacy Policy
-              </Link>
-            </span>
-          }
         />
 
         {/* Submit button */}
