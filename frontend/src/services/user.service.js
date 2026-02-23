@@ -61,6 +61,18 @@ export async function updateProfile(userId, payload) {
 }
 
 /**
+ * POST /api/users/:userId/apply-premium — apply for premium membership (same user only).
+ */
+export async function applyForPremium(userId) {
+  const res = await userFetch(`/${userId}/apply-premium`, { method: "POST" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, user: null, message: data.message || "Failed to submit application" };
+  }
+  return { success: true, user: data.user, message: data.message };
+}
+
+/**
  * POST /api/images/upload/profile — upload profile image (multipart form, field: "image").
  * Returns { success, url?, message }. On success, update user profile with url as avatar.
  */

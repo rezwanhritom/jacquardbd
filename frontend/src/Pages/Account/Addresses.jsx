@@ -286,24 +286,14 @@ const Addresses = () => {
             whileHover={{ scale: 1.02, y: -4 }}
             transition={{ duration: 0.2 }}
           >
-            {address.isDefault && (
-              <div className="absolute top-4 right-4 px-2 py-1 text-xs font-semibold uppercase rounded" style={{ backgroundColor: "var(--color-primary)", color: "white" }}>
-                Default
-              </div>
-            )}
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>
-                  {address.label || "Address"}
-                </h3>
-                <div className="flex gap-2">
-                  <motion.button type="button" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleEdit(address)} className="p-2 rounded-lg transition-colors" style={{ color: "var(--color-primary)" }}>
-                    <FiEdit2 size={18} />
-                  </motion.button>
-                  <motion.button type="button" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDelete(address._id)} className="p-2 rounded-lg transition-colors" style={{ color: "var(--text-tertiary)" }}>
-                    <FiTrash2 size={18} />
-                  </motion.button>
-                </div>
+              <div className="flex justify-end gap-2">
+                <motion.button type="button" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleEdit(address)} className="p-2 rounded-lg transition-colors" style={{ color: "var(--color-primary)" }}>
+                  <FiEdit2 size={18} />
+                </motion.button>
+                <motion.button type="button" whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleDelete(address._id)} className="p-2 rounded-lg transition-colors" style={{ color: "var(--text-tertiary)" }}>
+                  <FiTrash2 size={18} />
+                </motion.button>
               </div>
               <div className="space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
                 {address.name && <p>{address.name}</p>}
@@ -311,6 +301,16 @@ const Addresses = () => {
                 <p>{[address.city, address.state, address.zip].filter(Boolean).join(", ") || "—"}</p>
                 {address.country && <p>{address.country}</p>}
                 {address.phone && <p className="pt-2">{address.phone}</p>}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pt-2">
+                <span className="text-xs font-semibold uppercase rounded px-2 py-1" style={{ backgroundColor: "var(--bg-tertiary)", color: "var(--text-primary)" }}>
+                  {address.label || "Address"}
+                </span>
+                {address.isDefault && (
+                  <span className="px-2 py-1 text-xs font-semibold uppercase rounded" style={{ backgroundColor: "var(--color-primary)", color: "white" }}>
+                    Default
+                  </span>
+                )}
               </div>
               {!address.isDefault && (
                 <motion.button

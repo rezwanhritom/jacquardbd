@@ -12,6 +12,7 @@ import {
   FiChevronLeft,
   FiEdit2,
   FiPlus,
+  FiGift,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
@@ -64,6 +65,17 @@ function addressAndProfileToFormData(addr, user) {
   };
 }
 
+/** Right-side label for shipping option (delivery/availability text). */
+function getShippingOptionLabel(option) {
+  if (!option || !option.id) return "";
+  const id = String(option.id).toLowerCase();
+  if (id === "standard") return "5-7 business days";
+  if (id === "express") return "2-3 business days";
+  if (id === "overnight") return "Dhaka, Chattagram and Barishal only";
+  if (option.price != null && typeof option.price === "number") return `৳${Number(option.price).toFixed(2)}`;
+  return option.priceLabel || "";
+}
+
 const Checkout = () => {
   const navigate = useNavigate();
   const { user: authUser, isAuthenticated } = useAuth();
@@ -81,6 +93,7 @@ const Checkout = () => {
     shippingMethod: "",
   });
   const [placingOrder, setPlacingOrder] = useState(false);
+  const [sendAsGift, setSendAsGift] = useState(false);
 
   // Load shipping options from DB
   useEffect(() => {
@@ -208,15 +221,35 @@ const Checkout = () => {
     }
   }, [selectedAddressId, authUser?._id, formData, addresses]);
 
+  const isAddressComplete = useCallback(() => {
+    const { email, firstName, lastName, phone, address, city, state, zipCode, country } = formData;
+    return (
+      (email || "").trim() !== "" &&
+      (firstName || "").trim() !== "" &&
+      (lastName || "").trim() !== "" &&
+      (phone || "").trim() !== "" &&
+      (address || "").trim() !== "" &&
+      (city || "").trim() !== "" &&
+      (state || "").trim() !== "" &&
+      (zipCode || "").trim() !== "" &&
+      (country || "").trim() !== ""
+    );
+  }, [formData]);
+
   const handleNext = async () => {
     if (currentStep === 1) {
-      await saveNewAddressIfNeeded();
-      // First-time phone: save to profile as default if user had no phone
-      const currentPhone = (formData.phone || "").trim();
-      const savedPhone = (profile?.phone || "").trim();
-      if (!savedPhone && currentPhone && authUser?._id) {
-        const { success, user: updated } = await updateProfile(authUser._id, { phone: currentPhone });
-        if (success && updated) setProfile((p) => (p ? { ...p, phone: updated.phone ?? currentPhone } : p));
+      if (!isAddressComplete()) {
+        toast.error("Please fill in all address fields before continuing.");
+        return;
+      }
+      if (!sendAsGift) {
+        await saveNewAddressIfNeeded();
+        const currentPhone = (formData.phone || "").trim();
+        const savedPhone = (profile?.phone || "").trim();
+        if (!savedPhone && currentPhone && authUser?._id) {
+          const { success, user: updated } = await updateProfile(authUser._id, { phone: currentPhone });
+          if (success && updated) setProfile((p) => (p ? { ...p, phone: updated.phone ?? currentPhone } : p));
+        }
       }
     }
     if (currentStep < 3) setCurrentStep(currentStep + 1);
@@ -247,6 +280,10 @@ const Checkout = () => {
   };
 
   const handlePlaceOrder = async () => {
+    if (!isAddressComplete()) {
+      toast.error("Please fill in all address fields.");
+      return;
+    }
     setPlacingOrder(true);
     toast.loading("Placing your order...", { id: "order-processing" });
     const shippingAddress = {
@@ -434,8 +471,8 @@ const Checkout = () => {
                         </Link>
                       </div>
 
-                      {/* Saved addresses from DB */}
-                      {addresses.length > 0 && (
+                      {/* Saved addresses from DB (hidden when sending as gift) */}
+                      {!sendAsGift && addresses.length > 0 && (
                         <div className="space-y-2">
                           <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>
                             Choose a saved address
@@ -479,38 +516,40 @@ const Checkout = () => {
                                 </motion.label>
                               );
                             })}
-                            <motion.label
-                              whileHover={{ scale: 1.01 }}
-                              className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                                selectedAddressId === "new" ? "ring-2 ring-offset-2" : ""
-                              }`}
-                              style={{
-                                borderColor: selectedAddressId === "new" ? "var(--color-primary)" : "var(--border-primary)",
-                                backgroundColor: "var(--bg-primary)",
-                                ringColor: "var(--color-primary)",
-                              }}
-                            >
-                              <input
-                                type="radio"
-                                name="selectedAddress"
-                                checked={selectedAddressId === "new"}
-                                onChange={() => handleSelectAddress("new")}
-                                className="w-4 h-4"
-                                style={{ accentColor: "var(--color-primary)" }}
-                              />
-                              <FiPlus size={20} style={{ color: "var(--color-primary)" }} />
-                              <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
-                                Add new address
-                              </span>
-                            </motion.label>
+                            {!sendAsGift && (
+                              <motion.label
+                                whileHover={{ scale: 1.01 }}
+                                className={`flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                                  selectedAddressId === "new" ? "ring-2 ring-offset-2" : ""
+                                }`}
+                                style={{
+                                  borderColor: selectedAddressId === "new" ? "var(--color-primary)" : "var(--border-primary)",
+                                  backgroundColor: "var(--bg-primary)",
+                                  ringColor: "var(--color-primary)",
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name="selectedAddress"
+                                  checked={selectedAddressId === "new"}
+                                  onChange={() => handleSelectAddress("new")}
+                                  className="w-4 h-4"
+                                  style={{ accentColor: "var(--color-primary)" }}
+                                />
+                                <FiPlus size={20} style={{ color: "var(--color-primary)" }} />
+                                <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                                  Add new address
+                                </span>
+                              </motion.label>
+                            )}
                           </div>
                         </div>
                       )}
 
-                      {/* Form: edit selected or new address */}
+                      {/* Form: edit selected or new address (or gift recipient when sendAsGift) */}
                       <div className="pt-2">
                         <p className="text-sm font-medium mb-3" style={{ color: "var(--text-secondary)" }}>
-                          {selectedAddressId === "new" ? "New address details" : "Edit or confirm details"}
+                          {sendAsGift ? "Gift recipient address" : selectedAddressId === "new" ? "New address details" : "Edit or confirm details"}
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
@@ -686,12 +725,49 @@ const Checkout = () => {
                               }}
                             />
                           </div>
-                          {selectedAddressId === "new" && addresses.length > 0 && (
+                          {selectedAddressId === "new" && addresses.length > 0 && !sendAsGift && (
                             <div className="md:col-span-2 mt-2 p-3 rounded-lg border border-dashed" style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-primary)" }}>
                               <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
                                 <strong style={{ color: "var(--text-primary)" }}>Add new address?</strong> This will be saved to your address book (e.g. address #{addresses.length + 1}). Click Next to continue.
                               </p>
                             </div>
+                          )}
+
+                          {/* Send as a gift — below address form */}
+                          <div className="md:col-span-2 pt-4 border-t flex items-center gap-3" style={{ borderColor: "var(--border-primary)" }}>
+                            <input
+                              type="checkbox"
+                              id="sendAsGift"
+                              checked={sendAsGift}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setSendAsGift(checked);
+                                if (checked) {
+                                  setFormData((prev) => ({ ...emptyAddressForm(), country: "Bangladesh", shippingMethod: prev.shippingMethod }));
+                                  setSelectedAddressId("new");
+                                  setCurrentStep(1);
+                                } else if (profile && authUser) {
+                                  const defaultAddr = addresses.find((a) => a.isDefault) || addresses[0];
+                                  if (defaultAddr) {
+                                    setSelectedAddressId(defaultAddr._id);
+                                    setFormData((prev) => ({ ...prev, ...addressAndProfileToFormData(defaultAddr, profile) }));
+                                  } else {
+                                    setFormData((prev) => ({ ...emptyAddressForm(), ...profileContactFields(profile), country: "Bangladesh", shippingMethod: prev.shippingMethod }));
+                                  }
+                                }
+                              }}
+                              className="w-5 h-5 rounded"
+                              style={{ accentColor: "var(--color-primary)" }}
+                            />
+                            <label htmlFor="sendAsGift" className="flex items-center gap-2 cursor-pointer text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                              <FiGift size={18} style={{ color: "var(--color-primary)" }} />
+                              Send as a gift
+                            </label>
+                          </div>
+                          {sendAsGift && (
+                            <p className="md:col-span-2 text-sm" style={{ color: "var(--text-tertiary)" }}>
+                              Gift recipient address. All fields must be filled; this address will not be saved to your account.
+                            </p>
                           )}
                         </div>
                       </div>
@@ -721,7 +797,7 @@ const Checkout = () => {
                           <motion.label
                             key={option.id}
                             whileHover={{ scale: 1.02 }}
-                            className={`flex items-center justify-between p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                            className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
                               formData.shippingMethod === option.id ? "ring-2" : ""
                             }`}
                             style={{
@@ -732,29 +808,22 @@ const Checkout = () => {
                               backgroundColor: "var(--bg-primary)",
                             }}
                           >
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4 min-w-0 flex-1">
                               <input
                                 type="radio"
                                 name="shippingMethod"
                                 value={option.id}
                                 checked={formData.shippingMethod === option.id}
                                 onChange={handleChange}
-                                className="w-5 h-5"
+                                className="w-5 h-5 flex-shrink-0"
                                 style={{ accentColor: "var(--color-primary)" }}
                               />
-                              <div>
-                                <div className="font-semibold" style={{ color: "var(--text-primary)" }}>
-                                  {option.name}
-                                </div>
-                                <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                                  {option.description || ""}
-                                </div>
+                              <div className="font-semibold min-w-0" style={{ color: "var(--text-primary)" }}>
+                                {option.name}
                               </div>
                             </div>
-                            <div className="font-bold" style={{ color: "var(--color-primary)" }}>
-                              {option.price != null && typeof option.price === "number"
-                                ? `৳${Number(option.price).toFixed(2)}`
-                                : (option.priceLabel || "Based on distance")}
+                            <div className="text-sm font-medium sm:text-right pl-9 sm:pl-0 sm:w-56 flex-shrink-0" style={{ color: "var(--text-secondary)" }}>
+                              {getShippingOptionLabel(option)}
                             </div>
                           </motion.label>
                         ))}
@@ -836,13 +905,8 @@ const Checkout = () => {
                           <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
                             {selectedShipping?.name}
                           </p>
-                          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                            {selectedShipping?.description || ""}
-                          </p>
                           <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
-                            {selectedShipping?.price != null && typeof selectedShipping.price === "number"
-                              ? `৳${Number(selectedShipping.price).toFixed(2)}`
-                              : (selectedShipping?.priceLabel || "Based on distance")}
+                            {selectedShipping ? getShippingOptionLabel(selectedShipping) : ""}
                           </p>
                         </div>
                       </div>
@@ -910,10 +974,11 @@ const Checkout = () => {
                     <motion.button
                       type="button"
                       onClick={handleNext}
-                      className="flex items-center gap-2 px-6 py-3 text-white font-semibold rounded-lg"
+                      disabled={currentStep === 1 && !isAddressComplete()}
+                      className="flex items-center gap-2 px-6 py-3 text-white font-semibold rounded-lg disabled:opacity-60 disabled:cursor-not-allowed"
                       style={{ backgroundColor: "var(--color-primary)" }}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                      whileHover={currentStep === 1 && !isAddressComplete() ? {} : { scale: 1.02 }}
+                      whileTap={currentStep === 1 && !isAddressComplete() ? {} : { scale: 0.98 }}
                     >
                       Next
                       <FiChevronRight size={20} />

@@ -34,7 +34,7 @@ function normalizeAddresses(list) {
  */
 export async function getAdminCustomers(req, res, next) {
   try {
-    const users = await User.find({}).select("name email avatar role phone createdAt").lean().sort({ createdAt: -1 });
+    const users = await User.find({}).select("name email avatar role phone createdAt premiumAppliedAt").lean().sort({ createdAt: -1 });
 
     const orderStats = await Order.aggregate([
       { $match: { status: ORDER_STATUS.PAID } },
@@ -50,6 +50,7 @@ export async function getAdminCustomers(req, res, next) {
         email: u.email,
         avatar: u.avatar ?? "",
         role: u.role ?? "user",
+        premiumAppliedAt: u.premiumAppliedAt ?? null,
         phone: u.phone ?? "",
         joined: u.createdAt,
         orders: stats.orderCount,
@@ -74,7 +75,7 @@ export async function getOneUserAdmin(req, res, next) {
     if (!userId || !MONGO_ID_REGEX.test(userId)) {
       return res.status(400).json({ success: false, message: "Invalid user ID" });
     }
-    const user = await User.findById(userId).select("name email avatar role phone createdAt addresses").lean();
+    const user = await User.findById(userId).select("name email avatar role phone createdAt premiumAppliedAt addresses").lean();
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
@@ -98,6 +99,7 @@ export async function getOneUserAdmin(req, res, next) {
         email: user.email,
         avatar: user.avatar ?? "",
         role: user.role ?? "user",
+        premiumAppliedAt: user.premiumAppliedAt ?? null,
         phone: user.phone ?? "",
         createdAt: user.createdAt,
         addresses,
@@ -197,6 +199,9 @@ export async function updateUserAdmin(req, res, next) {
     if (role !== undefined) {
       if (!ROLES.includes(role)) return res.status(400).json({ success: false, message: "Invalid role" });
       user.role = role;
+      if (role === "premium") {
+        user.premiumAppliedAt = null;
+      }
     }
     if (phone !== undefined) {
       user.phone = String(phone).trim();
@@ -222,8 +227,8 @@ export async function updateUserAdmin(req, res, next) {
 
     await user.save();
 
-    const updated = await User.findById(userId).select("name email avatar role phone createdAt addresses").lean();
-    res.json({ success: true, user: updated, message: "User updated" });
+    const updated = await User.findById(userId).select("name email avatar role phone createdAt premiumAppliedAt addresses").lean();
+    res.json({ success: true, user: { ...updated, premiumAppliedAt: updated.premiumAppliedAt ?? null }, message: "User updated" });
   } catch (err) {
     next(err);
   }
@@ -257,6 +262,32 @@ export async function deleteUserAdmin(req, res, next) {
 }
 
 /**
+ * POST /api/users/:userId/apply-premium
+ * Same-user only. Set premiumAppliedAt so admin can see and approve. Only for role "user".
+ */
+export async function applyForPremium(req, res, next) {
+  try {
+    const { userId } = req.params;
+    if (!userId || !MONGO_ID_REGEX.test(userId)) {
+      return res.status(400).json({ success: false, message: "Invalid user ID" });
+    }
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    if (user.role !== "user") {
+      return res.status(400).json({ success: false, message: "Only standard members can apply for premium" });
+    }
+    user.premiumAppliedAt = user.premiumAppliedAt || new Date();
+    await user.save();
+    const updated = await User.findById(userId).select("name email role premiumAppliedAt createdAt").lean();
+    res.json({ success: true, user: updated, message: "Application submitted. An admin will review it." });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * GET /api/users/:userId/dashboard
  * Same-user only. Returns dashboard stats: user, totalOrders, totalSpent, wishlistCount, avgOrderValue, recentOrders.
  */
@@ -268,7 +299,7 @@ export async function getAccountDashboard(req, res, next) {
     }
 
     const [userDoc, orderStats, wishlistCount, recentOrdersList] = await Promise.all([
-      User.findById(userId).select("name email avatar role createdAt").lean(),
+      User.findById(userId).select("name email avatar role createdAt premiumAppliedAt").lean(),
       Order.aggregate([
         { $match: { user: new mongoose.Types.ObjectId(userId) } },
         {
@@ -322,6 +353,7 @@ export async function getAccountDashboard(req, res, next) {
           email: userDoc.email,
           avatar: userDoc.avatar ?? "",
           role: userDoc.role ?? "user",
+          premiumAppliedAt: userDoc.premiumAppliedAt ?? null,
           createdAt: userDoc.createdAt,
         },
         totalOrders,

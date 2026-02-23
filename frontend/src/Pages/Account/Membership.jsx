@@ -1,176 +1,100 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { fadeInUp, staggerContainer } from "../../utils/animations";
+import { fadeInUp } from "../../utils/animations";
 import { FiCrown, FiCheck, FiStar, FiGift, FiTruck, FiPercent } from "react-icons/fi";
-import { mockUser, membershipTiers } from "../../data/accountData";
 import toast from "react-hot-toast";
+import { useAuth } from "../../context/AuthContext";
+import { applyForPremium } from "../../services/user.service";
+
+function membershipLabel(role) {
+  if (role === "premium") return "Premium";
+  if (role === "admin") return "Admin";
+  return "Standard";
+}
 
 const Membership = () => {
-  const [selectedTier, setSelectedTier] = useState(null);
+  const { user, loadUser } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
 
-  const getTierIcon = (tierId) => {
-    switch (tierId) {
-      case "basic":
-        return null;
-      case "premium":
-        return FiStar;
-      case "vip":
-        return FiCrown;
-      default:
-        return null;
+  const role = user?.role ?? "user";
+  const premiumAppliedAt = user?.premiumAppliedAt;
+  const tierLabel = membershipLabel(role);
+  const isPremium = role === "premium";
+  const isAdmin = role === "admin";
+  const isStandard = role === "user";
+  const applicationPending = !!premiumAppliedAt;
+
+  const handleApplyForPremium = async () => {
+    if (!user?._id || applicationPending || !isStandard) return;
+    setSubmitting(true);
+    const result = await applyForPremium(user._id);
+    setSubmitting(false);
+    if (result.success) {
+      toast.success(result.message || "Application submitted!");
+      await loadUser();
+    } else {
+      toast.error(result.message || "Failed to submit application");
     }
-  };
-
-  const handleUpgrade = (tierId) => {
-    const tier = membershipTiers.find((t) => t.id === tierId);
-    setSelectedTier(tierId);
-    toast.loading("Processing upgrade...", { id: "upgrade" });
-    // In real app, this would process payment
-    setTimeout(() => {
-      toast.success(`Upgraded to ${tier?.name} membership!`, { id: "upgrade" });
-      setSelectedTier(null);
-    }, 1500);
   };
 
   return (
     <div className="space-y-8">
-      {/* Current Membership */}
+      {/* Current Membership — single card: Premium Member / Admin / Standard (with Apply or Pending) */}
       <motion.div
         initial="initial"
         animate="animate"
         variants={fadeInUp}
-        className="p-6 rounded-lg border-2"
+        className="p-6 rounded-lg border-2 text-center"
         style={{
           borderColor: "var(--color-primary)",
           backgroundColor: "var(--bg-secondary)",
         }}
       >
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <FiCrown size={32} style={{ color: "var(--color-primary)" }} />
-              <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
-                {mockUser.membershipTier} Member
-              </h2>
-            </div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex items-center justify-center gap-3">
+            <FiCrown size={32} style={{ color: "var(--color-primary)" }} />
+            <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+              {tierLabel} Member
+            </h2>
+          </div>
+
+          {isPremium && (
             <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              Member since {new Date(mockUser.memberSince).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-              })}
+              You have full access to premium benefits including free shipping, exclusive discounts, and early access to new collections.
             </p>
-            {mockUser.membershipTier !== "Basic" && (
-              <p className="text-sm mt-2" style={{ color: "var(--text-secondary)" }}>
-                Expires on {new Date(mockUser.membershipExpiry).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
+          )}
+
+          {isAdmin && (
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              Administrator access. You can manage users and approve premium applications from the Admin panel.
+            </p>
+          )}
+
+          {isStandard && !applicationPending && (
+            <>
+              <p className="text-sm max-w-md" style={{ color: "var(--text-secondary)" }}>
+                Upgrade to Premium for free shipping, exclusive discounts, and early access to new collections. Submit an application and an admin will review it.
               </p>
-            )}
-          </div>
-          <div className="text-right">
-            <p className="text-3xl font-bold mb-1" style={{ color: "var(--color-primary)" }}>
-              {mockUser.loyaltyPoints}
+              <motion.button
+                type="button"
+                disabled={submitting}
+                onClick={handleApplyForPremium}
+                className="px-6 py-3 rounded-lg font-semibold text-white transition-all disabled:opacity-70"
+                style={{ backgroundColor: "var(--color-primary)" }}
+                whileHover={!submitting ? { scale: 1.02 } : {}}
+                whileTap={!submitting ? { scale: 0.98 } : {}}
+              >
+                {submitting ? "Submitting…" : "Apply for Premium Membership"}
+              </motion.button>
+            </>
+          )}
+
+          {isStandard && applicationPending && (
+            <p className="text-sm font-medium" style={{ color: "var(--color-primary)" }}>
+              Application pending. An admin will review your request and update your membership soon.
             </p>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              Loyalty Points
-            </p>
-          </div>
+          )}
         </div>
-      </motion.div>
-
-      {/* Membership Tiers */}
-      <motion.div
-        initial="initial"
-        animate="animate"
-        variants={staggerContainer}
-        className="grid grid-cols-1 md:grid-cols-3 gap-6"
-      >
-        {membershipTiers.map((tier, index) => {
-          const Icon = getTierIcon(tier.id);
-          const isCurrent = tier.isCurrent;
-          const isUpgrading = selectedTier === tier.id;
-
-          return (
-            <motion.div
-              key={tier.id}
-              variants={fadeInUp}
-              className={`p-6 rounded-lg border-2 relative ${
-                isCurrent ? "ring-2" : ""
-              }`}
-              style={{
-                borderColor: isCurrent ? "var(--color-primary)" : "var(--border-primary)",
-                backgroundColor: "var(--bg-secondary)",
-              }}
-              whileHover={{ scale: 1.02, y: -4 }}
-              transition={{ duration: 0.2 }}
-            >
-              {isCurrent && (
-                <div className="absolute top-4 right-4 px-3 py-1 text-xs font-semibold uppercase rounded-lg" style={{ backgroundColor: "var(--color-primary)", color: "white" }}>
-                  Current
-                </div>
-              )}
-              <div className="space-y-4">
-                <div>
-                  {Icon && (
-                    <Icon size={40} className="mb-3" style={{ color: "var(--color-primary)" }} />
-                  )}
-                  <h3 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
-                    {tier.name}
-                  </h3>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold" style={{ color: "var(--color-primary)" }}>
-                      ৳{tier.price}
-                    </span>
-                    {tier.price > 0 && (
-                      <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                        /year
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-3 pt-4 border-t" style={{ borderColor: "var(--border-primary)" }}>
-                  {tier.benefits.map((benefit, idx) => (
-                    <div key={idx} className="flex items-start gap-3">
-                      <FiCheck size={20} className="flex-shrink-0 mt-0.5" style={{ color: "var(--color-primary)" }} />
-                      <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                        {benefit}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                <motion.button
-                  whileHover={!isCurrent && !isUpgrading ? { scale: 1.02 } : {}}
-                  whileTap={!isCurrent && !isUpgrading ? { scale: 0.98 } : {}}
-                  onClick={() => !isCurrent && handleUpgrade(tier.id)}
-                  disabled={isCurrent || isUpgrading}
-                  className={`w-full px-6 py-3 rounded-lg font-semibold transition-all ${
-                    isCurrent
-                      ? "opacity-50 cursor-not-allowed"
-                      : isUpgrading
-                      ? "opacity-75 cursor-wait"
-                      : ""
-                  }`}
-                  style={{
-                    backgroundColor: isCurrent ? "var(--bg-tertiary)" : "var(--color-primary)",
-                    color: "white",
-                  }}
-                >
-                  {isCurrent
-                    ? "Current Plan"
-                    : isUpgrading
-                    ? "Processing..."
-                    : tier.price === 0
-                    ? "Free"
-                    : "Upgrade Now"}
-                </motion.button>
-              </div>
-            </motion.div>
-          );
-        })}
       </motion.div>
 
       {/* Benefits Overview */}
@@ -193,7 +117,7 @@ const Membership = () => {
               Free Shipping
             </h4>
             <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              On all orders for Premium and VIP members
+              On all orders for Premium members
             </p>
           </div>
           <div className="text-center">
@@ -215,7 +139,7 @@ const Membership = () => {
               Special Gifts
             </h4>
             <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              Birthday gifts and annual gift boxes
+              Birthday gifts and member-only offers
             </p>
           </div>
           <div className="text-center">

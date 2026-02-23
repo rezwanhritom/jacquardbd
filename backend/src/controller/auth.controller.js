@@ -31,6 +31,7 @@ function userResponse(user) {
     name: user.name,
     email: user.email,
     role: user.role,
+    premiumAppliedAt: user.premiumAppliedAt ?? null,
     avatar: user.avatar ?? "",
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,

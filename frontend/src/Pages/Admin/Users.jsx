@@ -325,6 +325,32 @@ const Users = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
+                    Role
+                  </label>
+                  {editingUser?.premiumAppliedAt && (
+                    <p className="text-sm mb-2 px-3 py-2 rounded-lg" style={{ backgroundColor: "rgba(234, 179, 8, 0.15)", color: "rgb(202, 138, 4)" }}>
+                      This user has applied for premium membership. Set role to <strong>Premium</strong> to approve.
+                    </p>
+                  )}
+                  <select
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                    className="w-full px-4 py-3 border-2 rounded-lg outline-none"
+                    style={{
+                      borderColor: "var(--border-primary)",
+                      backgroundColor: "var(--bg-primary)",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    {ROLE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
                     Password {editingUser ? "(leave blank to keep current)" : "*"}
                   </label>
                   <input
@@ -341,25 +367,6 @@ const Users = () => {
                       color: "var(--text-primary)",
                     }}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                    Role
-                  </label>
-                  <select
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full px-4 py-3 border-2 rounded-lg outline-none"
-                    style={{
-                      borderColor: "var(--border-primary)",
-                      backgroundColor: "var(--bg-primary)",
-                      color: "var(--text-primary)",
-                    }}
-                  >
-                    {ROLE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
                 </div>
               </div>
 
@@ -597,15 +604,29 @@ const Users = () => {
                     </span>
                   </td>
                   <td className="py-4 px-4">
-                    <span
-                      className="text-xs font-medium px-2 py-1 rounded"
-                      style={{
-                        backgroundColor: "var(--bg-tertiary)",
-                        color: "var(--text-secondary)",
-                      }}
-                    >
-                      {customer.role || "user"}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className="text-xs font-medium px-2 py-1 rounded"
+                        style={{
+                          backgroundColor: "var(--bg-tertiary)",
+                          color: "var(--text-secondary)",
+                        }}
+                      >
+                        {customer.role || "user"}
+                      </span>
+                      {customer.premiumAppliedAt && (
+                        <span
+                          className="text-xs font-semibold px-2 py-1 rounded"
+                          style={{
+                            backgroundColor: "rgba(234, 179, 8, 0.2)",
+                            color: "rgb(202, 138, 4)",
+                          }}
+                          title={`Applied on ${new Date(customer.premiumAppliedAt).toLocaleDateString()}`}
+                        >
+                          Applied for Premium
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-4 px-4">
                     <span className="text-sm" style={{ color: "var(--text-secondary)" }}>

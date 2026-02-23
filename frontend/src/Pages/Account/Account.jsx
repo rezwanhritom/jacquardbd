@@ -73,9 +73,9 @@ const Account = () => {
           transition={{ duration: 0.5 }}
           className="max-w-6xl mx-auto"
         >
-          {/* Page Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-            <div>
+          {/* Page Header — centered on mobile, row on desktop */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-8 text-center md:text-left">
+            <div className="flex-1">
               <motion.h1
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -95,15 +95,15 @@ const Account = () => {
                 Manage your profile, orders, and preferences
               </motion.p>
             </div>
-            
-            {/* User Quick Info */}
+
+            {/* User Quick Info — on mobile: icon then name & type below; on desktop: name/type right of icon */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
-              className="flex items-center gap-4"
+              className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 flex-shrink-0"
             >
-              <div className="text-right hidden sm:block">
+              <div className="hidden sm:block text-right">
                 <p className="font-semibold" style={{ color: "var(--text-primary)" }}>
                   {displayName}
                 </p>
@@ -113,8 +113,8 @@ const Account = () => {
               </div>
               <motion.div
                 whileHover={{ scale: 1.05 }}
-                className="w-12 h-12 rounded-full flex items-center justify-center ring-2 ring-offset-2"
-                style={{ 
+                className="w-12 h-12 rounded-full flex items-center justify-center ring-2 ring-offset-2 flex-shrink-0"
+                style={{
                   ringColor: "var(--color-primary)",
                   ringOffsetColor: "var(--bg-primary)",
                   backgroundColor: "var(--bg-secondary)",
@@ -123,6 +123,15 @@ const Account = () => {
               >
                 <FiUser size={24} />
               </motion.div>
+              {/* Mobile: name and membership below icon */}
+              <div className="sm:hidden text-center">
+                <p className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                  {displayName}
+                </p>
+                <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                  {membershipTier} Member
+                </p>
+              </div>
             </motion.div>
           </div>
 

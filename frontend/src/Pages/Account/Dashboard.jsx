@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
-import { FiPackage, FiDollarSign, FiHeart, FiTrendingUp, FiShoppingBag, FiClock, FiUser } from "react-icons/fi";
+import { FiPackage, FiCreditCard, FiHeart, FiTrendingUp, FiShoppingBag, FiClock, FiUser } from "react-icons/fi";
+import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
-import { getAccountDashboard } from "../../services/user.service";
+import { getAccountDashboard, applyForPremium } from "../../services/user.service";
 
 function membershipLabel(role) {
   if (role === "premium") return "Premium";
@@ -13,10 +14,11 @@ function membershipLabel(role) {
 }
 
 const Dashboard = () => {
-  const { user: authUser } = useAuth();
+  const { user: authUser, loadUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [applyLoading, setApplyLoading] = useState(false);
 
   useEffect(() => {
     if (!authUser?._id) {
@@ -41,10 +43,29 @@ const Dashboard = () => {
   const wishlistCount = data?.wishlistCount ?? 0;
   const avgOrderValue = data?.avgOrderValue ?? 0;
   const recentOrders = data?.recentOrders ?? [];
+  const userRole = data?.user?.role ?? authUser?.role ?? "user";
+  const premiumAppliedAt = data?.user?.premiumAppliedAt ?? authUser?.premiumAppliedAt;
+  const isStandardUser = userRole === "user";
+
+  const handleApplyForPremium = async () => {
+    if (!authUser?._id || applyLoading || !isStandardUser || premiumAppliedAt) return;
+    setApplyLoading(true);
+    const result = await applyForPremium(authUser._id);
+    setApplyLoading(false);
+    if (result.success) {
+      toast.success(result.message || "Application submitted! An admin will review it.");
+      await loadUser();
+      getAccountDashboard(authUser._id).then((res) => {
+        if (res.success && res.data) setData(res.data);
+      });
+    } else {
+      toast.error(result.message || "Failed to submit application");
+    }
+  };
 
   const stats = [
     { id: 1, label: "Total Orders", value: totalOrders, icon: FiPackage, color: "var(--color-primary)" },
-    { id: 2, label: "Total Spent", value: `৳${Number(totalSpent).toFixed(2)}`, icon: FiDollarSign, color: "var(--color-secondary)" },
+    { id: 2, label: "Total Spent", value: `৳${Number(totalSpent).toFixed(2)}`, icon: FiCreditCard, color: "var(--color-secondary)" },
     { id: 3, label: "Wishlist Items", value: wishlistCount, icon: FiHeart, color: "var(--color-tertiary)" },
     { id: 4, label: "Avg Order Value", value: `৳${Number(avgOrderValue).toFixed(2)}`, icon: FiTrendingUp, color: "var(--color-primary)" },
   ];
@@ -86,12 +107,12 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8">
-      {/* Welcome Section */}
+      {/* Welcome Section — centered */}
       <motion.div
         initial="initial"
         animate="animate"
         variants={fadeInUp}
-        className="flex items-center justify-between flex-wrap gap-4"
+        className="flex flex-col items-center justify-center text-center gap-4"
       >
         <div>
           <h2 className="text-3xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
@@ -103,8 +124,8 @@ const Dashboard = () => {
               : "Manage your account"}
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="text-center sm:text-right">
             <p className="text-xs uppercase tracking-wider mb-1" style={{ color: "var(--text-tertiary)" }}>
               Membership
             </p>
@@ -121,12 +142,12 @@ const Dashboard = () => {
         </div>
       </motion.div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid — 2x2 */}
       <motion.div
         initial="initial"
         animate="animate"
         variants={staggerContainer}
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+        className="grid grid-cols-2 gap-6"
       >
         {stats.map((stat, index) => {
           const Icon = stat.icon;
@@ -277,66 +298,44 @@ const Dashboard = () => {
         )}
       </motion.div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions — Membership (inline apply, no separate page) */}
       <motion.div
         initial="initial"
         animate="animate"
         variants={fadeInUp}
-        className="grid grid-cols-1 md:grid-cols-3 gap-6"
+        className="grid grid-cols-1 max-w-md mx-auto"
       >
-        <Link
-          to="/account/wishlist"
-          className="p-6 rounded-lg border-2 transition-all group"
+        <div
+          className="p-6 rounded-lg border-2 transition-all"
           style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "var(--color-primary)";
-            e.currentTarget.style.transform = "translateY(-4px)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "var(--border-primary)";
-            e.currentTarget.style.transform = "translateY(0)";
-          }}
-        >
-          <FiHeart size={32} className="mb-3" style={{ color: "var(--color-primary)" }} />
-          <h4 className="font-semibold mb-2" style={{ color: "var(--text-primary)" }}>My Wishlist</h4>
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{wishlistCount} items saved</p>
-        </Link>
-
-        <Link
-          to="/account/addresses"
-          className="p-6 rounded-lg border-2 transition-all group"
-          style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "var(--color-primary)";
-            e.currentTarget.style.transform = "translateY(-4px)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "var(--border-primary)";
-            e.currentTarget.style.transform = "translateY(0)";
-          }}
-        >
-          <FiPackage size={32} className="mb-3" style={{ color: "var(--color-primary)" }} />
-          <h4 className="font-semibold mb-2" style={{ color: "var(--text-primary)" }}>Address Book</h4>
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Manage shipping addresses</p>
-        </Link>
-
-        <Link
-          to="/account/membership"
-          className="p-6 rounded-lg border-2 transition-all group"
-          style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "var(--color-primary)";
-            e.currentTarget.style.transform = "translateY(-4px)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "var(--border-primary)";
-            e.currentTarget.style.transform = "translateY(0)";
-          }}
         >
           <FiTrendingUp size={32} className="mb-3" style={{ color: "var(--color-primary)" }} />
           <h4 className="font-semibold mb-2" style={{ color: "var(--text-primary)" }}>Membership</h4>
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{membershipTier} Member</p>
-        </Link>
+          {!isStandardUser ? (
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{membershipTier} Member</p>
+          ) : premiumAppliedAt ? (
+            <p className="text-sm font-medium" style={{ color: "var(--color-primary)" }}>
+              Application pending. An admin will review and update your membership.
+            </p>
+          ) : (
+            <>
+              <p className="text-sm mb-3" style={{ color: "var(--text-secondary)" }}>
+                Apply for premium membership. An admin will review and approve.
+              </p>
+              <motion.button
+                type="button"
+                disabled={applyLoading}
+                onClick={handleApplyForPremium}
+                className="w-full px-4 py-2.5 rounded-lg font-semibold text-sm text-white transition-all disabled:opacity-70"
+                style={{ backgroundColor: "var(--color-primary)" }}
+                whileHover={!applyLoading ? { scale: 1.02 } : {}}
+                whileTap={!applyLoading ? { scale: 0.98 } : {}}
+              >
+                {applyLoading ? "Submitting…" : "Apply"}
+              </motion.button>
+            </>
+          )}
+        </div>
       </motion.div>
     </div>
   );

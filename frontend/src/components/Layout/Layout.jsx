@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Outlet, useLocation, Link } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../Navbar";
@@ -6,6 +7,10 @@ import { pageTransitionVariants, pageTransitionConfig } from "../../utils/animat
 
 const Layout = () => {
   const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen flex flex-col bg-theme-primary transition-colors duration-300">

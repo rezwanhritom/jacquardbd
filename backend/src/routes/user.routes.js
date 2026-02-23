@@ -4,6 +4,7 @@ import {
   getAccountDashboard,
   getProfile,
   updateProfile,
+  applyForPremium,
   getWishlist,
   addToWishlist,
   removeFromWishlist,
@@ -27,6 +28,7 @@ router.delete("/admin/:userId", requireRole(["admin"]), deleteUserAdmin);
 router.get("/:userId/dashboard", sameUser, getAccountDashboard);
 router.get("/:userId", sameUser, getProfile);
 router.put("/:userId", sameUser, updateProfile);
+router.post("/:userId/apply-premium", sameUser, applyForPremium);
 router.get("/:userId/wishlist", sameUser, getWishlist);
 router.post("/:userId/wishlist/:productId", sameUser, addToWishlist);
 router.delete("/:userId/wishlist/:productId", sameUser, removeFromWishlist);
