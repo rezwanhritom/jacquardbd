@@ -19,6 +19,7 @@ import dashboardRoutes from "./routes/dashboard.routes.js";
 import orderRoutes from "./routes/order.routes.js";
 import campaignRoutes from "./routes/campaign.routes.js";
 import shippingRoutes from "./routes/shipping.routes.js";
+import faqRoutes from "./routes/faq.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -50,6 +51,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/campaigns", campaignRoutes);
 app.use("/api/shipping", shippingRoutes);
+app.use("/api/faq", faqRoutes);
 
 app.use(errorHandler);
 

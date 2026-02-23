@@ -37,7 +37,15 @@ const AdminProducts = lazy(() => import("../Pages/Admin/Products"));
 const AdminOrders = lazy(() => import("../Pages/Admin/Orders"));
 const AdminUsers = lazy(() => import("../Pages/Admin/Users"));
 const AdminCampaigns = lazy(() => import("../Pages/Admin/Campaigns"));
+const AdminFaq = lazy(() => import("../Pages/Admin/Faq"));
 const AdminProductCreate = lazy(() => import("../Pages/Admin/ProductCreate"));
+
+const Contact = lazy(() => import("../Pages/Contact"));
+const SizeGuide = lazy(() => import("../Pages/SizeGuide"));
+const FAQ = lazy(() => import("../Pages/FAQ"));
+const StoreLocator = lazy(() => import("../Pages/StoreLocator"));
+const Privacy = lazy(() => import("../Pages/Privacy"));
+const Terms = lazy(() => import("../Pages/Terms"));
 
 // Auth pages
 const Login = lazy(() => import("../Pages/Auth/Login"));
@@ -107,6 +115,54 @@ export const router = createBrowserRouter([
         element: (
           <LazyWrapper>
             <About />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "contact",
+        element: (
+          <LazyWrapper>
+            <Contact />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "size-guide",
+        element: (
+          <LazyWrapper>
+            <SizeGuide />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "faq",
+        element: (
+          <LazyWrapper>
+            <FAQ />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "stores",
+        element: (
+          <LazyWrapper>
+            <StoreLocator />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "privacy",
+        element: (
+          <LazyWrapper>
+            <Privacy />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "terms",
+        element: (
+          <LazyWrapper>
+            <Terms />
           </LazyWrapper>
         ),
       },
@@ -361,6 +417,14 @@ export const router = createBrowserRouter([
             element: (
               <LazyWrapper>
                 <AdminCampaigns />
+              </LazyWrapper>
+            ),
+          },
+          {
+            path: "faq",
+            element: (
+              <LazyWrapper>
+                <AdminFaq />
               </LazyWrapper>
             ),
           },
