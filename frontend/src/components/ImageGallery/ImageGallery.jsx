@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiChevronLeft, FiChevronRight, FiZoomIn, FiX } from "react-icons/fi";
+import { FiChevronUp, FiChevronDown, FiZoomIn, FiX } from "react-icons/fi";
+
+const MIN_SWIPE = 50;
 
 const ImageGallery = ({ images, productName }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+  const [touchStartY, setTouchStartY] = useState(null);
+  const [touchEndY, setTouchEndY] = useState(null);
 
   const nextImage = () => {
     setSelectedIndex((prev) => (prev + 1) % images.length);
@@ -13,6 +17,21 @@ const ImageGallery = ({ images, productName }) => {
 
   const prevImage = () => {
     setSelectedIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const onTouchStart = (e) => setTouchStartY(e.targetTouches[0].clientY);
+  const onTouchMove = (e) => setTouchEndY(e.targetTouches[0].clientY);
+  const onTouchEnd = () => {
+    if (touchStartY == null || touchEndY == null || images.length <= 1) {
+      setTouchStartY(null);
+      setTouchEndY(null);
+      return;
+    }
+    const delta = touchStartY - touchEndY;
+    if (delta > MIN_SWIPE) nextImage();
+    else if (delta < -MIN_SWIPE) prevImage();
+    setTouchStartY(null);
+    setTouchEndY(null);
   };
 
   const handleMouseMove = (e) => {
@@ -25,8 +44,14 @@ const ImageGallery = ({ images, productName }) => {
 
   return (
     <div className="space-y-4">
-      {/* Main Image */}
-      <div className="relative aspect-square overflow-hidden rounded-lg group" style={{ backgroundColor: "var(--bg-tertiary)" }}>
+      {/* Main Image: vertical swipe up/down to change image */}
+      <div
+        className="relative aspect-square overflow-hidden rounded-lg group touch-none"
+        style={{ backgroundColor: "var(--bg-tertiary)" }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
         <AnimatePresence mode="wait">
           <motion.img
             key={selectedIndex}
@@ -73,12 +98,12 @@ const ImageGallery = ({ images, productName }) => {
           </motion.button>
         )}
 
-        {/* Navigation Arrows */}
+        {/* Navigation Arrows: up/down for vertical swipe */}
         {images.length > 1 && (
           <>
             <motion.button
               onClick={prevImage}
-              className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity z-10"
+              className="absolute left-1/2 top-4 -translate-x-1/2 p-3 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity z-10"
               style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -93,11 +118,11 @@ const ImageGallery = ({ images, productName }) => {
               }}
               aria-label="Previous image"
             >
-              <FiChevronLeft size={24} style={{ color: "var(--text-primary)" }} />
+              <FiChevronUp size={24} style={{ color: "var(--text-primary)" }} />
             </motion.button>
             <motion.button
               onClick={nextImage}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity z-10"
+              className="absolute left-1/2 bottom-4 -translate-x-1/2 p-3 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity z-10"
               style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -112,7 +137,7 @@ const ImageGallery = ({ images, productName }) => {
               }}
               aria-label="Next image"
             >
-              <FiChevronRight size={24} style={{ color: "var(--text-primary)" }} />
+              <FiChevronDown size={24} style={{ color: "var(--text-primary)" }} />
             </motion.button>
           </>
         )}

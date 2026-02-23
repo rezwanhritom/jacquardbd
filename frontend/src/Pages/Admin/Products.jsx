@@ -113,6 +113,9 @@ const Products = () => {
                   Price
                 </th>
                 <th className="text-left py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Stock
+                </th>
+                <th className="text-left py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>
                   Status
                 </th>
                 <th className="text-right py-3 px-4 font-semibold" style={{ color: "var(--text-primary)" }}>
@@ -170,6 +173,14 @@ const Products = () => {
                         </span>
                       )}
                     </div>
+                  </td>
+                  <td className="py-4 px-4">
+                    <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                      {product.stockQuantity != null ? Number(product.stockQuantity) : 0}
+                    </span>
+                    <span className="text-xs ml-1" style={{ color: "var(--text-tertiary)" }}>
+                      items
+                    </span>
                   </td>
                   <td className="py-4 px-4">
                     <span

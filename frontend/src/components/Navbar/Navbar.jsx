@@ -453,32 +453,34 @@ const Navbar = () => {
                 </motion.button>
               </Link>
 
-              {/* Admin (always visible) */}
-              <Link to="/admin">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="p-2 rounded-lg transition-colors"
-                  style={{
-                    color: isActivePath("/admin") ? "var(--color-primary)" : "var(--text-secondary)",
-                    backgroundColor: "transparent",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = "var(--color-primary)";
-                    e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActivePath("/admin")) {
-                      e.currentTarget.style.color = "var(--text-secondary)";
-                    }
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }}
-                  aria-label="Admin Panel"
-                  title="Admin Panel"
-                >
-                  <FiGrid size={20} />
-                </motion.button>
-              </Link>
+              {/* Admin — only visible when user role is admin */}
+              {user?.role === "admin" && (
+                <Link to="/admin">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="p-2 rounded-lg transition-colors"
+                    style={{
+                      color: isActivePath("/admin") ? "var(--color-primary)" : "var(--text-secondary)",
+                      backgroundColor: "transparent",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "var(--color-primary)";
+                      e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActivePath("/admin")) {
+                        e.currentTarget.style.color = "var(--text-secondary)";
+                      }
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                    aria-label="Admin Panel"
+                    title="Admin Panel"
+                  >
+                    <FiGrid size={20} />
+                  </motion.button>
+                </Link>
+              )}
 
               {/* Account dropdown (when logged in) */}
               {isAuthenticated && (
@@ -734,6 +736,7 @@ const Navbar = () => {
 
                     if (isMenOrWomen && tree) {
                       const expanded = mobileExpandedGender === link.label;
+                      const allProductsPath = `/category/${genderSlug}`;
                       return (
                         <motion.div
                           key={link.id}
@@ -742,61 +745,87 @@ const Navbar = () => {
                           transition={{ delay: index * 0.1 }}
                           className="space-y-0"
                         >
-                          {/* Men / Women row: label + arrow (click anywhere to expand) */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setMobileExpandedGender((g) => (g === link.label ? null : link.label));
-                              if (mobileExpandedGender === link.label) setMobileExpandedSection(null);
-                            }}
-                            className="w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide transition-colors text-left"
-                            style={{
-                              color: isActive || expanded ? "var(--color-primary)" : "var(--text-secondary)",
-                            }}
-                          >
-                            <span>{link.label}</span>
-                            <motion.span
-                              animate={{ rotate: expanded ? 90 : 0 }}
-                              transition={{ duration: 0.2 }}
-                              style={{ color: "var(--text-secondary)" }}
+                          {/* Men / Women row: label = link to all products; arrow only = expand dropdown */}
+                          <div className="w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide">
+                            <Link
+                              to={allProductsPath}
+                              onClick={closeMobileMenu}
+                              className="flex-1 min-w-0"
+                              style={{
+                                color: isActive || expanded ? "var(--color-primary)" : "var(--text-secondary)",
+                              }}
                             >
-                              <FiChevronRight size={20} />
-                            </motion.span>
-                          </button>
+                              {link.label}
+                            </Link>
+                            <motion.button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setMobileExpandedGender((g) => (g === link.label ? null : link.label));
+                                if (mobileExpandedGender === link.label) setMobileExpandedSection(null);
+                              }}
+                              className="flex-shrink-0 p-2 -mr-2 touch-manipulation"
+                              style={{ color: "var(--text-secondary)" }}
+                              aria-expanded={expanded}
+                              aria-label={expanded ? "Collapse categories" : "Expand categories"}
+                            >
+                              <motion.span
+                                animate={{ rotate: expanded ? 90 : 0 }}
+                                transition={{ duration: 0.2 }}
+                              >
+                                <FiChevronRight size={20} />
+                              </motion.span>
+                            </motion.button>
+                          </div>
                           {/* Section list: Winter Wear, Regular Wear, ... */}
                           {expanded && (
                             <div className="pl-4 pr-2 pb-2 space-y-0">
                               {Object.entries(tree).map(([sectionTitle, sectionValue]) => {
                                 const sectionSlug = toSlug(sectionTitle);
+                                const sectionPath = `/category/${genderSlug}/${sectionSlug}`;
                                 const sectionExpanded = mobileExpandedSection === sectionTitle;
                                 const leafItems = getSectionLeafItems(sectionValue);
                                 const hasChildren = leafItems.length > 0;
                                 return (
                                   <div key={sectionTitle} className="mt-1">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setMobileExpandedSection((s) =>
-                                          s === sectionTitle ? null : sectionTitle
-                                        );
-                                      }}
-                                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-base font-medium transition-colors text-left"
-                                      style={{
-                                        color: sectionExpanded
-                                          ? "var(--color-primary)"
-                                          : "var(--text-secondary)",
-                                      }}
-                                    >
-                                      <span className="capitalize">{sectionTitle}</span>
-                                      {hasChildren && (
-                                        <motion.span
-                                          animate={{ rotate: sectionExpanded ? 90 : 0 }}
-                                          transition={{ duration: 0.2 }}
+                                    <div className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-base font-medium">
+                                      <Link
+                                        to={sectionPath}
+                                        onClick={closeMobileMenu}
+                                        className="flex-1 min-w-0 capitalize"
+                                        style={{
+                                          color: sectionExpanded
+                                            ? "var(--color-primary)"
+                                            : "var(--text-secondary)",
+                                        }}
+                                      >
+                                        {sectionTitle}
+                                      </Link>
+                                      {hasChildren ? (
+                                        <motion.button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setMobileExpandedSection((s) =>
+                                              s === sectionTitle ? null : sectionTitle
+                                            );
+                                          }}
+                                          className="flex-shrink-0 p-2 -mr-2 touch-manipulation"
+                                          style={{ color: "var(--text-secondary)" }}
+                                          aria-expanded={sectionExpanded}
+                                          aria-label={sectionExpanded ? "Collapse subcategories" : "Expand subcategories"}
                                         >
-                                          <FiChevronRight size={18} />
-                                        </motion.span>
-                                      )}
-                                    </button>
+                                          <motion.span
+                                            animate={{ rotate: sectionExpanded ? 90 : 0 }}
+                                            transition={{ duration: 0.2 }}
+                                          >
+                                            <FiChevronRight size={18} />
+                                          </motion.span>
+                                        </motion.button>
+                                      ) : null}
+                                    </div>
                                     {/* Leaf items: Sweatshirts, Hoodies, ... (links) */}
                                     {sectionExpanded && hasChildren && (
                                       <div className="pl-3 pb-2 space-y-0.5">
@@ -901,31 +930,33 @@ const Navbar = () => {
                   </div>
                 )}
 
-                {/* Mobile Admin (always visible) */}
-                <Link
-                  to="/admin"
-                  onClick={closeMobileMenu}
-                  className="block mb-3"
-                >
-                  <motion.button
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide border-2 relative"
-                    style={{
-                      borderColor: "var(--color-primary)",
-                      backgroundColor: "transparent",
-                      color: "var(--color-primary)",
-                    }}
+                {/* Mobile Admin — only when user role is admin */}
+                {user?.role === "admin" && (
+                  <Link
+                    to="/admin"
+                    onClick={closeMobileMenu}
+                    className="block mb-3"
                   >
-                    <FiGrid size={18} />
-                    <span>Admin Panel</span>
-                    {isActivePath("/admin") && (
-                      <span 
-                        className="absolute bottom-1 left-6 right-6 h-0.5"
-                        style={{ backgroundColor: "var(--color-primary)" }}
-                      />
-                    )}
-                  </motion.button>
-                </Link>
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide border-2 relative"
+                      style={{
+                        borderColor: "var(--color-primary)",
+                        backgroundColor: "transparent",
+                        color: "var(--color-primary)",
+                      }}
+                    >
+                      <FiGrid size={18} />
+                      <span>Admin Panel</span>
+                      {isActivePath("/admin") && (
+                        <span 
+                          className="absolute bottom-1 left-6 right-6 h-0.5"
+                          style={{ backgroundColor: "var(--color-primary)" }}
+                        />
+                      )}
+                    </motion.button>
+                  </Link>
+                )}
 
                 {/* Mobile Login / Register (when not logged in) */}
                 {!isAuthenticated && (

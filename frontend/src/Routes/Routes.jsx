@@ -3,6 +3,7 @@ import { createBrowserRouter } from "react-router";
 import Root from "../Pages/Root";
 import Loading from "../components/Loading";
 import PrivateRoute from "../components/PrivateRoute";
+import AdminRoute from "../components/AdminRoute";
 import AuthWrapper from "../Pages/Auth/AuthWrapper";
 
 // Lazy load all pages
@@ -292,9 +293,11 @@ export const router = createBrowserRouter([
       {
         path: "admin",
         element: (
-          <LazyWrapper>
-            <Admin />
-          </LazyWrapper>
+          <AdminRoute>
+            <LazyWrapper>
+              <Admin />
+            </LazyWrapper>
+          </AdminRoute>
         ),
         children: [
           {

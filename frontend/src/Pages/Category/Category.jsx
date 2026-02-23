@@ -3,7 +3,7 @@
  * Gender routes fetch from API (with optional section/subcategory); others use local data.
  * Structure: section → subcategory → products; empty sections/subcategories are not rendered.
  */
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useParams } from "react-router";
 import {
   Container,
@@ -14,10 +14,10 @@ import {
   QuickView,
   ProductCardSkeleton,
 } from "../../components";
-import { FiGrid, FiList } from "react-icons/fi";
+import { FiGrid, FiList, FiFilter, FiChevronDown } from "react-icons/fi";
 import { productsData } from "../../data/products";
 import { categoriesData } from "../../data/categories";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import {
   filterProducts,
@@ -62,10 +62,24 @@ const Category = () => {
   const [viewMode, setViewMode] = useState("grid");
   const [currentPage, setCurrentPage] = useState(1);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const filterDropdownRef = useRef(null);
   const [apiProducts, setApiProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const itemsPerPage = 12;
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target)) {
+        setFilterDropdownOpen(false);
+      }
+    };
+    if (filterDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [filterDropdownOpen]);
 
   const normalizedCategoryName = categoryName?.toLowerCase();
   const category = findCategoryBySlug(categoryName, categoriesData);
@@ -217,12 +231,12 @@ const Category = () => {
               {category.name}
             </h1>
             {sectionSlug && (
-              <p className="text-lg md:text-xl" style={{ color: "var(--text-secondary)" }}>
+              <p className="text-xl md:text-2xl font-semibold" style={{ color: "var(--text-secondary)" }}>
                 {slugToDisplayName(sectionSlug)}
               </p>
             )}
             {subcategorySlug && (
-              <p className="text-xl font-medium" style={{ color: "var(--text-primary)" }}>
+              <p className="text-base md:text-lg font-medium" style={{ color: "var(--text-primary)" }}>
                 {slugToDisplayName(subcategorySlug)}
               </p>
             )}
@@ -243,38 +257,26 @@ const Category = () => {
     <div className="min-h-screen py-16">
       <Container>
         <motion.div initial="initial" animate="animate" variants={staggerContainer} className="space-y-8">
-          {/* Header: category + optional section + subcategory */}
+          {/* Header: category (boldest/biggest) → sub category → sub sub category (smallest/lightest) */}
           <motion.div variants={fadeInUp} className="text-center space-y-2">
             <h1 className="text-4xl md:text-5xl font-bold" style={{ color: "var(--color-primary)" }}>
               {category.name}
             </h1>
             {sectionDisplay && (
-              <p className="text-base md:text-lg" style={{ color: "var(--text-secondary)" }}>
+              <p className="text-xl md:text-2xl font-semibold" style={{ color: "var(--text-secondary)" }}>
                 {sectionDisplay}
               </p>
             )}
             {subcategoryDisplay && (
-              <p className="text-lg font-medium" style={{ color: "var(--text-primary)" }}>
+              <p className="text-base md:text-lg font-medium" style={{ color: "var(--text-primary)" }}>
                 {subcategoryDisplay}
               </p>
             )}
           </motion.div>
 
-          {/* Main: filter on left when products exist (showFilter), then content */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Filter sidebar — left side, only when products exist */}
-            {showFilter && (
-              <aside className="lg:col-span-1">
-                <div className="sticky top-24">
-                  <ProductFilters
-                    filters={filters}
-                    onFilterChange={handleFilterChange}
-                    onClearFilters={handleClearFilters}
-                  />
-                </div>
-              </aside>
-            )}
-            <div className={showFilter ? "lg:col-span-3 space-y-6" : "space-y-6"}>
+          {/* Main: filter is always in toolbar as dropdown (mobile + desktop) */}
+          <div className="grid grid-cols-1 gap-8">
+            <div className="space-y-6">
               {/* Sort and count: only when products */}
               {hasProducts && (
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -288,7 +290,56 @@ const Category = () => {
                       {sortedProducts.length} products
                     </p>
                   )}
-                  <div className="sm:ml-auto flex items-center gap-3">
+                  <div className="sm:ml-auto flex items-center gap-3 flex-wrap">
+                    {/* Filter dropdown — mobile + desktop */}
+                    {showFilter && (
+                      <div className="relative" ref={filterDropdownRef}>
+                        <motion.button
+                          type="button"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setFilterDropdownOpen((o) => !o)}
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors"
+                          style={{
+                            backgroundColor: filterDropdownOpen ? "var(--color-primary)" : "var(--bg-secondary)",
+                            color: filterDropdownOpen ? "white" : "var(--text-primary)",
+                            borderColor: "var(--border-primary)",
+                          }}
+                          aria-expanded={filterDropdownOpen}
+                          aria-haspopup="true"
+                          aria-label="Open filters"
+                        >
+                          <FiFilter size={18} />
+                          <span className="font-medium">Filter</span>
+                          <FiChevronDown
+                            size={16}
+                            style={{ transform: filterDropdownOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
+                          />
+                        </motion.button>
+                        <AnimatePresence>
+                          {filterDropdownOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -8 }}
+                              transition={{ duration: 0.15 }}
+                              className="absolute left-0 top-full mt-2 z-30 p-4 rounded-xl shadow-lg border"
+                              style={{
+                                backgroundColor: "var(--bg-secondary)",
+                                borderColor: "var(--border-primary)",
+                              }}
+                            >
+                              <ProductFilters
+                                variant="dropdown"
+                                filters={filters}
+                                onFilterChange={handleFilterChange}
+                                onClearFilters={handleClearFilters}
+                              />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
                     <div className="flex items-center gap-1" role="group" aria-label="View mode">
                       <motion.button
                         type="button"
@@ -327,8 +378,8 @@ const Category = () => {
               )}
 
               {useBackendForGender && loading && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {Array.from({ length: 8 }).map((_, i) => (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {Array.from({ length: 6 }).map((_, i) => (
                     <ProductCardSkeleton key={i} />
                   ))}
                 </div>
@@ -358,12 +409,12 @@ const Category = () => {
                     {category.name}
                   </h2>
                   {sectionSlug && (
-                    <p className="text-lg md:text-xl" style={{ color: "var(--text-secondary)" }}>
+                    <p className="text-xl md:text-2xl font-semibold" style={{ color: "var(--text-secondary)" }}>
                       {slugToDisplayName(sectionSlug)}
                     </p>
                   )}
                   {subcategorySlug && (
-                    <p className="text-xl font-medium" style={{ color: "var(--text-primary)" }}>
+                    <p className="text-base md:text-lg font-medium" style={{ color: "var(--text-primary)" }}>
                       {slugToDisplayName(subcategorySlug)}
                     </p>
                   )}

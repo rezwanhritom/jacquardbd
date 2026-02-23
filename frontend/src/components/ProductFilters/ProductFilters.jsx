@@ -2,11 +2,12 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiChevronDown, FiX } from "react-icons/fi";
 
-const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
+const ProductFilters = ({ filters, onFilterChange, onClearFilters, variant = "sidebar" }) => {
+  const isDropdown = variant === "dropdown";
   const [openSections, setOpenSections] = useState({
-    price: true,
-    size: true,
-    color: true,
+    price: !isDropdown,
+    size: !isDropdown,
+    color: !isDropdown,
   });
 
   const toggleSection = (section) => {
@@ -72,19 +73,17 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
     (filters.colors && filters.colors.length > 0) ||
     hasPriceFilter;
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="space-y-6 p-6 rounded-lg"
-      style={{ backgroundColor: "var(--bg-secondary)" }}
-    >
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-          Filters
-        </h3>
+  const content = (
+    <>
+      <div className={`flex items-center justify-between ${isDropdown ? "mb-4" : "mb-6"}`}>
+        {!isDropdown && (
+          <h3 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+            Filters
+          </h3>
+        )}
         {hasActiveFilters && (
           <motion.button
+            type="button"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={onClearFilters}
@@ -98,10 +97,11 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
       </div>
 
       {/* Price Range */}
-      <div className="border-b pb-6" style={{ borderColor: "var(--border-primary)" }}>
+      <div className={isDropdown ? "border-b py-3" : "border-b pb-6"} style={{ borderColor: "var(--border-primary)" }}>
         <button
+          type="button"
           onClick={() => toggleSection("price")}
-          className="w-full flex items-center justify-between mb-4 transition-colors"
+          className={`w-full flex items-center justify-between transition-colors ${isDropdown ? "py-1" : "mb-4"}`}
           onFocus={(e) => {
             e.currentTarget.style.outline = "2px solid var(--color-primary)";
             e.currentTarget.style.outlineOffset = "2px";
@@ -112,7 +112,7 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
           aria-expanded={openSections.price}
           aria-controls="price-filter-section"
         >
-          <h4 className="font-semibold" style={{ color: "var(--text-primary)" }}>
+          <h4 className="font-semibold text-left" style={{ color: "var(--text-primary)" }}>
             Price
           </h4>
           <motion.div
@@ -125,13 +125,14 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
         <AnimatePresence>
           {openSections.price && (
             <motion.div
+              id="price-filter-section"
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="space-y-4">
+              <div className={isDropdown ? "space-y-3 pt-3" : "space-y-4"}>
                 <div className="flex items-center gap-4">
                   <input
                     type="number"
@@ -174,10 +175,11 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
       </div>
 
       {/* Size */}
-      <div className="border-b pb-6" style={{ borderColor: "var(--border-primary)" }}>
+      <div className={isDropdown ? "border-b py-3" : "border-b pb-6"} style={{ borderColor: "var(--border-primary)" }}>
         <button
+          type="button"
           onClick={() => toggleSection("size")}
-          className="w-full flex items-center justify-between mb-4 transition-colors"
+          className={`w-full flex items-center justify-between transition-colors ${isDropdown ? "py-1" : "mb-4"}`}
           onFocus={(e) => {
             e.currentTarget.style.outline = "2px solid var(--color-primary)";
             e.currentTarget.style.outlineOffset = "2px";
@@ -188,7 +190,7 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
           aria-expanded={openSections.size}
           aria-controls="size-filter-section"
         >
-          <h4 className="font-semibold" style={{ color: "var(--text-primary)" }}>
+          <h4 className="font-semibold text-left" style={{ color: "var(--text-primary)" }}>
             Size
           </h4>
           <motion.div
@@ -208,7 +210,7 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="flex flex-wrap gap-2">
+              <div className={`flex flex-wrap gap-2 ${isDropdown ? "pt-3" : ""}`}>
                 {sizes.map((size) => {
                   const isSelected = filters.sizes?.includes(size);
                   return (
@@ -247,10 +249,11 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
       </div>
 
       {/* Color */}
-      <div className="border-b pb-6" style={{ borderColor: "var(--border-primary)" }}>
+      <div className={isDropdown ? "py-3" : "border-b pb-6"} style={!isDropdown ? { borderColor: "var(--border-primary)" } : undefined}>
         <button
+          type="button"
           onClick={() => toggleSection("color")}
-          className="w-full flex items-center justify-between mb-4 transition-colors"
+          className={`w-full flex items-center justify-between transition-colors ${isDropdown ? "py-1" : "mb-4"}`}
           onFocus={(e) => {
             e.currentTarget.style.outline = "2px solid var(--color-primary)";
             e.currentTarget.style.outlineOffset = "2px";
@@ -261,7 +264,7 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
           aria-expanded={openSections.color}
           aria-controls="color-filter-section"
         >
-          <h4 className="font-semibold" style={{ color: "var(--text-primary)" }}>
+          <h4 className="font-semibold text-left" style={{ color: "var(--text-primary)" }}>
             Color
           </h4>
           <motion.div
@@ -281,7 +284,7 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="flex flex-wrap gap-3">
+              <div className={`flex flex-wrap gap-3 ${isDropdown ? "pt-3" : ""}`}>
                 {colors.map((color) => {
                   const isSelected = filters.colors?.includes(color.name);
                   return (
@@ -329,6 +332,21 @@ const ProductFilters = ({ filters, onFilterChange, onClearFilters }) => {
           )}
         </AnimatePresence>
       </div>
+    </>
+  );
+
+  if (isDropdown) {
+    return <div className="min-w-[280px] max-w-[320px]">{content}</div>;
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="space-y-6 p-6 rounded-lg"
+      style={{ backgroundColor: "var(--bg-secondary)" }}
+    >
+      {content}
     </motion.div>
   );
 };
