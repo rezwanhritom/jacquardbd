@@ -12,8 +12,16 @@ export function useCart() {
   return ctx;
 }
 
+const MONGO_ID_REGEX = /^[a-fA-F0-9]{24}$/;
+
 function productId(p) {
-  return p?._id ?? p?.id;
+  const raw = p?._id ?? p?.id;
+  if (raw == null) return null;
+  return String(raw).trim();
+}
+
+function isValidMongoId(id) {
+  return typeof id === "string" && MONGO_ID_REGEX.test(id);
 }
 
 function normalizeCartItem(entry) {
@@ -92,6 +100,11 @@ export function CartProvider({ children }) {
         return { success: false, message: "Please login to add items to cart" };
       }
 
+      if (!isValidMongoId(id)) {
+        toast.error("Add from Men, Women or the product page to add to cart.");
+        return { success: false, message: "Add from Men, Women or the product page to add to cart." };
+      }
+
       if (isInCart(product)) {
         return { success: false, message: "Product already in cart" };
       }
@@ -101,13 +114,18 @@ export function CartProvider({ children }) {
       const addQty = Math.min(qty, Math.max(1, stock));
       const prev = [...cartItems];
       setCartItems((curr) => [...curr, { product: { ...product, _id: id, id }, quantity: addQty }]);
-      const { success, cart, message } = await cartApi.addToCart(id, addQty);
-      if (success && Array.isArray(cart)) {
-        setCartFromEntries(cart);
-        return { success: true, message };
+      try {
+        const { success, cart, message } = await cartApi.addToCart(id, addQty);
+        if (success && Array.isArray(cart)) {
+          setCartFromEntries(cart);
+          return { success: true, message };
+        }
+        setCartItems(prev);
+        return { success: false, message: message || "Failed to add to cart" };
+      } catch (err) {
+        setCartItems(prev);
+        return { success: false, message: err?.message || "Failed to add to cart" };
       }
-      setCartItems(prev);
-      return { success: false, message: message || "Product already in cart" };
     },
     [isAuthenticated, cartItems, isInCart, setCartFromEntries]
   );

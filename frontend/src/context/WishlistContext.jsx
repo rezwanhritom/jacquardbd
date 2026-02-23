@@ -29,8 +29,16 @@ function setGuestWishlist(items) {
   } catch {}
 }
 
+const MONGO_ID_REGEX = /^[a-fA-F0-9]{24}$/;
+
 function productId(p) {
-  return p?._id ?? p?.id;
+  const raw = p?._id ?? p?.id;
+  if (raw == null) return null;
+  return String(raw).trim();
+}
+
+function isValidMongoId(id) {
+  return typeof id === "string" && MONGO_ID_REGEX.test(id);
 }
 
 export function WishlistProvider({ children }) {
@@ -101,15 +109,23 @@ export function WishlistProvider({ children }) {
       if (alreadyIn) return { success: true, message: "Already in wishlist" };
 
       if (isAuthenticated) {
+        if (!isValidMongoId(id)) {
+          return { success: false, message: "Add from Men, Women or the product page to save to wishlist." };
+        }
         const prev = [...wishlistItems];
         setWishlistItems((curr) => [...curr, normalizeItem(product)]);
-        const { success, wishlist, message } = await wishlistApi.addToWishlist(id);
-        if (success && Array.isArray(wishlist)) {
-          setWishlistItems(wishlist.map(normalizeItem));
-        } else {
+        try {
+          const { success, wishlist, message } = await wishlistApi.addToWishlist(id);
+          if (success && Array.isArray(wishlist)) {
+            setWishlistItems(wishlist.map(normalizeItem));
+            return { success: true, message };
+          }
           setWishlistItems(prev);
+          return { success: false, message: message || "Failed to add" };
+        } catch (err) {
+          setWishlistItems(prev);
+          return { success: false, message: err?.message || "Failed to add to wishlist" };
         }
-        return { success: success !== false, message };
       } else {
         const guest = getGuestWishlist();
         guest.push({
@@ -133,19 +149,27 @@ export function WishlistProvider({ children }) {
 
   const removeFromWishlist = useCallback(
     async (productOrId) => {
-      const id = typeof productOrId === "string" ? productOrId : productId(productOrId);
+      const id = typeof productOrId === "string" ? productOrId.trim() : productId(productOrId);
       if (!id) return { success: false };
 
       if (isAuthenticated) {
         const prev = [...wishlistItems];
         setWishlistItems((curr) => curr.filter((p) => productId(p) !== id && String(productId(p)) !== String(id)));
-        const { success, wishlist } = await wishlistApi.removeFromWishlist(id);
-        if (!success) {
-          setWishlistItems(prev);
-        } else if (Array.isArray(wishlist)) {
-          setWishlistItems(wishlist.map(normalizeItem));
+        if (isValidMongoId(id)) {
+          try {
+            const { success, wishlist } = await wishlistApi.removeFromWishlist(id);
+            if (success && Array.isArray(wishlist)) {
+              setWishlistItems(wishlist.map(normalizeItem));
+            } else {
+              setWishlistItems(prev);
+            }
+            return { success: success === true };
+          } catch {
+            setWishlistItems(prev);
+            return { success: false };
+          }
         }
-        return { success };
+        return { success: true };
       } else {
         const guest = getGuestWishlist().filter((p) => productId(p) !== id && String(productId(p)) !== String(id));
         setGuestWishlist(guest);
