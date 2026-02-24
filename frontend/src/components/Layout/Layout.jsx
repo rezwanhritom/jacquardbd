@@ -13,7 +13,7 @@ const Layout = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-theme-primary transition-colors duration-300">
+    <div className="min-h-screen flex flex-col bg-theme-primary transition-colors duration-300 overflow-x-hidden w-full max-w-[100vw]">
       {/* Skip to main content link for accessibility */}
       <Link
         to="#main-content"
@@ -25,7 +25,7 @@ const Layout = () => {
       >
         Skip to main content
       </Link>
-      <header className="sticky top-0 z-50 w-full">
+      <header className="sticky top-0 z-50 w-full min-w-0">
         <Navbar />
       </header>
       <main id="main-content" className="flex-1 w-full min-w-0" tabIndex={-1}>
@@ -37,7 +37,7 @@ const Layout = () => {
             exit="exit"
             variants={pageTransitionVariants}
             transition={pageTransitionConfig}
-            className="w-full"
+            className="w-full min-w-0 overflow-x-hidden"
           >
             <Outlet />
           </motion.div>

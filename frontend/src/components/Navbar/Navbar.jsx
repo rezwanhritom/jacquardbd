@@ -144,7 +144,7 @@ const Navbar = () => {
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className={`w-full transition-all duration-300 ${
+        className={`w-full max-w-full overflow-x-hidden transition-all duration-300 ${
           isScrolled
             ? "shadow-lg backdrop-blur-md bg-opacity-95"
             : "shadow-sm backdrop-blur-sm bg-opacity-90"
@@ -153,24 +153,24 @@ const Navbar = () => {
           backgroundColor: "var(--bg-primary)",
         }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            {/* Logo */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full min-w-0">
+          <div className="flex items-center justify-between gap-2 sm:gap-4 h-16 sm:h-20 min-h-0">
+            {/* Logo — can shrink on small widths to avoid overlap */}
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex-shrink-0"
+              className="flex-shrink-0 min-w-0 flex items-center"
             >
-              <Link to="/" className="flex items-center gap-3 group">
+              <Link to="/" className="flex items-center gap-2 sm:gap-3 group min-w-0">
                 <motion.img
                   src="/images/logo.png"
                   alt={navigationData.logo}
-                  className="h-10 w-auto object-contain"
+                  className="h-8 sm:h-10 w-auto object-contain flex-shrink-0"
                   whileHover={{ rotate: [0, -5, 5, -5, 0] }}
                   transition={{ duration: 0.5 }}
                 />
                 <motion.span
-                  className="text-2xl font-bold tracking-wider"
+                  className="text-lg sm:text-xl md:text-2xl font-bold tracking-wider truncate"
                   style={{ color: "var(--color-primary)" }}
                   whileHover={{ x: 2 }}
                 >
@@ -180,7 +180,7 @@ const Navbar = () => {
             </motion.div>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center space-x-1 flex-1 justify-center">
+            <div className="hidden lg:flex items-center space-x-1 flex-1 justify-center min-w-0">
               {navigationData.links.map((link) => {
                 const isActive = isActivePath(link.path);
                 return (

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { fadeInUp } from "../../utils/animations";
-import { FiCrown, FiCheck, FiStar, FiGift, FiTruck, FiPercent } from "react-icons/fi";
+import { FaCrown } from "react-icons/fa";
+import { FiCheck, FiStar, FiGift, FiTruck, FiPercent } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 import { applyForPremium } from "../../services/user.service";
@@ -52,7 +53,7 @@ const Membership = () => {
       >
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center justify-center gap-3">
-            <FiCrown size={32} style={{ color: "var(--color-primary)" }} />
+            <FaCrown size={32} style={{ color: "var(--color-primary)" }} />
             <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
               {tierLabel} Member
             </h2>

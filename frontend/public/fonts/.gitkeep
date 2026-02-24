@@ -1,0 +1,4 @@
+# Put your Trajan Pro font files here with these exact names:
+#   TrajanPro-Regular.woff   (for normal weight)
+#   TrajanPro-Bold.woff      (for bold weight)
+# Then run: npm run build
