@@ -116,21 +116,93 @@ FRONTEND_URL=http://localhost:5173
 
 Without SMTP, the backend still creates users and verification tokens, but it **does not** send an email; it only **logs the verification link** in the terminal (good for local testing). To actually send emails, configure SMTP in the backend.
 
-### Option A – Gmail (simple for testing)
+### Option A – Gmail (step-by-step)
 
-1. Use a Gmail account.
-2. Turn on **2-Step Verification** for that account (Google Account → Security).
-3. Create an **App password**:  
-   Google Account → Security → 2-Step Verification → App passwords → generate one for “Mail”.
-4. In `jacquard/backend/.env` add (replace with your Gmail and app password):
+Use a **Gmail** account (e.g. your personal or a dedicated one like `jacquard.noreply@gmail.com`). The app will send verification emails “from” this address.
+
+---
+
+#### Step 1: Turn on 2-Step Verification (required for App Passwords)
+
+1. Open **https://myaccount.google.com/** and sign in with the Gmail account you want to use for sending.
+2. In the left menu, click **Security** (or go to **https://myaccount.google.com/security**).
+3. Under “How you sign in to Google”, find **2-Step Verification**.
+4. Click **2-Step Verification**.
+   - If it says “OFF”: click **Get started**, follow the prompts (phone number, code), and turn it **ON**.
+   - If it already says “ON”, you’re done with this step.
+
+---
+
+#### Step 2: Create an App Password
+
+1. Still in **Google Account** → **Security**.
+2. Under “How you sign in to Google”, find **2-Step Verification** and click it.
+3. Scroll down to **App passwords** (or open **https://myaccount.google.com/apppasswords**).
+   - If you don’t see “App passwords”, make sure 2-Step Verification is ON and you’re not using a Google Workspace account that blocks it (some orgs do).
+4. Click **App passwords**.
+5. You may be asked to sign in again. Enter your Google password.
+6. In “Select app”: choose **Mail**.
+7. In “Select device”: choose **Other (Custom name)** and type e.g. **Jacquard backend**.
+8. Click **Generate**.
+9. Google shows a **16-character password** (like `abcd efgh ijkl mnop`). **Copy it** and store it somewhere safe. You won’t see it again.
+10. You’ll paste this 16-character password into your backend `.env` as `SMTP_PASS` (you can keep or remove the spaces; both usually work).
+
+---
+
+#### Step 3: Add SMTP variables to backend `.env`
+
+1. Open the backend environment file: **`jacquard/backend/.env`** (in your project root: `backend/.env`).
+2. Add these lines (or replace the commented SMTP lines if they’re already there). Use **your** Gmail address and the **App password** you just generated:
+
    ```env
    SMTP_HOST=smtp.gmail.com
    SMTP_PORT=587
    SMTP_USER=yourname@gmail.com
-   SMTP_PASS=your-16-char-app-password
+   SMTP_PASS=abcdefghijklmnop
    MAIL_FROM=yourname@gmail.com
    ```
-5. Restart the backend server.
+
+   Replace:
+   - **`yourname@gmail.com`** with the Gmail address you used in Step 1 (use the same for `SMTP_USER` and `MAIL_FROM`).
+   - **`abcdefghijklmnop`** with the 16-character App password from Step 2 (no spaces is fine, e.g. `abcdefghijklmnop`).
+
+   Example (fake values):
+
+   ```env
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER=jacquard.demo@gmail.com
+   SMTP_PASS=abcdefghijklmnop
+   MAIL_FROM=jacquard.demo@gmail.com
+   ```
+
+3. Save the file.
+
+---
+
+#### Step 4: Restart the backend
+
+1. Stop the backend server (in the terminal where it’s running: **Ctrl+C**).
+2. Start it again from the backend folder:
+   ```bash
+   cd jacquard/backend
+   npm run dev
+   ```
+   The server reads `.env` only at startup, so a restart is required after changing SMTP settings.
+
+---
+
+#### Step 5: Test that verification emails are sent
+
+1. In your app, go to **Register** and create a new account with an email you can check (can be another address, not necessarily the Gmail used for SMTP).
+2. After submitting, you should see “Check your email” and be on the verify-email-sent page.
+3. Check the **inbox** (and **Spam**) of that email address. You should receive an email from your Gmail (`MAIL_FROM`) with a “Verify your email” link.
+4. Click the link; it should open your app’s verify-email page and mark the account as verified. Then sign in with that account.
+
+If no email arrives:
+- Confirm the 5 SMTP lines in `backend/.env` are correct and that you **restarted** the backend.
+- For Gmail, make sure you’re using an **App password**, not your normal Gmail password.
+- Check the backend terminal for any error messages when you register (e.g. “Invalid login” or “Connection refused”).
 
 ### Option B – Another provider (SendGrid, Mailgun, etc.)
 
