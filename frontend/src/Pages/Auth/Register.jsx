@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
+import { GoogleLogin } from "@react-oauth/google";
 import { FiUser, FiMail, FiLock, FiAlertCircle, FiCheck } from "react-icons/fi";
-import { FcGoogle } from "react-icons/fc";
 import { AuthLayout, FormInput, FormButton, PasswordStrength } from "../../components/Form";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
+
 const Register = () => {
   const navigate = useNavigate();
-  const { register: registerUser } = useAuth();
+  const { register: registerUser, loginWithGoogle } = useAuth();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -21,6 +23,7 @@ const Register = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const validateEmail = (email) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -114,8 +117,9 @@ const Register = () => {
 
     if (result.success) {
       setShowSuccess(true);
-      toast.success("Account created successfully!");
-      setTimeout(() => navigate("/login"), 1200);
+      toast.success("Account created. Please verify your email to sign in.");
+      const emailForUrl = result.email || formData.email;
+      setTimeout(() => navigate(`/verify-email-sent${emailForUrl ? `?email=${encodeURIComponent(emailForUrl)}` : ""}`), 800);
     } else {
       setErrors({
         ...(result.errors?.length ? { general: result.errors[0] } : {}),
@@ -127,8 +131,23 @@ const Register = () => {
     setIsLoading(false);
   };
 
-  const handleSocialSignup = (provider) => {
-    toast.success(`${provider} signup coming soon!`);
+  const handleGoogleSuccess = async (credentialResponse) => {
+    const idToken = credentialResponse?.credential;
+    if (!idToken) {
+      toast.error("Google sign-in failed");
+      return;
+    }
+    setGoogleLoading(true);
+    setErrors({});
+    const result = await loginWithGoogle(idToken);
+    setGoogleLoading(false);
+    if (result.success) {
+      toast.success("Account created and signed in!");
+      navigate("/", { replace: true });
+    } else {
+      setErrors({ general: result.message || "Google sign-up failed" });
+      toast.error(result.message || "Google sign-up failed");
+    }
   };
 
   return (
@@ -163,7 +182,7 @@ const Register = () => {
             >
               <FiCheck style={{ color: "var(--color-secondary)" }} />
               <p className="text-sm" style={{ color: "var(--color-secondary)" }}>
-                Account created! Redirecting to login...
+                Account created! Check your email to verify, then sign in.
               </p>
             </motion.div>
           )}
@@ -286,6 +305,8 @@ const Register = () => {
           Create Account
         </FormButton>
 
+        {googleClientId && (
+          <>
         {/* Divider */}
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
@@ -302,21 +323,23 @@ const Register = () => {
         </div>
 
         {/* Social signup */}
-        <motion.button
-          type="button"
-          onClick={() => handleSocialSignup("Google")}
-          className="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 rounded-lg transition-colors"
-          style={{
-            borderColor: "var(--border-primary)",
-            backgroundColor: "var(--bg-primary)",
-            color: "var(--text-primary)",
-          }}
-          whileHover={{ scale: 1.02, backgroundColor: "var(--bg-secondary)" }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <FcGoogle size={20} />
-          <span className="text-sm font-medium">Continue with Google</span>
-        </motion.button>
+        <div className="flex justify-center">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => {
+              setGoogleLoading(false);
+              toast.error("Google sign-up was cancelled or failed");
+            }}
+            useOneTap={false}
+            theme="filled_black"
+            size="large"
+            text="signup_with"
+            shape="rectangular"
+            width="320"
+          />
+        </div>
+          </>
+        )}
 
         {/* Login link */}
         <p className="text-center text-sm" style={{ color: "var(--text-secondary)" }}>

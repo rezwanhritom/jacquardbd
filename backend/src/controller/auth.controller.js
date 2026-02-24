@@ -1,7 +1,13 @@
+import crypto from "crypto";
+import { OAuth2Client } from "google-auth-library";
 import User from "../models/User.js";
 import Session from "../models/Session.js";
 import { generateToken } from "../utils/generateToken.js";
 import { COOKIE_NAME } from "../middlewares/auth.middleware.js";
+import { sendVerificationEmail } from "../utils/email.js";
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const VERIFICATION_TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -31,11 +37,16 @@ function userResponse(user) {
     name: user.name,
     email: user.email,
     role: user.role,
+    emailVerified: user.emailVerified ?? false,
     premiumAppliedAt: user.premiumAppliedAt ?? null,
     avatar: user.avatar ?? "",
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
+}
+
+function hashVerificationToken(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
 }
 
 function parseUserAgent(ua) {
@@ -53,7 +64,7 @@ function parseUserAgent(ua) {
 
 /**
  * POST /api/auth/register
- * Validate input, hash password, create user. Does not log in (no cookie).
+ * Validate input, hash password, create user, send verification email. Does not log in (no cookie).
  */
 export async function register(req, res, next) {
   try {
@@ -85,15 +96,31 @@ export async function register(req, res, next) {
       name: name.trim(),
       email: email.trim().toLowerCase(),
       password,
+      emailVerified: false,
     });
 
+    const plainToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = hashVerificationToken(plainToken);
+    user.emailVerificationToken = hashedToken;
+    user.emailVerificationExpires = new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY_MS);
+    await user.save({ validateBeforeSave: false });
+
+    const emailResult = await sendVerificationEmail(user.email, plainToken);
+    if (!emailResult.sent && emailResult.error && process.env.NODE_ENV === "production") {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send verification email. Please try again later.",
+      });
+    }
+
     if (process.env.NODE_ENV !== "production") {
-      console.log("[Auth] User registered and saved to DB:", user.email, "| _id:", user._id?.toString());
+      console.log("[Auth] User registered:", user.email, "| _id:", user._id?.toString());
     }
 
     res.status(201).json({
       success: true,
-      message: "Registration successful",
+      message: "Registration successful. Please verify your email to sign in.",
+      email: user.email,
       user: userResponse(user),
     });
   } catch (err) {
@@ -103,7 +130,7 @@ export async function register(req, res, next) {
 
 /**
  * POST /api/auth/login
- * Validate email & password, generate JWT, set HTTP-only cookie, return user (no password).
+ * Validate email & password, require emailVerified, generate JWT, set cookie, return user.
  */
 export async function login(req, res, next) {
   try {
@@ -113,7 +140,9 @@ export async function login(req, res, next) {
       return res.status(400).json({ success: false, message: "Email and password are required" });
     }
 
-    const user = await User.findOne({ email: email.trim().toLowerCase() }).select("+password");
+    const user = await User.findOne({ email: email.trim().toLowerCase() }).select(
+      "+password +emailVerificationToken"
+    );
     if (!user) {
       return res.status(401).json({ success: false, message: "Invalid email or password" });
     }
@@ -121,6 +150,181 @@ export async function login(req, res, next) {
     const match = await user.comparePassword(password);
     if (!match) {
       return res.status(401).json({ success: false, message: "Invalid email or password" });
+    }
+
+    if (!user.emailVerified) {
+      // Legacy users (created before email verification) have no token; allow and mark verified
+      const legacy = !user.emailVerificationToken && !user.googleId;
+      if (legacy) {
+        user.emailVerified = true;
+        await user.save({ validateBeforeSave: false });
+      } else {
+        return res.status(403).json({
+          success: false,
+          message: "Please verify your account. Check your email for the verification link.",
+        });
+      }
+    }
+
+    const userAgent = req.headers["user-agent"] || "";
+    const session = await Session.create({
+      user: user._id,
+      userAgent,
+    });
+    const token = generateToken(user._id.toString(), session._id.toString());
+    setTokenCookie(res, token);
+
+    const expiresIn = process.env.JWT_EXPIRES_IN || "7d";
+    res.json({
+      success: true,
+      message: "Login successful",
+      user: userResponse(user),
+      accessToken: token,
+      expiresIn,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * GET /api/auth/verify-email?token=xxx
+ * Verify email using token, set emailVerified, clear token. No auth required.
+ */
+export async function verifyEmail(req, res, next) {
+  try {
+    const { token } = req.query;
+    if (!token || typeof token !== "string") {
+      return res.status(400).json({ success: false, message: "Invalid or missing verification token" });
+    }
+
+    const hashedToken = hashVerificationToken(token.trim());
+    const user = await User.findOne({
+      emailVerificationToken: hashedToken,
+      emailVerificationExpires: { $gt: new Date() },
+    }).select("+emailVerificationToken +emailVerificationExpires");
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired verification link. You can request a new one from the login page.",
+      });
+    }
+
+    user.emailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    res.json({
+      success: true,
+      message: "Email verified successfully. You can now sign in.",
+      user: userResponse(user),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/auth/resend-verification
+ * Body: { email }. Send a new verification email. No auth required.
+ */
+export async function resendVerification(req, res, next) {
+  try {
+    const { email } = req.body || {};
+    if (!email?.trim()) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email: email.trim().toLowerCase() }).select(
+      "+emailVerificationToken +emailVerificationExpires"
+    );
+    if (!user) {
+      return res.status(404).json({ success: false, message: "No account found with this email" });
+    }
+    if (user.emailVerified) {
+      return res.status(400).json({ success: false, message: "Email is already verified. You can sign in." });
+    }
+
+    const plainToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = hashVerificationToken(plainToken);
+    user.emailVerificationToken = hashedToken;
+    user.emailVerificationExpires = new Date(Date.now() + VERIFICATION_TOKEN_EXPIRY_MS);
+    await user.save({ validateBeforeSave: false });
+
+    const emailResult = await sendVerificationEmail(user.email, plainToken);
+    if (!emailResult.sent && emailResult.error && process.env.NODE_ENV === "production") {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send verification email. Please try again later.",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Verification email sent. Please check your inbox.",
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/auth/google
+ * Body: { idToken } (Google ID token from frontend). Verify with Google, find or create user, log in.
+ */
+export async function loginWithGoogle(req, res, next) {
+  try {
+    const { idToken } = req.body || {};
+    if (!idToken || typeof idToken !== "string") {
+      return res.status(400).json({ success: false, message: "Google ID token is required" });
+    }
+
+    if (!GOOGLE_CLIENT_ID) {
+      return res.status(503).json({ success: false, message: "Google sign-in is not configured" });
+    }
+
+    const client = new OAuth2Client(GOOGLE_CLIENT_ID);
+    let payload;
+    try {
+      const ticket = await client.verifyIdToken({ idToken, audience: GOOGLE_CLIENT_ID });
+      payload = ticket.getPayload();
+    } catch (err) {
+      return res.status(401).json({ success: false, message: "Invalid Google token" });
+    }
+
+    const { sub: googleId, email, name } = payload || {};
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Google account email not available" });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    let user = await User.findOne({
+      $or: [{ googleId }, { email: normalizedEmail }],
+    }).select("+password");
+
+    if (user) {
+      if (user.googleId && user.googleId !== googleId) {
+        return res.status(401).json({ success: false, message: "Invalid Google account" });
+      }
+      if (!user.googleId) {
+        return res.status(409).json({
+          success: false,
+          message: "An account already exists with this email. Please sign in with your password.",
+        });
+      }
+      if (!user.emailVerified) {
+        user.emailVerified = true;
+        await user.save({ validateBeforeSave: false });
+      }
+    } else {
+      user = await User.create({
+        name: (name || normalizedEmail).trim(),
+        email: normalizedEmail,
+        googleId,
+        emailVerified: true,
+      });
     }
 
     const userAgent = req.headers["user-agent"] || "";

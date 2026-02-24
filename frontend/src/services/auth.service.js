@@ -34,6 +34,48 @@ export async function register(payload) {
   if (!res.ok) {
     return { success: false, message: data.message || "Registration failed", errors: data.errors };
   }
+  return { success: true, user: data.user, email: data.email, message: data.message };
+}
+
+/**
+ * GET /api/auth/verify-email?token=xxx
+ */
+export async function verifyEmail(token) {
+  const res = await authFetch(`/verify-email?token=${encodeURIComponent(token)}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, message: data.message || "Verification failed" };
+  }
+  return { success: true, message: data.message };
+}
+
+/**
+ * POST /api/auth/resend-verification — Body: { email }
+ */
+export async function resendVerification(email) {
+  const res = await authFetch("/resend-verification", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, message: data.message || "Failed to resend" };
+  }
+  return { success: true, message: data.message };
+}
+
+/**
+ * POST /api/auth/google — Body: { idToken }
+ */
+export async function loginWithGoogle(idToken) {
+  const res = await authFetch("/google", {
+    method: "POST",
+    body: JSON.stringify({ idToken }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, message: data.message || "Google sign-in failed" };
+  }
   return { success: true, user: data.user, message: data.message };
 }
 

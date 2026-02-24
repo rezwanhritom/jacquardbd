@@ -1,5 +1,11 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { getMe, login as loginApi, register as registerApi, logout as logoutApi } from "../services/auth.service";
+import {
+  getMe,
+  login as loginApi,
+  register as registerApi,
+  logout as logoutApi,
+  loginWithGoogle as loginWithGoogleApi,
+} from "../services/auth.service";
 
 const AuthContext = createContext(null);
 
@@ -41,7 +47,14 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async (name, email, password) => {
     const result = await registerApi({ name, email, password });
-    // Backend does not set cookie on register; user must log in
+    return result;
+  }, []);
+
+  const loginWithGoogle = useCallback(async (idToken) => {
+    const result = await loginWithGoogleApi(idToken);
+    if (result.success) {
+      setUser(result.user);
+    }
     return result;
   }, []);
 
@@ -57,6 +70,7 @@ export function AuthProvider({ children }) {
     loading,
     login,
     register,
+    loginWithGoogle,
     logout,
     loadUser,
   };

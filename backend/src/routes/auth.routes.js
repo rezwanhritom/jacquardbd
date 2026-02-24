@@ -4,6 +4,9 @@ import {
   login,
   logout,
   me,
+  verifyEmail,
+  resendVerification,
+  loginWithGoogle,
   changePassword,
   getSessions,
   revokeSession,
@@ -15,6 +18,9 @@ const router = express.Router();
 
 router.post("/register", register);
 router.post("/login", login);
+router.get("/verify-email", verifyEmail);
+router.post("/resend-verification", resendVerification);
+router.post("/google", loginWithGoogle);
 router.post("/logout", protect, logout);
 router.get("/me", protect, me);
 

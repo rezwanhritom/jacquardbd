@@ -1,16 +1,19 @@
-import { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation, useSearchParams } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
+import { GoogleLogin } from "@react-oauth/google";
 import { FiMail, FiLock, FiAlertCircle, FiCheck } from "react-icons/fi";
-import { FcGoogle } from "react-icons/fc";
 import { AuthLayout, FormInput, FormButton, FormCheckbox } from "../../components/Form";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
+
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { login, loginWithGoogle } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -19,6 +22,13 @@ const Login = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("verified") === "1") {
+      toast.success("Email verified. You can sign in now.");
+    }
+  }, [searchParams]);
 
   const validateEmail = (email) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -81,8 +91,24 @@ const Login = () => {
     setIsLoading(false);
   };
 
-  const handleSocialLogin = (provider) => {
-    toast.success(`${provider} login coming soon!`);
+  const handleGoogleSuccess = async (credentialResponse) => {
+    const idToken = credentialResponse?.credential;
+    if (!idToken) {
+      toast.error("Google sign-in failed");
+      return;
+    }
+    setGoogleLoading(true);
+    setErrors({});
+    const result = await loginWithGoogle(idToken);
+    setGoogleLoading(false);
+    if (result.success) {
+      toast.success("Login successful! Welcome back.");
+      const from = location.state?.from?.pathname || "/";
+      navigate(from, { replace: true });
+    } else {
+      setErrors({ general: result.message || "Google sign-in failed" });
+      toast.error(result.message || "Google sign-in failed");
+    }
   };
 
   return (
@@ -95,13 +121,26 @@ const Login = () => {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="p-4 rounded-lg flex items-center gap-3"
+              className="p-4 rounded-lg space-y-2"
               style={{ backgroundColor: "rgba(220, 38, 38, 0.1)" }}
             >
-              <FiAlertCircle style={{ color: "var(--color-tertiary)" }} />
-              <p className="text-sm" style={{ color: "var(--color-tertiary)" }}>
-                {errors.general}
-              </p>
+              <div className="flex items-center gap-3">
+                <FiAlertCircle style={{ color: "var(--color-tertiary)" }} />
+                <p className="text-sm" style={{ color: "var(--color-tertiary)" }}>
+                  {errors.general}
+                </p>
+              </div>
+              {errors.general.toLowerCase().includes("verify") && formData.email && (
+                <p className="text-sm pl-7">
+                  <Link
+                    to={`/verify-email-sent?email=${encodeURIComponent(formData.email)}`}
+                    className="font-medium underline"
+                    style={{ color: "var(--color-primary)" }}
+                  >
+                    Resend verification email
+                  </Link>
+                </p>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -177,6 +216,8 @@ const Login = () => {
           Sign In
         </FormButton>
 
+        {googleClientId && (
+          <>
         {/* Divider */}
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
@@ -193,23 +234,25 @@ const Login = () => {
         </div>
 
         {/* Social login buttons */}
-        <div className="grid grid-cols-1 gap-3">
-          <motion.button
-            type="button"
-            onClick={() => handleSocialLogin("Google")}
-            className="flex items-center justify-center gap-3 px-4 py-3 border-2 rounded-lg transition-colors"
-            style={{
-              borderColor: "var(--border-primary)",
-              backgroundColor: "var(--bg-primary)",
-              color: "var(--text-primary)",
-            }}
-            whileHover={{ scale: 1.02, backgroundColor: "var(--bg-secondary)" }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <FcGoogle size={20} />
-            <span className="text-sm font-medium">Continue with Google</span>
-          </motion.button>
-        </div>
+          <div className="grid grid-cols-1 gap-3">
+            <div className="flex justify-center">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => {
+                  setGoogleLoading(false);
+                  toast.error("Google sign-in was cancelled or failed");
+                }}
+                useOneTap={false}
+                theme="filled_black"
+                size="large"
+                text="continue_with"
+                shape="rectangular"
+                width="320"
+              />
+            </div>
+          </div>
+          </>
+        )}
 
         {/* Sign up link */}
         <p className="text-center text-sm" style={{ color: "var(--text-secondary)" }}>

@@ -54,6 +54,8 @@ const Login = lazy(() => import("../Pages/Auth/Login"));
 const Register = lazy(() => import("../Pages/Auth/Register"));
 const ForgotPassword = lazy(() => import("../Pages/Auth/ForgotPassword"));
 const ResetPassword = lazy(() => import("../Pages/Auth/ResetPassword"));
+const VerifyEmailSent = lazy(() => import("../Pages/Auth/VerifyEmailSent"));
+const VerifyEmail = lazy(() => import("../Pages/Auth/VerifyEmail"));
 
 // Wrapper component for Suspense
 const LazyWrapper = ({ children }) => (
@@ -94,6 +96,22 @@ export const router = createBrowserRouter([
         element: (
           <LazyWrapper>
             <ResetPassword />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "/verify-email-sent",
+        element: (
+          <LazyWrapper>
+            <VerifyEmailSent />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "/verify-email",
+        element: (
+          <LazyWrapper>
+            <VerifyEmail />
           </LazyWrapper>
         ),
       },

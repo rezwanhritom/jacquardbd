@@ -17,14 +17,19 @@ const addressSchema = new mongoose.Schema(
 );
 
 /**
- * User schema: name, email (unique), hashed password, role, addresses.
- * Passwords are hashed in pre-save middleware; never store plain text.
+ * User schema: name, email (unique), optional password (for Google-only users),
+ * emailVerified, emailVerificationToken, googleId, role, addresses.
+ * Passwords are hashed in pre-save when present; never store plain text.
  */
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true, minlength: 8, select: false },
+    password: { type: String, minlength: 8, select: false, default: null },
+    emailVerified: { type: Boolean, default: false },
+    emailVerificationToken: { type: String, select: false, default: null },
+    emailVerificationExpires: { type: Date, select: false, default: null },
+    googleId: { type: String, sparse: true, default: null },
     role: { type: String, enum: ["user", "admin", "premium"], default: "user" },
     premiumAppliedAt: { type: Date, default: null },
     avatar: { type: String, trim: true, default: "" },
@@ -42,17 +47,19 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.index({ email: 1 });
+userSchema.index({ googleId: 1 }, { sparse: true });
 
-// Hash password before saving (only when password is modified)
+// Hash password before saving (only when password is modified and present)
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+  if (!this.isModified("password") || !this.password) return next();
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
-// Compare plain password with hashed
+// Compare plain password with hashed (returns false if user has no password, e.g. Google-only)
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 
