@@ -6,6 +6,7 @@ import "./index.css";
 import { AuthProvider } from "./context/AuthContext";
 import { WishlistProvider } from "./context/WishlistContext";
 import { CartProvider } from "./context/CartContext";
+import { ChatProvider } from "./context/ChatContext";
 import { router } from "./Routes/Routes.jsx";
 import { RouterProvider } from "react-router";
 
@@ -24,6 +25,7 @@ const App = () => (
     {googleClientId ? (
       <GoogleOAuthProvider clientId={googleClientId}>
         <AuthProvider>
+          <ChatProvider>
           <WishlistProvider>
             <CartProvider>
             <>
@@ -54,10 +56,12 @@ const App = () => (
             </>
             </CartProvider>
           </WishlistProvider>
+          </ChatProvider>
         </AuthProvider>
       </GoogleOAuthProvider>
     ) : (
       <AuthProvider>
+        <ChatProvider>
         <WishlistProvider>
           <CartProvider>
             <>
@@ -78,6 +82,7 @@ const App = () => (
             </>
           </CartProvider>
         </WishlistProvider>
+        </ChatProvider>
       </AuthProvider>
     )}
   </RemoveLoadingScreen>

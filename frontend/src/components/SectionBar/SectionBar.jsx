@@ -21,7 +21,7 @@ const SectionBar = ({ variant = "section", title, text, link, className = "", ce
         className={`${baseClass} text-center border-y ${className}`}
         style={{ ...style, borderColor: "var(--border-primary)" }}
       >
-        <p className="text-sm uppercase tracking-widest" style={{ color: "var(--color-primary)", fontWeight: 600 }}>
+        <p className="text-sm tracking-wide" style={{ color: "var(--color-primary)", fontWeight: 600 }}>
           <span style={{ fontWeight: 600 }}>Elevating </span>
           <span style={{ fontWeight: 700 }}>Style </span>
           <span style={{ fontWeight: 800 }}>Since </span>
@@ -88,7 +88,7 @@ const SectionBar = ({ variant = "section", title, text, link, className = "", ce
       style={{ ...style, borderColor: "var(--border-primary)" }}
     >
       <div className={`max-w-7xl mx-auto ${centered ? "text-center" : ""}`}>
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold uppercase tracking-wide" style={{ color: "var(--color-primary)" }}>
+        <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-wide" style={{ color: "var(--color-primary)" }}>
           {title}
         </h2>
       </div>

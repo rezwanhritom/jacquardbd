@@ -36,7 +36,7 @@ const megaMenuCategories = {
 };
 
 export const navigationData = {
-  logo: "jacquardbd",
+  logo: "JACQUARD",
   links: [
     { id: 1, label: "Home", path: "/" },
     { id: 2, label: "Men", path: "/category/men", hasMegaMenu: true },

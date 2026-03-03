@@ -7,7 +7,6 @@ import {
   FiHeart,
   FiShoppingBag,
   FiUser,
-  FiMenu,
   FiX,
   FiSun,
   FiMoon,
@@ -144,7 +143,7 @@ const Navbar = () => {
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className={`w-full max-w-full overflow-x-hidden transition-all duration-300 ${
+        className={`w-full max-w-full overflow-visible transition-all duration-300 ${
           isScrolled
             ? "shadow-lg backdrop-blur-md bg-opacity-95"
             : "shadow-sm backdrop-blur-sm bg-opacity-90"
@@ -180,19 +179,19 @@ const Navbar = () => {
             </motion.div>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center space-x-1 flex-1 justify-center min-w-0">
+            <div className="hidden lg:flex items-center gap-0.5 flex-1 justify-center min-w-0">
               {navigationData.links.map((link) => {
                 const isActive = isActivePath(link.path);
                 return (
                 <div
                   key={link.id}
-                  className="relative"
+                  className="relative shrink-0"
                   onMouseEnter={() => handleMegaMenuHover(link.label)}
                   onMouseLeave={handleMegaMenuLeave}
                 >
                   <Link to={link.path}>
                     <motion.div
-                      className="px-4 py-2 rounded-lg font-medium text-sm uppercase tracking-wide transition-colors relative"
+                      className="px-3 py-2 rounded-lg font-semibold text-sm uppercase tracking-wide transition-colors relative whitespace-nowrap"
                       style={{
                         color: isActive ? "var(--color-primary)" : "var(--text-secondary)",
                       }}
@@ -222,7 +221,7 @@ const Navbar = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.2, ease: "easeOut" }}
-                        className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-[600px] shadow-2xl rounded-xl p-8 z-50"
+                        className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-[600px] shadow-2xl rounded-xl p-8 z-[100]"
                         style={{
                           backgroundColor: "var(--bg-primary)",
                           border: "1px solid var(--border-primary)",
@@ -521,7 +520,7 @@ const Navbar = () => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -8 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute top-full right-0 mt-1 min-w-[200px] py-2 rounded-xl shadow-lg z-50"
+                        className="absolute top-full right-0 mt-1 min-w-[200px] py-2 rounded-xl shadow-lg z-[100]"
                         style={{
                           backgroundColor: "var(--bg-primary)",
                           border: "1px solid var(--border-primary)",
@@ -577,7 +576,7 @@ const Navbar = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setLogoutModalOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm uppercase tracking-wide transition-all border"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm uppercase tracking-wide transition-all border"
                   style={{
                     borderColor: "var(--border-primary)",
                     color: "var(--text-primary)",
@@ -597,7 +596,7 @@ const Navbar = () => {
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm uppercase tracking-wide transition-colors border"
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm uppercase tracking-wide transition-colors border"
                       style={{
                         borderColor: "var(--color-primary)",
                         color: "var(--color-primary)",
@@ -613,7 +612,7 @@ const Navbar = () => {
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm uppercase tracking-wide transition-all"
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm uppercase tracking-wide transition-all"
                       style={{
                         backgroundColor: "var(--color-primary)",
                         color: "white",
@@ -634,25 +633,50 @@ const Navbar = () => {
               )}
             </div>
 
-            {/* Mobile Menu Button */}
+            {/* Mobile Menu Button — refined icon with smooth transition */}
             <div className="lg:hidden flex items-center space-x-3">
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={toggleDarkMode}
-                className="p-2 rounded-lg"
+                className="p-2.5 rounded-xl transition-colors duration-200"
                 style={{ color: "var(--text-secondary)" }}
                 aria-label="Toggle dark mode"
               >
-                {isDark ? <FiSun size={22} /> : <FiMoon size={22} />}
+                {isDark ? <FiSun size={22} strokeWidth={1.8} /> : <FiMoon size={22} strokeWidth={1.8} />}
               </motion.button>
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 rounded-lg"
-                style={{ color: "var(--text-secondary)" }}
+                className="p-2.5 rounded-xl transition-colors duration-200 flex items-center justify-center w-10 h-10"
+                style={{ color: "var(--text-primary)" }}
                 aria-label="Toggle menu"
               >
-                {mobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
+                <AnimatePresence mode="wait">
+                  {mobileMenuOpen ? (
+                    <motion.span
+                      key="close"
+                      initial={{ opacity: 0, rotate: -90 }}
+                      animate={{ opacity: 1, rotate: 0 }}
+                      exit={{ opacity: 0, rotate: 90 }}
+                      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                    >
+                      <FiX size={24} strokeWidth={2} strokeLinecap="round" />
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="menu"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="inline-flex flex-col justify-center items-center gap-1.5"
+                    >
+                      <span className="block w-5 h-0.5 rounded-full transition-opacity" style={{ backgroundColor: "currentColor" }} />
+                      <span className="block w-5 h-0.5 rounded-full transition-opacity" style={{ backgroundColor: "currentColor" }} />
+                      <span className="block w-5 h-0.5 rounded-full transition-opacity" style={{ backgroundColor: "currentColor" }} />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </motion.button>
             </div>
           </div>

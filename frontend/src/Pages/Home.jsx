@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Hero, Newsletter, HomeCampaignBanner, HomeProductShowcase, Membership, SectionBar } from "../components";
+import { Hero, HomeCampaignBanner, HomeProductShowcase, Membership, SectionBar } from "../components";
 import { getHomeProducts } from "../services/productApi";
 
 const Home = () => {
@@ -35,8 +35,6 @@ const Home = () => {
       {!loading && <HomeProductShowcase products={bestSellers} />}
 
       <Membership />
-
-      <Newsletter />
     </>
   );
 };

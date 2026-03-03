@@ -7,6 +7,7 @@ const TARGET_AUDIENCES = ["All Customers", "Premium Members", "VIP Members", "Ne
 const campaignSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
+    description: { type: String, default: "", trim: true },
     type: { type: String, enum: CAMPAIGN_TYPES, default: "Discount" },
     status: { type: String, enum: CAMPAIGN_STATUSES, default: "Scheduled" },
     startDate: { type: Date, required: true },

@@ -11,6 +11,7 @@ import {
   FiRadio,
   FiPlus,
   FiMessageCircle,
+  FiMessageSquare,
 } from "react-icons/fi";
 
 const Admin = () => {
@@ -23,6 +24,7 @@ const Admin = () => {
     { id: "users", label: "Customers", icon: FiUsers, path: "/admin/users" },
     { id: "campaigns", label: "Campaigns", icon: FiRadio, path: "/admin/campaigns" },
     { id: "faq", label: "FAQ", icon: FiMessageCircle, path: "/admin/faq" },
+    { id: "chat", label: "Live Chat", icon: FiMessageSquare, path: "/admin/chat" },
   ];
 
   return (
@@ -66,7 +68,8 @@ const Admin = () => {
                     (tab.path === "/admin" && location.pathname === "/admin") ||
                     (tab.id === "products" && location.pathname.startsWith("/admin/products")) ||
                     (tab.id === "orders" && location.pathname.startsWith("/admin/orders")) ||
-                    (tab.id === "faq" && location.pathname.startsWith("/admin/faq"));
+                    (tab.id === "faq" && location.pathname.startsWith("/admin/faq")) ||
+                    (tab.id === "chat" && location.pathname.startsWith("/admin/chat"));
                   return (
                     <Link
                       key={tab.id}

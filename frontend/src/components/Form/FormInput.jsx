@@ -61,7 +61,7 @@ const FormInput = ({
           placeholder={placeholder}
           disabled={disabled}
           autoComplete={autoComplete}
-          className={`w-full px-4 py-3.5 border-2 rounded-lg outline-none transition-all text-sm ${
+          className={`w-full px-4 py-3.5 border-2 rounded-lg outline-none transition-all text-sm font-normal normal-case ${
             Icon ? "pl-11" : ""
           } ${isPassword ? "pr-12" : ""} ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}
           style={{

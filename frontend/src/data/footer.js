@@ -1,6 +1,6 @@
 export const footerData = {
   brand: {
-    name: "jacquardbd",
+    name: "JACQUARD",
     tagline: "Elevating Style Since 2026",
     description: "Crafting premium fashion with timeless elegance and modern sophistication.",
   },
@@ -27,12 +27,14 @@ export const footerData = {
         { id: 1, label: "Size Guide", path: "/size-guide" },
         { id: 2, label: "FAQs", path: "/faq" },
         { id: 3, label: "Store Locator", path: "/stores" },
+        { id: 4, label: "Live Chat", path: "#", isLiveChat: true },
       ],
+      phone: "+880 1712 345678",
     },
   ],
   legal: [
     { id: 1, label: "Privacy Policy", path: "/privacy" },
     { id: 2, label: "Terms of Service", path: "/terms" },
   ],
-  copyright: "© 2026 jacquardbd. All rights reserved.",
+  copyright: "© 2026 JACQUARD. All rights reserved.",
 };

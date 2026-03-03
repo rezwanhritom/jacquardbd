@@ -22,6 +22,7 @@ const Campaigns = () => {
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
+    description: "",
     type: "Discount",
     status: "Scheduled",
     startDate: "",
@@ -96,6 +97,7 @@ const Campaigns = () => {
     setEditingCampaign(campaign._id);
     setFormData({
       name: campaign.name || "",
+      description: campaign.description || "",
       type: campaign.type || "Discount",
       status: campaign.status || "Scheduled",
       startDate: toDateInput(campaign.startDate),
@@ -133,13 +135,15 @@ const Campaigns = () => {
       }
       bannerUrl = uploadRes.url;
     }
-    if (!bannerUrl.trim()) {
-      toast.error("Campaign banner is required. Please upload a banner image.");
+    const hasNameOrDesc = formData.name.trim() || formData.description.trim();
+    if (!hasNameOrDesc && !bannerUrl.trim()) {
+      toast.error("Add at least a name, description, or banner image.");
       setSubmitting(false);
       return;
     }
     const payload = {
       name: formData.name.trim(),
+      description: formData.description.trim(),
       type: formData.type,
       status: formData.status,
       startDate: formData.startDate,
@@ -179,6 +183,7 @@ const Campaigns = () => {
     setBannerFile(null);
     setFormData({
       name: "",
+      description: "",
       type: "Discount",
       status: "Scheduled",
       startDate: "",
@@ -231,6 +236,7 @@ const Campaigns = () => {
     setEditingCampaign(null);
     setFormData({
       name: "",
+      description: "",
       type: "Discount",
       status: "Scheduled",
       startDate: "",
@@ -391,6 +397,23 @@ const Campaigns = () => {
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
+                    Description <span className="text-xs font-normal">(shown on homepage with campaign name)</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Optional short description for the homepage banner"
+                    className="w-full px-4 py-3 border-2 rounded-lg outline-none resize-y"
+                    style={{
+                      borderColor: "var(--border-primary)",
+                      backgroundColor: "var(--bg-primary)",
+                      color: "var(--text-primary)",
+                    }}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
                     Target Audience *
                   </label>
                   <select
@@ -412,7 +435,7 @@ const Campaigns = () => {
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                    Banner image * <span className="text-xs font-normal">(shown on homepage only)</span>
+                    Banner image <span className="text-xs font-normal">(optional; shown on homepage)</span>
                   </label>
                   {editingCampaign && formData.banner && !bannerFile && (
                     <div className="mb-2 rounded-lg overflow-hidden border" style={{ borderColor: "var(--border-primary)", maxWidth: 320 }}>
@@ -424,7 +447,7 @@ const Campaigns = () => {
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     onChange={(e) => setBannerFile(e.target.files?.[0] || null)}
-                    required={!editingCampaign || !formData.banner}
+                    required={false}
                     className="w-full px-4 py-3 border-2 rounded-lg outline-none text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0"
                     style={{
                       borderColor: "var(--border-primary)",

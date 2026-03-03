@@ -3,6 +3,7 @@ import { Outlet, useLocation, Link } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../Navbar";
 import Footer from "../Footer";
+import ChatWidget from "../ChatWidget";
 import { pageTransitionVariants, pageTransitionConfig } from "../../utils/animations";
 
 const Layout = () => {
@@ -25,10 +26,10 @@ const Layout = () => {
       >
         Skip to main content
       </Link>
-      <header className="sticky top-0 z-50 w-full min-w-0">
+      <header className="sticky top-0 z-[100] w-full min-w-0">
         <Navbar />
       </header>
-      <main id="main-content" className="flex-1 w-full min-w-0" tabIndex={-1}>
+      <main id="main-content" className="flex-1 w-full min-w-0 pb-10 md:pb-14 relative z-0" tabIndex={-1}>
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
@@ -37,7 +38,7 @@ const Layout = () => {
             exit="exit"
             variants={pageTransitionVariants}
             transition={pageTransitionConfig}
-            className="w-full min-w-0 overflow-x-hidden"
+            className="w-full min-w-0 overflow-x-hidden relative z-0"
           >
             <Outlet />
           </motion.div>
@@ -46,6 +47,7 @@ const Layout = () => {
       <footer className="w-full">
         <Footer />
       </footer>
+      <ChatWidget />
     </div>
   );
 };

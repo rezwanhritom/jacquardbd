@@ -34,7 +34,7 @@ const AuthLayout = ({ children, title, subtitle }) => {
                 className="text-3xl font-bold tracking-wider"
                 style={{ color: "var(--color-primary)" }}
               >
-                jacquardbd
+                JACQUARD
               </span>
             </Link>
           </motion.div>
@@ -59,11 +59,12 @@ const AuthLayout = ({ children, title, subtitle }) => {
             )}
           </motion.div>
 
-          {/* Form content */}
+          {/* Form content — auth-form keeps labels and text in normal case */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
+            className="auth-form"
           >
             {children}
           </motion.div>

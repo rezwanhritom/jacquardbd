@@ -40,6 +40,7 @@ const AdminOrderDetail = lazy(() => import("../Pages/Admin/OrderDetail"));
 const AdminUsers = lazy(() => import("../Pages/Admin/Users"));
 const AdminCampaigns = lazy(() => import("../Pages/Admin/Campaigns"));
 const AdminFaq = lazy(() => import("../Pages/Admin/Faq"));
+const AdminLiveChat = lazy(() => import("../Pages/Admin/LiveChat"));
 const AdminProductCreate = lazy(() => import("../Pages/Admin/ProductCreate"));
 
 const Contact = lazy(() => import("../Pages/Contact"));
@@ -467,6 +468,14 @@ export const router = createBrowserRouter([
             element: (
               <LazyWrapper>
                 <AdminFaq />
+              </LazyWrapper>
+            ),
+          },
+          {
+            path: "chat",
+            element: (
+              <LazyWrapper>
+                <AdminLiveChat />
               </LazyWrapper>
             ),
           },

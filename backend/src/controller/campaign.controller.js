@@ -27,6 +27,7 @@ export async function getActiveCampaigns(req, res, next) {
     const list = campaigns.map((c) => ({
       _id: c._id,
       name: c.name,
+      description: c.description || "",
       type: c.type,
       discount: c.discount ?? 0,
       startDate: c.startDate,
@@ -52,6 +53,7 @@ export async function getCampaigns(req, res, next) {
     const list = campaigns.map((c) => ({
       _id: c._id,
       name: c.name,
+      description: c.description ?? "",
       type: c.type,
       status: c.status,
       startDate: c.startDate,
@@ -92,9 +94,6 @@ export async function createCampaign(req, res, next) {
     }
 
     const banner = (body.banner || "").trim();
-    if (!banner) {
-      return res.status(400).json({ success: false, message: "Campaign banner image is required. Upload a banner in the form." });
-    }
 
     const productIds = Array.isArray(body.products)
       ? body.products.filter((id) => id && String(id).match(/^[a-fA-F0-9]{24}$/))
@@ -102,6 +101,7 @@ export async function createCampaign(req, res, next) {
 
     const campaign = new Campaign({
       name,
+      description: (body.description || "").trim(),
       type: body.type || "Discount",
       status: body.status || "Scheduled",
       startDate,
@@ -123,6 +123,7 @@ export async function createCampaign(req, res, next) {
       campaign: {
         _id: saved._id,
         name: saved.name,
+        description: saved.description ?? "",
         type: saved.type,
         status: saved.status,
         startDate: saved.startDate,
@@ -171,6 +172,7 @@ export async function updateCampaign(req, res, next) {
     if (body.discount !== undefined) campaign.discount = Math.min(100, Math.max(0, Number(body.discount) || 0));
     if (body.targetAudience !== undefined) campaign.targetAudience = body.targetAudience;
     if (body.banner !== undefined) campaign.banner = (body.banner || "").trim();
+    if (body.description !== undefined) campaign.description = (body.description || "").trim();
     const previousProductIds = (campaign.products || []).map((pid) => pid?.toString?.() || pid).filter(Boolean);
     if (body.products !== undefined) {
       campaign.products = Array.isArray(body.products)
@@ -196,6 +198,7 @@ export async function updateCampaign(req, res, next) {
       campaign: {
         _id: updated._id,
         name: updated.name,
+        description: updated.description ?? "",
         type: updated.type,
         status: updated.status,
         startDate: updated.startDate,

@@ -36,7 +36,7 @@ const FormButton = ({
       type={type}
       onClick={onClick}
       disabled={disabled || loading}
-      className={`relative px-8 py-4 rounded-lg font-semibold text-sm uppercase tracking-wider transition-all ${
+      className={`relative px-8 py-4 rounded-lg font-semibold text-sm tracking-wide transition-all ${
         fullWidth ? "w-full" : ""
       } ${disabled || loading ? "opacity-60 cursor-not-allowed" : ""}`}
       style={{

@@ -1,9 +1,15 @@
 import { Link } from "react-router";
 import { motion } from "framer-motion";
+import { FiPhone } from "react-icons/fi";
 import { footerData } from "../../data/footer";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
+import { useChat } from "../../context/ChatContext";
+import { useAuth } from "../../context/AuthContext";
 
 const Footer = () => {
+  const { openChat } = useChat();
+  const { isAuthenticated } = useAuth();
+
   return (
     <footer
       className="relative overflow-hidden"
@@ -62,6 +68,18 @@ const Footer = () => {
               <h4 className="font-semibold mb-2 uppercase tracking-wider text-sm text-white">
                 {column.title}
               </h4>
+              {column.phone && (
+                <motion.a
+                  href={`tel:${column.phone.replace(/\s/g, "")}`}
+                  className="text-sm flex items-center gap-2 text-white/70 hover:text-white transition-colors"
+                  initial={{ opacity: 0, x: -10 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                >
+                  <FiPhone size={14} />
+                  {column.phone}
+                </motion.a>
+              )}
               <ul className="space-y-1.5">
                 {column.links.map((link, linkIndex) => (
                   <motion.li
@@ -71,17 +89,38 @@ const Footer = () => {
                     viewport={{ once: true }}
                     transition={{ delay: linkIndex * 0.05 }}
                   >
-                    <Link to={link.path}>
-                      <motion.span
-                        className="text-sm block text-white/70 transition-colors"
-                        whileHover={{
-                          color: "white",
-                          x: 5,
+                    {link.isLiveChat ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isAuthenticated) openChat();
+                          else window.location.href = "/login";
                         }}
+                        className="text-left w-full"
                       >
-                        {link.label}
-                      </motion.span>
-                    </Link>
+                        <motion.span
+                          className="text-sm block text-white/70 transition-colors"
+                          whileHover={{
+                            color: "white",
+                            x: 5,
+                          }}
+                        >
+                          {link.label}
+                        </motion.span>
+                      </button>
+                    ) : (
+                      <Link to={link.path}>
+                        <motion.span
+                          className="text-sm block text-white/70 transition-colors"
+                          whileHover={{
+                            color: "white",
+                            x: 5,
+                          }}
+                        >
+                          {link.label}
+                        </motion.span>
+                      </Link>
+                    )}
                   </motion.li>
                 ))}
               </ul>
