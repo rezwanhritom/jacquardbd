@@ -772,44 +772,48 @@ const Navbar = () => {
                           transition={{ delay: index * 0.1 }}
                           className="space-y-0"
                         >
-                          {/* Men / Women row: label = link to all products; arrow only = expand dropdown */}
+                          {/* Men / Women row: touch text → navigate; touch anywhere else in row → expand dropdown */}
                           <div
-                            className="w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide"
+                            role="button"
+                            tabIndex={0}
+                            className="w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide cursor-pointer touch-manipulation"
                             style={{
                               color: isActive || expanded ? "white" : "var(--text-secondary)",
                               backgroundColor: isActive || expanded ? "var(--color-primary)" : "transparent",
                             }}
+                            onClick={() => {
+                              setMobileExpandedGender((g) => (g === link.label ? null : link.label));
+                              if (mobileExpandedGender === link.label) setMobileExpandedSection(null);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                setMobileExpandedGender((g) => (g === link.label ? null : link.label));
+                                if (mobileExpandedGender === link.label) setMobileExpandedSection(null);
+                              }
+                            }}
+                            aria-expanded={expanded}
+                            aria-label={expanded ? "Collapse categories" : "Expand categories"}
                           >
                             <Link
                               to={allProductsPath}
-                              onClick={closeMobileMenu}
-                              className="flex-1 min-w-0"
-                              style={{
-                                color: "inherit",
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                closeMobileMenu();
                               }}
+                              className="min-w-0 shrink-0"
+                              style={{ color: "inherit" }}
                             >
                               {link.label}
                             </Link>
-                            <motion.button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setMobileExpandedGender((g) => (g === link.label ? null : link.label));
-                                if (mobileExpandedGender === link.label) setMobileExpandedSection(null);
-                              }}
-                              className="flex-shrink-0 p-2 -mr-2 touch-manipulation"
-                              style={{ color: isActive || expanded ? "white" : "var(--text-secondary)" }}
-                              aria-expanded={expanded}
-                              aria-label={expanded ? "Collapse categories" : "Expand categories"}
+                            <motion.span
+                              className="flex-shrink-0 p-2 -mr-2 pointer-events-none"
+                              style={{ color: "inherit" }}
+                              animate={{ rotate: expanded ? 90 : 0 }}
+                              transition={{ duration: 0.2 }}
                             >
-                              <motion.span
-                                animate={{ rotate: expanded ? 90 : 0 }}
-                                transition={{ duration: 0.2 }}
-                              >
-                                <FiChevronRight size={20} />
-                              </motion.span>
-                            </motion.button>
+                              <FiChevronRight size={20} />
+                            </motion.span>
                           </div>
                           {/* Section list: Winter Wear, Regular Wear, ... */}
                           {expanded && (
@@ -822,11 +826,42 @@ const Navbar = () => {
                                 const hasChildren = leafItems.length > 0;
                                 return (
                                   <div key={sectionTitle} className="mt-1">
-                                    <div className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-base font-medium">
+                                    {/* Section row: touch text → go to section; touch anywhere else → expand sub-sub-categories */}
+                                    <div
+                                      role={hasChildren ? "button" : undefined}
+                                      tabIndex={hasChildren ? 0 : undefined}
+                                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-base font-medium ${hasChildren ? "cursor-pointer touch-manipulation" : ""}`}
+                                      style={{
+                                        color: sectionExpanded
+                                          ? "var(--color-primary)"
+                                          : "var(--text-secondary)",
+                                      }}
+                                      {...(hasChildren && {
+                                        onClick: () =>
+                                          setMobileExpandedSection((s) =>
+                                            s === sectionTitle ? null : sectionTitle
+                                          ),
+                                        onKeyDown: (e) => {
+                                          if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            setMobileExpandedSection((s) =>
+                                              s === sectionTitle ? null : sectionTitle
+                                            );
+                                          }
+                                        },
+                                        ariaExpanded: sectionExpanded,
+                                        ariaLabel: sectionExpanded
+                                          ? "Collapse subcategories"
+                                          : "Expand subcategories",
+                                      })}
+                                    >
                                       <Link
                                         to={sectionPath}
-                                        onClick={closeMobileMenu}
-                                        className="flex-1 min-w-0 capitalize"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          closeMobileMenu();
+                                        }}
+                                        className="min-w-0 shrink-0 capitalize"
                                         style={{
                                           color: sectionExpanded
                                             ? "var(--color-primary)"
@@ -836,27 +871,14 @@ const Navbar = () => {
                                         {sectionTitle}
                                       </Link>
                                       {hasChildren ? (
-                                        <motion.button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            setMobileExpandedSection((s) =>
-                                              s === sectionTitle ? null : sectionTitle
-                                            );
-                                          }}
-                                          className="flex-shrink-0 p-2 -mr-2 touch-manipulation"
-                                          style={{ color: "var(--text-secondary)" }}
-                                          aria-expanded={sectionExpanded}
-                                          aria-label={sectionExpanded ? "Collapse subcategories" : "Expand subcategories"}
+                                        <motion.span
+                                          className="flex-shrink-0 p-2 -mr-2 pointer-events-none"
+                                          style={{ color: "inherit" }}
+                                          animate={{ rotate: sectionExpanded ? 90 : 0 }}
+                                          transition={{ duration: 0.2 }}
                                         >
-                                          <motion.span
-                                            animate={{ rotate: sectionExpanded ? 90 : 0 }}
-                                            transition={{ duration: 0.2 }}
-                                          >
-                                            <FiChevronRight size={18} />
-                                          </motion.span>
-                                        </motion.button>
+                                          <FiChevronRight size={18} />
+                                        </motion.span>
                                       ) : null}
                                     </div>
                                     {/* Leaf items: Sweatshirts, Hoodies, ... (links) */}

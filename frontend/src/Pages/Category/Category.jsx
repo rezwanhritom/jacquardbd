@@ -4,6 +4,7 @@
  * Structure: section → subcategory → products; empty sections/subcategories are not rendered.
  */
 import { useState, useMemo, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useParams } from "react-router";
 import {
   Container,
@@ -63,6 +64,7 @@ const Category = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const [filterPanelPosition, setFilterPanelPosition] = useState(null);
   const filterDropdownRef = useRef(null);
   const [apiProducts, setApiProducts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -70,15 +72,27 @@ const Category = () => {
   const itemsPerPage = 12;
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target)) {
-        setFilterDropdownOpen(false);
-      }
-    };
-    if (filterDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+    if (!filterDropdownOpen) {
+      setFilterPanelPosition(null);
+      return;
     }
+    const updatePosition = () => {
+      if (!filterDropdownRef.current) return;
+      const rect = filterDropdownRef.current.getBoundingClientRect();
+      const padding = 16;
+      let left = rect.left;
+      const panelMinWidth = 280;
+      if (left + panelMinWidth > window.innerWidth - padding) left = window.innerWidth - panelMinWidth - padding;
+      if (left < padding) left = padding;
+      setFilterPanelPosition({ top: rect.bottom + 8, left });
+    };
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
   }, [filterDropdownOpen]);
 
   const normalizedCategoryName = categoryName?.toLowerCase();
@@ -290,10 +304,13 @@ const Category = () => {
                       {sortedProducts.length} products
                     </p>
                   )}
-                  <div className="sm:ml-auto flex items-center gap-3 flex-wrap">
+                  <div className="sm:ml-auto flex items-center gap-2 sm:gap-3 flex-wrap">
                     {/* Filter dropdown — mobile + desktop */}
                     {showFilter && (
-                      <div className="relative" ref={filterDropdownRef}>
+                      <div
+                        className={`relative ${filterDropdownOpen ? "z-[111]" : ""}`}
+                        ref={filterDropdownRef}
+                      >
                         <motion.button
                           type="button"
                           whileHover={{ scale: 1.02 }}
@@ -316,28 +333,6 @@ const Category = () => {
                             style={{ transform: filterDropdownOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
                           />
                         </motion.button>
-                        <AnimatePresence>
-                          {filterDropdownOpen && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -8 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -8 }}
-                              transition={{ duration: 0.15 }}
-                              className="absolute left-0 top-full mt-2 z-30 p-4 rounded-xl shadow-lg border"
-                              style={{
-                                backgroundColor: "var(--bg-secondary)",
-                                borderColor: "var(--border-primary)",
-                              }}
-                            >
-                              <ProductFilters
-                                variant="dropdown"
-                                filters={filters}
-                                onFilterChange={handleFilterChange}
-                                onClearFilters={handleClearFilters}
-                              />
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
                       </div>
                     )}
                     <div className="flex items-center gap-1" role="group" aria-label="View mode">
@@ -462,7 +457,13 @@ const Category = () => {
                                 {subcategoryName}
                               </h3>
                             </div>
-                            <ProductGrid products={products} onQuickView={setQuickViewProduct} hideViewToggle />
+                            <ProductGrid
+                              products={products}
+                              viewMode={viewMode}
+                              onViewModeChange={setViewMode}
+                              onQuickView={setQuickViewProduct}
+                              hideViewToggle
+                            />
                           </div>
                         ))}
                       </section>
@@ -486,7 +487,13 @@ const Category = () => {
                                   {subcategoryName}
                                 </h3>
                               </div>
-                              <ProductGrid products={products} onQuickView={setQuickViewProduct} hideViewToggle />
+                              <ProductGrid
+                                products={products}
+                                viewMode={viewMode}
+                                onViewModeChange={setViewMode}
+                                onQuickView={setQuickViewProduct}
+                                hideViewToggle
+                              />
                             </div>
                           ))}
                         </section>
@@ -519,6 +526,39 @@ const Category = () => {
           </div>
         </motion.div>
       </Container>
+
+      {/* Filter overlay: portal so it overlaps the whole page (desktop + mobile) */}
+      {filterDropdownOpen &&
+        filterPanelPosition &&
+        createPortal(
+          <>
+            <div
+              className="fixed inset-0 z-[100] bg-black/20"
+              onClick={() => setFilterDropdownOpen(false)}
+              aria-hidden="true"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.15 }}
+              className="fixed z-[110] p-4 rounded-xl shadow-xl border min-w-[280px] max-w-[calc(100vw-2rem)] max-h-[min(85vh,600px)] overflow-y-auto"
+              style={{
+                top: filterPanelPosition.top,
+                left: filterPanelPosition.left,
+                backgroundColor: "var(--bg-primary)",
+                borderColor: "var(--border-primary)",
+              }}
+            >
+              <ProductFilters
+                variant="dropdown"
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onClearFilters={handleClearFilters}
+              />
+            </motion.div>
+          </>,
+          document.body
+        )}
 
       <QuickView
         product={quickViewProduct}

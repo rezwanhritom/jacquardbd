@@ -1,9 +1,11 @@
 /**
  * Sort dropdown for product lists. Options: default, price, name, newest.
- * Dropdown aligns left under the trigger (left-0).
+ * Renders dropdown in a portal so it overlays page content (desktop + mobile).
+ * On mobile the full "Sort: [option]" is shown and may wrap to 2–3 lines.
  */
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { motion } from "framer-motion";
 import { FiChevronDown } from "react-icons/fi";
 
 const sortOptions = [
@@ -15,63 +17,65 @@ const sortOptions = [
   { value: "newest", label: "Newest First" },
 ];
 
+const DROPDOWN_WIDTH = 224;
+
 const ProductSort = ({ onSortChange, currentSort = "default" }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [position, setPosition] = useState(null);
+  const triggerRef = useRef(null);
 
   const currentOption =
     sortOptions.find((opt) => opt.value === currentSort) || sortOptions[0];
+
+  const updatePosition = () => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const padding = 16;
+    let left = rect.left;
+    if (left + DROPDOWN_WIDTH > window.innerWidth - padding) {
+      left = window.innerWidth - DROPDOWN_WIDTH - padding;
+    }
+    if (left < padding) left = padding;
+    setPosition({ top: rect.bottom + 8, left });
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      setPosition(null);
+      return;
+    }
+    updatePosition();
+    const onScrollOrResize = () => updatePosition();
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("resize", onScrollOrResize);
+    return () => {
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
+  }, [isOpen]);
 
   const handleSort = (value) => {
     onSortChange(value);
     setIsOpen(false);
   };
 
-  return (
-    <div className="relative">
-      <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 border-2 rounded-lg transition-colors"
-        style={{
-          borderColor: "var(--border-primary)",
-          backgroundColor: "var(--bg-primary)",
-          color: "var(--text-primary)",
-        }}
-        onFocus={(e) => {
-          e.currentTarget.style.outline = "2px solid var(--color-primary)";
-          e.currentTarget.style.outlineOffset = "2px";
-        }}
-        onBlur={(e) => {
-          e.currentTarget.style.outline = "none";
-        }}
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-        aria-label="Sort products"
-      >
-        <span className="text-sm font-medium">Sort: {currentOption.label}</span>
-        <motion.div
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <FiChevronDown size={18} />
-        </motion.div>
-      </motion.button>
-
-      <AnimatePresence>
-        {isOpen && (
+  const dropdownContent =
+    isOpen && position
+      ? createPortal(
           <>
             <div
-              className="fixed inset-0 z-10"
+              className="fixed inset-0 z-[100]"
               onClick={() => setIsOpen(false)}
+              aria-hidden="true"
             />
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="absolute top-full right-0 mt-2 w-56 rounded-lg shadow-xl z-20 overflow-hidden"
+              className="fixed w-56 max-w-[calc(100vw-2rem)] rounded-lg shadow-xl z-[110] overflow-hidden"
               style={{
+                top: position.top,
+                left: position.left,
                 backgroundColor: "var(--bg-primary)",
                 border: "1px solid var(--border-primary)",
               }}
@@ -111,9 +115,48 @@ const ProductSort = ({ onSortChange, currentSort = "default" }) => {
                 </motion.button>
               ))}
             </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+          </>,
+          document.body
+        )
+      : null;
+
+  return (
+    <div className="relative shrink-0">
+      <motion.button
+        ref={triggerRef}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 border-2 rounded-lg transition-colors text-left max-w-[min(100%,12rem)] sm:max-w-none"
+        style={{
+          borderColor: "var(--border-primary)",
+          backgroundColor: "var(--bg-primary)",
+          color: "var(--text-primary)",
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.outline = "2px solid var(--color-primary)";
+          e.currentTarget.style.outlineOffset = "2px";
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.outline = "none";
+        }}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-label={`Sort: ${currentOption.label}`}
+      >
+        <span className="text-sm font-medium whitespace-normal break-words min-w-0">
+          Sort: {currentOption.label}
+        </span>
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="flex-shrink-0"
+        >
+          <FiChevronDown size={18} />
+        </motion.div>
+      </motion.button>
+
+      {dropdownContent}
     </div>
   );
 };

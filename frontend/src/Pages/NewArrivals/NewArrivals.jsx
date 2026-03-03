@@ -247,12 +247,12 @@ const NewArrivals = () => {
                   className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b"
                   style={{ borderColor: "var(--border-primary)" }}
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setMobileFiltersOpen(true)}
-                      className="lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors"
+                      className="lg:hidden flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium text-sm transition-colors shrink-0"
                       style={{
                         backgroundColor: "var(--bg-secondary)",
                         color: "var(--text-primary)",
@@ -271,16 +271,14 @@ const NewArrivals = () => {
                         </span>
                       )}
                     </motion.button>
-                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                    <p className="text-sm shrink-0" style={{ color: "var(--text-secondary)" }}>
                       <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
                         {sortedProducts.length}
                       </span>{" "}
                       new {sortedProducts.length === 1 ? "arrival" : "arrivals"}
                     </p>
-                  </div>
-                  <div className="flex items-center gap-3">
                     <div
-                      className="hidden sm:flex items-center rounded-lg p-1"
+                      className="flex items-center rounded-lg p-1 shrink-0"
                       style={{ backgroundColor: "var(--bg-secondary)" }}
                     >
                       <motion.button
@@ -426,6 +424,7 @@ const NewArrivals = () => {
                     <ProductGrid
                       products={paginatedProducts}
                       viewMode={viewMode}
+                      onViewModeChange={setViewMode}
                       onQuickView={setQuickViewProduct}
                     />
                     {totalPages > 1 && (

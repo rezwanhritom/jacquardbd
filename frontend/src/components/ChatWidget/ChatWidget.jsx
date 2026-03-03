@@ -25,10 +25,10 @@ const ChatWidget = () => {
   };
 
   useEffect(() => {
-    if (chatOpen && isAuthenticated) {
-      fetchConversation();
-      pollRef.current = setInterval(fetchConversation, 5000);
-    }
+    if (!isAuthenticated) return;
+    fetchConversation();
+    const interval = chatOpen ? 5000 : 15000;
+    pollRef.current = setInterval(fetchConversation, interval);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
@@ -53,6 +53,21 @@ const ChatWidget = () => {
     } else if (error) toast.error(error);
   };
 
+  /** Unread = admin messages after the last user message. When chat is open, show 0. */
+  const messages = conversation?.messages || [];
+  const lastUserIdx = (() => {
+    let idx = -1;
+    messages.forEach((m, i) => {
+      if (m.from === "user") idx = i;
+    });
+    return idx;
+  })();
+  const unreadFromMessages =
+    lastUserIdx < 0
+      ? messages.filter((m) => m.from === "admin").length
+      : messages.slice(lastUserIdx + 1).filter((m) => m.from === "admin").length;
+  const unreadCount = chatOpen ? 0 : unreadFromMessages;
+
   if (!isAuthenticated) return null;
 
   return (
@@ -68,9 +83,17 @@ const ChatWidget = () => {
         }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        aria-label="Open live chat"
+        aria-label={unreadCount > 0 ? `Open live chat (${unreadCount} unread)` : "Open live chat"}
       >
         <FiMessageCircle size={24} />
+        {unreadCount > 0 && (
+          <span
+            className="absolute -top-0.5 -right-0.5 min-w-[1.25rem] h-5 px-1 rounded-full flex items-center justify-center text-xs font-bold text-white"
+            style={{ backgroundColor: "var(--color-tertiary)" }}
+          >
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
       </motion.button>
 
       <AnimatePresence>
@@ -89,7 +112,7 @@ const ChatWidget = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 320 }}
               transition={{ type: "tween", duration: 0.25 }}
-              className="fixed bottom-6 right-6 top-auto z-[102] w-full max-w-md h-[480px] rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+              className="fixed z-[102] w-[calc(100vw-2rem)] max-w-md left-4 right-4 sm:left-auto sm:right-6 sm:w-full bottom-4 sm:bottom-6 top-auto max-h-[min(480px,calc(100dvh-6rem))] rounded-2xl shadow-2xl flex flex-col overflow-hidden"
               style={{
                 backgroundColor: "var(--bg-primary)",
                 border: "1px solid var(--border-primary)",

@@ -256,14 +256,17 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
               </motion.span>
             )}
 
-            {/* Image navigation: up/down arrows (low opacity, fixed position, no scale) */}
+            {/* Image navigation: up/down arrows — visible on any image */}
             {product.images.length > 1 && (
               <>
                 <button
                   type="button"
                   onClick={prevImage}
-                  className="absolute left-1/2 top-2 -translate-x-1/2 p-2 rounded-full backdrop-blur-sm z-10 opacity-40 hover:opacity-70 transition-opacity"
-                  style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
+                  className="absolute left-1/2 top-2 -translate-x-1/2 z-10 p-2 rounded-md transition-opacity hover:opacity-100 opacity-90 shadow-lg"
+                  style={{
+                    backgroundColor: "rgba(0,0,0,0.45)",
+                    color: "#fff",
+                  }}
                   onFocus={(e) => {
                     e.currentTarget.style.outline = "2px solid var(--color-primary)";
                     e.currentTarget.style.outlineOffset = "2px";
@@ -273,13 +276,16 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
                   }}
                   aria-label="Previous image"
                 >
-                  <FiChevronUp size={18} style={{ color: "var(--text-primary)" }} />
+                  <FiChevronUp size={22} strokeWidth={2.5} />
                 </button>
                 <button
                   type="button"
                   onClick={nextImage}
-                  className="absolute left-1/2 bottom-8 -translate-x-1/2 p-2 rounded-full backdrop-blur-sm z-10 opacity-40 hover:opacity-70 transition-opacity"
-                  style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
+                  className="absolute left-1/2 bottom-8 -translate-x-1/2 z-10 p-2 rounded-md transition-opacity hover:opacity-100 opacity-90 shadow-lg"
+                  style={{
+                    backgroundColor: "rgba(0,0,0,0.45)",
+                    color: "#fff",
+                  }}
                   onFocus={(e) => {
                     e.currentTarget.style.outline = "2px solid var(--color-primary)";
                     e.currentTarget.style.outlineOffset = "2px";
@@ -289,7 +295,7 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
                   }}
                   aria-label="Next image"
                 >
-                  <FiChevronDown size={18} style={{ color: "var(--text-primary)" }} />
+                  <FiChevronDown size={22} strokeWidth={2.5} />
                 </button>
               </>
             )}
