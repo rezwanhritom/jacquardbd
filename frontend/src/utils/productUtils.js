@@ -63,11 +63,13 @@ export function hasDiscount(product) {
   );
 }
 
-/** Normalize API product to shape expected by ProductCard (id, images, name, price, badge, slug). */
+/** Normalize API product to shape expected by ProductCard (id, images, name, price, badge, slug). Preserve _id for cart/wishlist API. */
 export function mapApiProduct(p) {
+  const id = p._id != null ? String(p._id) : (p.id != null ? String(p.id) : undefined);
   return {
     ...p,
-    id: p._id || p.id,
+    _id: id || p._id,
+    id,
     images: Array.isArray(p.images) && p.images.length > 0 ? p.images : ["/images/product-placeholder.png"],
     name: p.name || "",
     price: p.finalPrice ?? p.price ?? 0,

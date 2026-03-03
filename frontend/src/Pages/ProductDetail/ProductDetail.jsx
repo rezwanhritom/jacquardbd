@@ -9,6 +9,8 @@ import { FiShoppingBag, FiHeart, FiChevronLeft, FiShare2, FiCheck, FiStar, FiChe
 import toast from "react-hot-toast";
 import { getProduct, getProductsByGender } from "../../services/productApi";
 import { getDisplayCategory, hasDiscount } from "../../utils/productUtils";
+import { useCart } from "../../context/CartContext";
+import { useWishlist } from "../../context/WishlistContext";
 
 const mapApiProductForDetail = (p) => ({
   ...p,
@@ -50,8 +52,10 @@ const ProductDetail = () => {
   const [selectedSize, setSelectedSize] = useState(null);
   const [selectedColor, setSelectedColor] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [isInWishlist, setIsInWishlist] = useState(false);
-  const [addedToCart, setAddedToCart] = useState(false);
+  const { isInWishlist: isInWishlistContext, addToWishlist, removeFromWishlist } = useWishlist();
+  const { addToCart, isInCart } = useCart();
+  const isInWishlist = product ? isInWishlistContext(product) : false;
+  const addedToCart = product ? isInCart(product) : false;
   const [specsOpen, setSpecsOpen] = useState(false);
   const [specCompositionOpen, setSpecCompositionOpen] = useState(false);
   const [specSizeFitOpen, setSpecSizeFitOpen] = useState(false);
@@ -150,19 +154,28 @@ const ProductDetail = () => {
     );
   }
 
-  const handleAddToCart = () => {
-    if (!selectedSize) {
+  const handleAddToCart = async () => {
+    if (!product) return;
+    const hasSizes = product.variants?.size?.length > 0 || product.variantMatrix?.some((v) => v.size);
+    if (hasSizes && !selectedSize) {
       toast.error("Please select a size");
       return;
     }
-    setAddedToCart(true);
-    toast.success(`${quantity} ${product.name} added to cart!`);
-    setTimeout(() => setAddedToCart(false), 2000);
+    const result = await addToCart(product, quantity);
+    if (result.success) toast.success(result.message || `${product.name} added to cart!`);
+    else if (result.message) toast.error(result.message);
   };
 
-  const handleAddToWishlist = () => {
-    setIsInWishlist(!isInWishlist);
-    toast.success(isInWishlist ? "Removed from wishlist" : "Added to wishlist!");
+  const handleAddToWishlist = async () => {
+    if (!product) return;
+    if (isInWishlist) {
+      const { success } = await removeFromWishlist(product);
+      if (success) toast.success("Removed from wishlist");
+    } else {
+      const { success, message } = await addToWishlist(product);
+      if (success) toast.success(message === "Already in wishlist" ? message : "Added to wishlist!");
+      else if (message) toast.error(message);
+    }
   };
 
   const handleShare = () => {
@@ -319,76 +332,91 @@ const ProductDetail = () => {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-4 pt-4">
+              <div className="flex gap-3 pt-4">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleAddToCart}
-                  className={`flex-1 px-8 py-4 text-white font-semibold uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 transition-all ${
-                    addedToCart ? "bg-green-600" : ""
+                  disabled={addedToCart}
+                  className={`flex-1 px-6 py-3 text-white font-semibold tracking-wide rounded-lg flex items-center justify-center gap-2 transition-all ${
+                    addedToCart ? "opacity-90" : ""
                   }`}
                   style={{
-                    backgroundColor: addedToCart ? undefined : "var(--color-primary)",
+                    backgroundColor: addedToCart ? "var(--color-secondary)" : "var(--color-primary)",
+                    boxShadow: "none",
                   }}
                   onMouseEnter={(e) => {
-                    if (!addedToCart) {
-                      e.currentTarget.style.backgroundColor = "var(--active-color)";
-                    }
+                    if (!addedToCart) e.currentTarget.style.backgroundColor = "var(--active-color)";
                   }}
                   onMouseLeave={(e) => {
-                    if (!addedToCart) {
-                      e.currentTarget.style.backgroundColor = "var(--color-primary)";
-                    }
+                    if (!addedToCart) e.currentTarget.style.backgroundColor = "var(--color-primary)";
                   }}
                 >
                   {addedToCart ? (
                     <>
-                      <FiCheck size={20} />
+                      <FiCheck size={18} strokeWidth={2} />
                       <span>Added to Cart</span>
                     </>
                   ) : (
                     <>
-                      <FiShoppingBag size={20} />
+                      <FiShoppingBag size={18} strokeWidth={1.8} />
                       <span>Add to Cart</span>
                     </>
                   )}
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={handleAddToWishlist}
-                  className={`px-8 py-4 border-2 rounded-lg flex items-center justify-center transition-colors ${
-                    isInWishlist ? "border-red-500" : ""
-                  }`}
+                  className="p-3 border-2 rounded-lg flex items-center justify-center transition-colors"
                   style={{
-                    borderColor: isInWishlist ? undefined : "var(--border-primary)",
-                    color: isInWishlist ? "red" : "var(--text-primary)",
+                    borderColor: isInWishlist ? "var(--color-primary)" : "var(--border-primary)",
+                    color: isInWishlist ? "var(--color-primary)" : "var(--text-primary)",
                   }}
                 >
-                  <FiHeart size={20} className={isInWishlist ? "fill-current" : ""} />
+                  <FiHeart size={18} strokeWidth={1.5} className={isInWishlist ? "fill-current" : ""} />
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={handleShare}
-                  className="px-8 py-4 border-2 rounded-lg flex items-center justify-center"
+                  className="p-3 border-2 rounded-lg flex items-center justify-center transition-colors"
                   style={{
                     borderColor: "var(--border-primary)",
                     color: "var(--text-primary)",
                   }}
                 >
-                  <FiShare2 size={20} />
+                  <FiShare2 size={18} strokeWidth={1.5} />
                 </motion.button>
               </div>
 
               {/* Product Details */}
-              <div className="pt-6 border-t space-y-4" style={{ borderColor: "var(--border-primary)" }}>
+              <div className="pt-8 border-t space-y-5" style={{ borderColor: "var(--border-primary)" }}>
                 <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
                   Product Details
                 </h3>
-                <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                  {product.description || `Premium quality ${product.name.toLowerCase()} from our ${getDisplayCategory(product)} collection. Crafted with attention to detail and designed for comfort and style. Perfect addition to your wardrobe.`}
-                </p>
+                <div className="space-y-4 text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                  {product.description ? (
+                    product.description.includes("\n") ? (
+                      product.description
+                        .split("\n")
+                        .filter((line) => line.trim())
+                        .map((para, i) => <p key={i}>{para.trim()}</p>)
+                    ) : (
+                      <p>{product.description}</p>
+                    )
+                  ) : (
+                    <>
+                      <p>Crafted from premium materials for lasting comfort and style.</p>
+                      <ul className="list-disc list-inside space-y-2 pl-1">
+                        <li>Premium heavyweight cotton</li>
+                        <li>Relaxed silhouette</li>
+                        <li>Structured high-neck hood</li>
+                        <li>Designed for modern refinement</li>
+                      </ul>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Specifications: main dropdown, then Composition / Size & Fit / Care / Traceability as nested dropdowns */}

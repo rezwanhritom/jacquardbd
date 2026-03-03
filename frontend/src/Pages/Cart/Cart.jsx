@@ -53,7 +53,7 @@ const Cart = () => {
           className="space-y-8"
         >
           <motion.div variants={fadeInUp}>
-            <h1 className="text-4xl md:text-5xl font-bold" style={{ color: "var(--color-primary)" }}>
+            <h1 className="text-4xl md:text-5xl font-bold" style={{ color: "var(--text-primary)" }}>
               Shopping Cart
             </h1>
             <p className="text-sm mt-2" style={{ color: "var(--text-secondary)" }}>
@@ -282,7 +282,7 @@ function EmptyCart() {
         className="text-base max-w-md mx-auto mb-8"
         style={{ color: "var(--text-secondary)" }}
       >
-        Add items from the shop to your cart and they will appear here.
+        Your selection awaits refinement.
       </motion.p>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -291,13 +291,17 @@ function EmptyCart() {
       >
         <Link
           to="/"
-          className="inline-flex items-center gap-2 px-8 py-4 rounded-lg font-semibold text-sm uppercase tracking-wide text-white transition-colors"
-          style={{ backgroundColor: "var(--color-primary)" }}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm tracking-wide transition-colors border-2"
+          style={{
+            borderColor: "var(--border-secondary)",
+            color: "var(--text-primary)",
+            backgroundColor: "var(--bg-secondary)",
+          }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "var(--active-color)";
+            e.currentTarget.style.backgroundColor = "var(--bg-tertiary)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "var(--color-primary)";
+            e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
           }}
         >
           <FiShoppingBag size={18} />
