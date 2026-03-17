@@ -49,7 +49,12 @@ import { useCart } from "../../context/CartContext";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [navbarHidden, setNavbarHidden] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  /** Mobile only: search bar visible only after tapping search icon (icon-only by default) */
+  const [mobileSearchVisible, setMobileSearchVisible] = useState(false);
+  const lastScrollY = useRef(0);
+  const scrollThreshold = 80;
   /** Mobile only: which gender row is expanded (Men/Women) */
   const [mobileExpandedGender, setMobileExpandedGender] = useState(null);
   /** Mobile only: which section is expanded (e.g. "Winter Wear") */
@@ -70,6 +75,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const searchInputRef = useRef(null);
+  const mobileSearchInputRef = useRef(null);
 
   // Check if a path is active
   const isActivePath = (path) => {
@@ -82,17 +88,28 @@ const Navbar = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      const y = window.scrollY;
+      setIsScrolled(y > 20);
+      const isMobile = window.matchMedia("(max-width: 1023px)").matches;
+      if (y > lastScrollY.current && y > scrollThreshold) {
+        setNavbarHidden(true);
+        if (isMobile) setMobileSearchVisible(false);
+        if (!isMobile && !searchQuery.trim()) setSearchOpen(false);
+      } else if (y < lastScrollY.current) {
+        setNavbarHidden(false);
+      }
+      lastScrollY.current = y;
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (searchOpen && searchInputRef.current) {
       searchInputRef.current.focus();
     }
   }, [searchOpen]);
+
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -141,10 +158,13 @@ const Navbar = () => {
     <>
       <motion.nav
         initial={{ y: -100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className={`w-full max-w-full overflow-visible transition-all duration-300 ${
-          isScrolled
+        animate={{
+          y: navbarHidden ? -120 : 0,
+          opacity: 1,
+        }}
+        transition={{ duration: 0, ease: "easeOut" }}
+        className={`fixed top-0 left-0 right-0 z-50 w-full max-w-full overflow-visible transition-all duration-300 ${
+          isScrolled && !navbarHidden
             ? "shadow-lg backdrop-blur-md bg-opacity-95"
             : "shadow-sm backdrop-blur-sm bg-opacity-90"
         }`}
@@ -178,8 +198,52 @@ const Navbar = () => {
               </Link>
             </motion.div>
 
-            {/* Desktop Navigation */}
+            {/* Desktop Navigation: when search open, show only search box; else show Men, Women, etc. */}
             <div className="hidden lg:flex items-center gap-0.5 flex-1 justify-center min-w-0">
+              {searchOpen ? (
+                <motion.form
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  onSubmit={handleSearch}
+                  className="w-full max-w-xl flex items-center justify-center gap-2"
+                >
+                  <div className="relative w-full">
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search..."
+                      className="w-full px-4 py-2 pr-16 border-2 rounded-lg outline-none transition-colors text-sm"
+                      style={{
+                        borderColor: "var(--border-primary)",
+                        backgroundColor: "var(--bg-secondary)",
+                        color: "var(--text-primary)",
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      className="absolute right-9 top-1/2 -translate-y-1/2 p-1.5 rounded"
+                      style={{ color: "var(--color-primary)" }}
+                      aria-label="Search"
+                    >
+                      <FiSearch size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSearchOpen(false)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded"
+                      style={{ color: "var(--text-secondary)" }}
+                      aria-label="Close search"
+                    >
+                      <FiX size={18} />
+                    </button>
+                  </div>
+                </motion.form>
+              ) : (
+              <>
               {navigationData.links.map((link) => {
                 const isActive = isActivePath(link.path);
                 return (
@@ -289,76 +353,38 @@ const Navbar = () => {
                 </div>
                 );
               })}
+              </>
+              )}
             </div>
 
             {/* Right Actions */}
             <div className="hidden lg:flex items-center space-x-4 flex-shrink-0">
-              {/* Search */}
-              <AnimatePresence>
-                {searchOpen ? (
-                  <motion.form
-                    initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: 300, opacity: 1 }}
-                    exit={{ width: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    onSubmit={handleSearch}
-                    className="flex items-center"
-                  >
-                    <div className="relative w-full">
-                      <input
-                        ref={searchInputRef}
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search products..."
-                        className="w-full px-4 py-2 pr-10 border-2 rounded-lg outline-none transition-colors text-sm"
-                        style={{
-                          borderColor: "var(--border-primary)",
-                          backgroundColor: "var(--bg-secondary)",
-                          color: "var(--text-primary)",
-                        }}
-                        onBlur={() => {
-                          if (!searchQuery) {
-                            setTimeout(() => setSearchOpen(false), 200);
-                          }
-                        }}
-                      />
-                      <button
-                        type="submit"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded"
-                        style={{ color: "var(--color-primary)" }}
-                      >
-                        <FiSearch size={18} />
-                      </button>
-                    </div>
-                  </motion.form>
-                ) : (
-                  <motion.button
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setSearchOpen(true)}
-                    className="p-2 rounded-lg transition-colors relative"
-                    style={{
-                      color: "var(--text-secondary)",
-                      backgroundColor: "transparent",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = "var(--color-primary)";
-                      e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = "var(--text-secondary)";
-                      e.currentTarget.style.backgroundColor = "transparent";
-                    }}
-                    aria-label="Search"
-                  >
-                    <FiSearch size={20} />
-                  </motion.button>
-                )}
-              </AnimatePresence>
+              {!searchOpen && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setSearchOpen(true)}
+                  className="p-2 rounded-lg transition-colors relative"
+                  style={{
+                    color: "var(--text-secondary)",
+                    backgroundColor: "transparent",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "var(--color-primary)";
+                    e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "var(--text-secondary)";
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }}
+                  aria-label="Search"
+                >
+                  <FiSearch size={20} />
+                </motion.button>
+              )}
 
               {/* Theme Toggle */}
               <motion.button
@@ -633,12 +659,67 @@ const Navbar = () => {
               )}
             </div>
 
-            {/* Mobile Menu Button — refined icon with smooth transition */}
-            <div className="lg:hidden flex items-center space-x-3">
+            {/* Mobile: search bar (auto-hide on scroll down; icon when hidden) + dark mode + menu */}
+            <div className="lg:hidden flex items-center gap-2 flex-1 min-w-0 justify-end">
+              <AnimatePresence mode="wait">
+                {mobileSearchVisible ? (
+                  <motion.form
+                    key="mobile-search-form"
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: "auto", opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    onSubmit={handleSearch}
+                    className="flex-1 min-w-0 max-w-[120px] sm:max-w-[150px]"
+                  >
+                    <div className="relative w-full">
+                      <input
+                        ref={mobileSearchInputRef}
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder=""
+                        className="w-full px-2 py-1.5 pr-8 text-xs rounded-md outline-none border"
+                        style={{
+                          borderColor: "var(--border-primary)",
+                          backgroundColor: "var(--bg-secondary)",
+                          color: "var(--text-primary)",
+                        }}
+                      />
+                      <button
+                        type="submit"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded"
+                        style={{ color: "var(--color-primary)" }}
+                        aria-label="Search"
+                      >
+                        <FiSearch size={18} />
+                      </button>
+                    </div>
+                  </motion.form>
+                ) : (
+                  <motion.button
+                    key="mobile-search-icon"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      setMobileSearchVisible(true);
+                      setTimeout(() => mobileSearchInputRef.current?.focus(), 100);
+                    }}
+                    className="p-2.5 rounded-xl flex-shrink-0"
+                    style={{ color: "var(--text-secondary)" }}
+                    aria-label="Open search"
+                  >
+                    <FiSearch size={22} strokeWidth={1.8} />
+                  </motion.button>
+                )}
+              </AnimatePresence>
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={toggleDarkMode}
-                className="p-2.5 rounded-xl transition-colors duration-200"
+                className="p-2.5 rounded-xl transition-colors duration-200 flex-shrink-0"
                 style={{ color: "var(--text-secondary)" }}
                 aria-label="Toggle dark mode"
               >
@@ -682,6 +763,11 @@ const Navbar = () => {
           </div>
         </div>
       </motion.nav>
+      {/* Spacer: collapse when nav hidden so content moves up */}
+      <div
+        className={`transition-none overflow-hidden ${navbarHidden ? "h-0" : "h-16 sm:h-20"}`}
+        aria-hidden="true"
+      />
 
       {/* Mobile Menu */}
       <AnimatePresence>

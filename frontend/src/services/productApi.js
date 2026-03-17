@@ -87,6 +87,34 @@ export async function getHomeProducts() {
 }
 
 /**
+ * Search products and categories (GET /api/products/search?q=...).
+ * Returns { success, products, matchType: 'exact'|'fuzzy'|'none', suggestedQuery? }.
+ */
+export async function searchProducts(q) {
+  const baseUrl = getBaseUrl();
+  const query = typeof q === "string" ? q.trim() : "";
+  const response = await fetch(`${baseUrl}/api/products/search?q=${encodeURIComponent(query)}`);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    return {
+      success: false,
+      products: [],
+      matchType: "none",
+      suggestedQuery: null,
+      categoryExists: false,
+      message: data.message || "Search failed",
+    };
+  }
+  return {
+    success: true,
+    products: Array.isArray(data.products) ? data.products : [],
+    matchType: data.matchType || "none",
+    suggestedQuery: data.suggestedQuery || null,
+    categoryExists: data.categoryExists === true,
+  };
+}
+
+/**
  * Fetch products by collection (GET /api/products/collection/:collectionName).
  * @param {string} collectionName - e.g. "new-arrivals", "sale", "campaigns"
  * @returns {Promise<{ success: boolean, products?: Array, message?: string }>}

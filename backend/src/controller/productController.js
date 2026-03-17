@@ -7,6 +7,7 @@ import { validateProductBody } from "../utils/productValidation.js";
 import { parseOriginalPrice, parseDiscount, computeFinalPrice, resolveSellingPrice } from "../utils/priceUtils.js";
 import { parseCategoryPath } from "../utils/categoryUtils.js";
 import { DEFAULT_PRODUCT_IMAGE_URL } from "../constants/defaults.js";
+import { isKnownCategory, getKnownCategoriesForTypo } from "../constants/knownCategories.js";
 import { applyCampaignToProduct, removeCampaignFromProduct } from "../utils/campaignProductSync.js";
 
 const MONGO_ID_REGEX = /^[a-fA-F0-9]{24}$/;
@@ -129,6 +130,177 @@ export async function getProductsByCollection(req, res, next) {
 function toSlug(s) {
   if (s == null || typeof s !== "string") return "";
   return s.trim().toLowerCase().replace(/\s+/g, "-");
+}
+
+/** Escape regex special chars. */
+function escapeRegex(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Simple Levenshtein distance (for "did you mean"). */
+function levenshtein(a, b) {
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const matrix = [];
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b[i - 1] === a[j - 1]) matrix[i][j] = matrix[i - 1][j - 1];
+      else matrix[i][j] = 1 + Math.min(matrix[i - 1][j - 1], matrix[i][j - 1], matrix[i - 1][j]);
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
+/** Word-boundary regex so "ck" does not match "Black". */
+function wordBoundaryRegex(word) {
+  const escaped = escapeRegex(word);
+  return new RegExp(`\\b${escaped}\\b`, "i");
+}
+
+/**
+ * GET /api/products/search?q=...
+ * Search only product name and categoryPath (category / sub / sub-sub). Word-boundary match so "ck" won't match "Black".
+ * Typo: suggest only from category names and product names. categoryExists uses known categories so "Panjabi" with 0 products shows "Stay tuned".
+ */
+export async function searchProducts(req, res, next) {
+  try {
+    const raw = (req.query.q || "").trim();
+    if (!raw) {
+      return res.json({ success: true, products: [], matchType: "none", suggestedQuery: null, categoryExists: false });
+    }
+
+    const queryWords = raw.split(/\s+/).filter(Boolean);
+    const minWordLength = 4;
+    const allWordsLongEnough = queryWords.length > 0 && queryWords.every((w) => w.length >= minWordLength);
+
+    let products = [];
+    if (allWordsLongEnough) {
+      const andConditions = queryWords.map((word) => {
+        const wb = wordBoundaryRegex(word);
+        return {
+          $or: [
+            { name: wb },
+            { category: wb },
+            { "categoryPath.0": wb },
+            { "categoryPath.1": wb },
+            { "categoryPath.2": wb },
+            { "categoryPath.3": wb },
+          ],
+        };
+      });
+      products = await Product.find({
+        status: "active",
+        $and: andConditions,
+      })
+        .populate("campaign", "name")
+        .lean()
+        .sort({ createdAt: -1 });
+    }
+
+    let matchType = products.length > 0 ? "exact" : "none";
+    let suggestedQuery = null;
+
+    const knownCategories = getKnownCategoriesForTypo();
+    const allProductsForSuggest = await Product.find({ status: "active" }).select("name categoryPath").lean();
+    const fromDb = new Set();
+    allProductsForSuggest.forEach((p) => {
+      (p.categoryPath || []).forEach((seg) => {
+        const t = seg.trim().toLowerCase();
+        if (t) fromDb.add(t);
+      });
+      (p.name || "").trim().toLowerCase().split(/\s+/).filter(Boolean).forEach((w) => fromDb.add(w));
+    });
+    const vocabulary = [...new Set([...knownCategories.map((c) => c.toLowerCase()), ...fromDb])];
+
+    let categoryExists = false;
+    if (products.length > 0) {
+      categoryExists = true;
+    } else {
+      categoryExists = isKnownCategory(raw);
+    }
+
+    if (products.length === 0 && raw.length >= 4) {
+      const queryLower = raw.toLowerCase();
+      let bestSuggestion = null;
+      let bestTotalDist = Infinity;
+      for (const candidate of vocabulary) {
+        if (candidate.length < 2) continue;
+        const d = queryWords.length === 1
+          ? levenshtein(queryLower, candidate)
+          : queryWords.reduce((sum, w) => sum + levenshtein(w, candidate), 0);
+        if (d <= 2 && d > 0 && d < bestTotalDist) {
+          bestTotalDist = d;
+          bestSuggestion = candidate;
+        }
+      }
+      if (queryWords.length === 1) {
+        for (const candidate of vocabulary) {
+          if (candidate.length < 2) continue;
+          const d = levenshtein(queryWords[0].toLowerCase(), candidate);
+          if (d <= 2 && d < bestTotalDist) {
+            bestTotalDist = d;
+            bestSuggestion = candidate;
+          }
+        }
+      }
+      if (bestSuggestion) {
+        const displaySuggestion = knownCategories.find((c) => c.toLowerCase() === bestSuggestion) || bestSuggestion;
+        suggestedQuery = displaySuggestion;
+        const wb = wordBoundaryRegex(bestSuggestion);
+        const typoProducts = await Product.find({
+          status: "active",
+          $or: [
+            { name: wb },
+            { category: wb },
+            { "categoryPath.0": wb },
+            { "categoryPath.1": wb },
+            { "categoryPath.2": wb },
+            { "categoryPath.3": wb },
+          ],
+        })
+          .populate("campaign", "name")
+          .lean()
+          .limit(80);
+        if (typoProducts.length > 0) {
+          products = typoProducts;
+          matchType = "fuzzy";
+          categoryExists = true;
+        }
+      }
+    }
+
+    if (products.length > 0 && matchType === "fuzzy" && !suggestedQuery) {
+      const ql = raw.toLowerCase();
+      let best = null;
+      let bestD = Infinity;
+      for (const c of vocabulary) {
+        if (c.length < 2) continue;
+        const d = levenshtein(ql, c);
+        if (d <= 2 && d < bestD) {
+          bestD = d;
+          best = knownCategories.find((x) => x.toLowerCase() === c) || c;
+        }
+      }
+      if (best) suggestedQuery = best;
+    }
+
+    if (products.length === 0 && !categoryExists) {
+      categoryExists = isKnownCategory(raw);
+    }
+
+    products = products.map((p) => ({ ...p, campaignName: p.campaign?.name ?? null }));
+    res.json({
+      success: true,
+      products,
+      matchType,
+      suggestedQuery: suggestedQuery || null,
+      categoryExists,
+    });
+  } catch (err) {
+    next(err);
+  }
 }
 
 /**

@@ -8,6 +8,7 @@ import {
   getAdminProducts,
   updateProduct,
   deleteProduct,
+  searchProducts,
 } from "../controller/productController.js";
 import { protect, requireRole } from "../middlewares/auth.middleware.js";
 
@@ -15,6 +16,8 @@ const router = express.Router();
 
 // List by gender (query: ?gender=men|women) or all active
 router.get("/", getProducts);
+// Search: ?q=... (products + category; fuzzy / suggestedQuery)
+router.get("/search", searchProducts);
 // Homepage: latest 4 + top 2 best sellers
 router.get("/home", getHomeProducts);
 // List by collection (e.g. new-arrivals) - must be before /:identifier
