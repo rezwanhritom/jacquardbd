@@ -3,10 +3,13 @@ import { createRoot } from "react-dom/client";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "react-hot-toast";
 import "./index.css";
+import { CookieConsentProvider } from "./context/CookieConsentContext";
 import { AuthProvider } from "./context/AuthContext";
 import { WishlistProvider } from "./context/WishlistContext";
 import { CartProvider } from "./context/CartContext";
 import { ChatProvider } from "./context/ChatContext";
+import CookieConsentBanner from "./components/CookieConsent/CookieConsentBanner";
+import ChatWidget from "./components/ChatWidget";
 import { router } from "./Routes/Routes.jsx";
 import { RouterProvider } from "react-router";
 
@@ -24,12 +27,15 @@ const App = () => (
   <RemoveLoadingScreen>
     {googleClientId ? (
       <GoogleOAuthProvider clientId={googleClientId}>
+        <CookieConsentProvider>
         <AuthProvider>
           <ChatProvider>
           <WishlistProvider>
             <CartProvider>
             <>
               <RouterProvider router={router} />
+              <CookieConsentBanner />
+              <ChatWidget />
               <Toaster
                 position="top-right"
                 toastOptions={{
@@ -58,14 +64,18 @@ const App = () => (
           </WishlistProvider>
           </ChatProvider>
         </AuthProvider>
+        </CookieConsentProvider>
       </GoogleOAuthProvider>
     ) : (
+      <CookieConsentProvider>
       <AuthProvider>
         <ChatProvider>
         <WishlistProvider>
           <CartProvider>
             <>
               <RouterProvider router={router} />
+              <CookieConsentBanner />
+              <ChatWidget />
               <Toaster
                 position="top-right"
                 toastOptions={{
@@ -84,6 +94,7 @@ const App = () => (
         </WishlistProvider>
         </ChatProvider>
       </AuthProvider>
+      </CookieConsentProvider>
     )}
   </RemoveLoadingScreen>
 );

@@ -94,3 +94,49 @@ export async function adminReply(req, res, next) {
     next(err);
   }
 }
+
+/**
+ * GET /api/chat/guest/conversation — guest live chat (jacquard_guest_sid cookie)
+ */
+export async function getOrCreateGuestConversation(req, res, next) {
+  try {
+    const guestSessionId = req.guestSessionId;
+    if (!guestSessionId) {
+      return res.status(400).json({ success: false, message: "Session required" });
+    }
+    let conv = await ChatConversation.findOne({ guestSessionId }).sort({ updatedAt: -1 }).lean();
+    if (!conv) {
+      const created = await ChatConversation.create({ guestSessionId, messages: [] });
+      conv = created.toObject();
+    }
+    return res.json({ success: true, conversation: conv });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/chat/guest/message
+ */
+export async function sendGuestMessage(req, res, next) {
+  try {
+    const guestSessionId = req.guestSessionId;
+    if (!guestSessionId) {
+      return res.status(400).json({ success: false, message: "Session required" });
+    }
+    const { text } = req.body;
+    if (!text || typeof text !== "string" || !text.trim()) {
+      return res.status(400).json({ success: false, message: "Message text is required" });
+    }
+    let conv = await ChatConversation.findOne({ guestSessionId });
+    if (!conv) {
+      conv = await ChatConversation.create({ guestSessionId, messages: [] });
+    }
+    conv.messages.push({ from: "user", text: text.trim() });
+    await conv.save();
+    const lastMsg = conv.messages[conv.messages.length - 1];
+    return res.status(201).json({ success: true, message: lastMsg });
+  } catch (err) {
+    next(err);
+  }
+}

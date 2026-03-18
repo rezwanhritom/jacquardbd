@@ -29,7 +29,10 @@ const orderItemSchema = new mongoose.Schema({
 
 const orderSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    /** Browser session for guest checkout (HTTP-only cookie). */
+    guestSessionId: { type: String, index: true, sparse: true },
+    guestEmail: { type: String, trim: true, default: "" },
     amount: { type: Number, required: true, min: 0 },
     currency: { type: String, default: "BDT" },
     status: {
@@ -71,6 +74,7 @@ const orderSchema = new mongoose.Schema(
 );
 
 orderSchema.index({ user: 1, createdAt: -1 });
+orderSchema.index({ guestSessionId: 1, createdAt: -1 });
 orderSchema.index({ "sslcommerz.tran_id": 1 });
 
 export default mongoose.model("Order", orderSchema);

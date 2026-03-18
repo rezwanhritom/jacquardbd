@@ -3,7 +3,6 @@ import { Outlet, useLocation, Link } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../Navbar";
 import Footer from "../Footer";
-import ChatWidget from "../ChatWidget";
 import { pageTransitionVariants, pageTransitionConfig } from "../../utils/animations";
 
 const Layout = () => {
@@ -47,7 +46,6 @@ const Layout = () => {
       <footer className="w-full">
         <Footer />
       </footer>
-      <ChatWidget />
     </div>
   );
 };

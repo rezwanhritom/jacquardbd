@@ -115,10 +115,12 @@ const AdminLiveChat = () => {
                 >
                   <div className="flex items-center gap-2">
                     <FiUser size={16} style={{ color: "var(--color-primary)" }} />
-                    <span className="font-medium truncate">{c.user?.name || "User"}</span>
+                    <span className="font-medium truncate">
+                      {c.user?.name || (c.guestSessionId ? `Guest (${String(c.guestSessionId).slice(0, 8)}…)` : "Chat")}
+                    </span>
                   </div>
                   <p className="text-xs truncate mt-0.5" style={{ color: "var(--text-tertiary)" }}>
-                    {c.user?.email}
+                    {c.user?.email || (c.guestSessionId ? "Guest · live chat" : "")}
                   </p>
                   <p className="text-xs mt-1 line-clamp-1" style={{ color: "var(--text-secondary)" }}>
                     {c.messages?.length ? c.messages[c.messages.length - 1]?.text : "No messages"}
@@ -150,10 +152,13 @@ const AdminLiveChat = () => {
               <div className="px-4 py-3 border-b flex items-center gap-2" style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)" }}>
                 <FiUser size={18} style={{ color: "var(--color-primary)" }} />
                 <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
-                  {conversation?.user?.name || "User"}
+                  {conversation?.user?.name ||
+                    (conversation?.guestSessionId
+                      ? `Guest (${String(conversation.guestSessionId).slice(0, 8)}…)`
+                      : "User")}
                 </span>
                 <span className="text-sm" style={{ color: "var(--text-tertiary)" }}>
-                  {conversation?.user?.email}
+                  {conversation?.user?.email || (conversation?.guestSessionId ? "Guest live chat" : "")}
                 </span>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">

@@ -19,6 +19,8 @@ const NewArrivals = lazy(() => import("../Pages/NewArrivals"));
 const Campaigns = lazy(() => import("../Pages/Campaigns"));
 const Checkout = lazy(() => import("../Pages/Checkout"));
 const OrderSuccess = lazy(() => import("../Pages/OrderSuccess"));
+const GuestOrders = lazy(() => import("../Pages/GuestOrders/GuestOrders"));
+const GuestOrderDetail = lazy(() => import("../Pages/GuestOrders/GuestOrderDetail"));
 const Account = lazy(() => import("../Pages/Account/Account"));
 const AccountDashboard = lazy(() => import("../Pages/Account/Dashboard"));
 const AccountProfile = lazy(() => import("../Pages/Account/Profile"));
@@ -268,6 +270,22 @@ export const router = createBrowserRouter([
         element: (
           <LazyWrapper>
             <OrderSuccess />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "my-orders",
+        element: (
+          <LazyWrapper>
+            <GuestOrders />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: "my-orders/:orderId",
+        element: (
+          <LazyWrapper>
+            <GuestOrderDetail />
           </LazyWrapper>
         ),
       },

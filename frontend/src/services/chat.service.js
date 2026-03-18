@@ -23,6 +23,27 @@ async function chatFetch(path, options = {}) {
   return res;
 }
 
+export async function getGuestConversation() {
+  const res = await chatFetch("/guest/conversation");
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, conversation: null, message: data.message || "Failed to load chat" };
+  }
+  return { success: true, conversation: data.conversation, message: data.message };
+}
+
+export async function sendGuestMessage(text) {
+  const res = await chatFetch("/guest/message", {
+    method: "POST",
+    body: JSON.stringify({ text: String(text).trim() }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { success: false, message: null, error: data.message || "Failed to send" };
+  }
+  return { success: true, message: data.message, error: null };
+}
+
 export async function getMyConversation() {
   const res = await chatFetch("/conversation");
   const data = await res.json().catch(() => ({}));

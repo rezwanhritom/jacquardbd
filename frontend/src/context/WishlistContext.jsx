@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useAuth } from "./AuthContext";
+import { useCookieConsent } from "./CookieConsentContext";
+import toast from "react-hot-toast";
 import * as wishlistApi from "../services/wishlist.service";
 import { mapApiProduct } from "../utils/productUtils";
 
@@ -43,6 +45,7 @@ function isValidMongoId(id) {
 
 export function WishlistProvider({ children }) {
   const { isAuthenticated } = useAuth();
+  const { decided, shoppingAllowed } = useCookieConsent();
   const [wishlistItems, setWishlistItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -84,10 +87,25 @@ export function WishlistProvider({ children }) {
         });
       }
     } else {
-      setWishlistItems(getGuestWishlist().map(normalizeItem));
+      if (decided && shoppingAllowed) {
+        setWishlistItems(getGuestWishlist().map(normalizeItem));
+      } else {
+        setWishlistItems([]);
+      }
       setLoading(false);
     }
-  }, [isAuthenticated, normalizeItem]);
+  }, [isAuthenticated, decided, shoppingAllowed, normalizeItem]);
+
+  useEffect(() => {
+    const onConsent = () => {
+      if (!isAuthenticated) {
+        if (shoppingAllowed) setWishlistItems(getGuestWishlist().map(normalizeItem));
+        else setWishlistItems([]);
+      }
+    };
+    window.addEventListener("jacquard-cookie-consent", onConsent);
+    return () => window.removeEventListener("jacquard-cookie-consent", onConsent);
+  }, [isAuthenticated, shoppingAllowed, normalizeItem]);
 
   const isInWishlist = useCallback(
     (product) => {
@@ -127,6 +145,14 @@ export function WishlistProvider({ children }) {
           return { success: false, message: err?.message || "Failed to add to wishlist" };
         }
       } else {
+        if (!decided) {
+          toast.error("Please accept cookies (or log in) to use your wishlist.");
+          return { success: false, message: "Cookie consent required" };
+        }
+        if (!shoppingAllowed) {
+          toast.error("Enable shopping cookies in settings, or log in for wishlist.");
+          return { success: false, message: "Shopping cookies required" };
+        }
         const guest = getGuestWishlist();
         guest.push({
           _id: id,
@@ -144,7 +170,7 @@ export function WishlistProvider({ children }) {
         return { success: true };
       }
     },
-    [isAuthenticated, wishlistItems, normalizeItem]
+    [isAuthenticated, decided, shoppingAllowed, wishlistItems, normalizeItem]
   );
 
   const removeFromWishlist = useCallback(
@@ -171,13 +197,17 @@ export function WishlistProvider({ children }) {
         }
         return { success: true };
       } else {
+        if (!shoppingAllowed) {
+          setWishlistItems([]);
+          return { success: true };
+        }
         const guest = getGuestWishlist().filter((p) => productId(p) !== id && String(productId(p)) !== String(id));
         setGuestWishlist(guest);
         setWishlistItems(guest.map(normalizeItem));
         return { success: true };
       }
     },
-    [isAuthenticated, wishlistItems, normalizeItem]
+    [isAuthenticated, shoppingAllowed, wishlistItems, normalizeItem]
   );
 
   const value = {

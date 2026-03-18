@@ -1,6 +1,9 @@
 import express from "express";
 import {
   createOrder,
+  createGuestOrder,
+  getGuestOrders,
+  getGuestOrderById,
   getMyOrders,
   getMyOrderById,
   getAdminOrders,
@@ -10,8 +13,13 @@ import {
   updateOrder,
 } from "../controller/order.controller.js";
 import { protect, requireRole } from "../middlewares/auth.middleware.js";
+import { ensureGuestSession, readGuestSession } from "../middlewares/guestSession.middleware.js";
 
 const router = express.Router();
+
+router.post("/guest", ensureGuestSession, createGuestOrder);
+router.get("/guest/me", readGuestSession, getGuestOrders);
+router.get("/guest/:orderId", readGuestSession, getGuestOrderById);
 
 router.post("/", protect, createOrder);
 router.get("/me", protect, getMyOrders);

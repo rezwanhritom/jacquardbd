@@ -17,9 +17,10 @@ import {
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
+import { useCookieConsent } from "../../context/CookieConsentContext";
 import { getProfile, updateProfile } from "../../services/user.service";
 import { getShippingOptions } from "../../services/shipping.service";
-import { createOrder } from "../../services/orders.service";
+import { createOrder, createGuestOrder } from "../../services/orders.service";
 import Loading from "../../components/Loading";
 
 const emptyAddressForm = () => ({
@@ -79,7 +80,8 @@ function getShippingOptionLabel(option) {
 const Checkout = () => {
   const navigate = useNavigate();
   const { user: authUser, isAuthenticated } = useAuth();
-  const { cartItems, getCartTotal, refetchCart } = useCart();
+  const { cartItems, getCartTotal, refetchCart, clearGuestCart } = useCart();
+  const { decided, shoppingAllowed } = useCookieConsent();
   const [profileLoading, setProfileLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [addresses, setAddresses] = useState([]);
@@ -94,6 +96,7 @@ const Checkout = () => {
   });
   const [placingOrder, setPlacingOrder] = useState(false);
   const [sendAsGift, setSendAsGift] = useState(false);
+  const guestCheckoutInit = useRef(false);
 
   // Load shipping options from DB
   useEffect(() => {
@@ -111,16 +114,34 @@ const Checkout = () => {
     });
   }, []);
 
-  // Auth guard: redirect to login if not authenticated
   useEffect(() => {
-    if (!profileLoading && !isAuthenticated) {
-      navigate("/login", { replace: true, state: { from: "/checkout" } });
-    }
-  }, [isAuthenticated, profileLoading, navigate]);
+    if (isAuthenticated || guestCheckoutInit.current) return;
+    if (!decided || !shoppingAllowed) return;
+    if (!shippingOptions.length) return;
+    guestCheckoutInit.current = true;
+    setFormData((prev) => ({
+      ...emptyAddressForm(),
+      country: "Bangladesh",
+      shippingMethod: shippingOptions[0].id,
+    }));
+  }, [isAuthenticated, decided, shoppingAllowed, shippingOptions]);
+
+  // Guest checkout: shopping cookies + cart; else require login
+  useEffect(() => {
+    if (!decided) return;
+    if (isAuthenticated) return;
+    if (shoppingAllowed) return;
+    navigate("/", { replace: true });
+    toast.error("Accept shopping cookies to check out as a guest, or sign in.");
+  }, [decided, isAuthenticated, shoppingAllowed, navigate]);
 
   // Load user profile and addresses from DB (refetches every time checkout mounts so we always have latest profile)
   useEffect(() => {
-    if (!isAuthenticated || !authUser?._id) {
+    if (!isAuthenticated) {
+      setProfileLoading(false);
+      return;
+    }
+    if (!authUser?._id) {
       setProfileLoading(false);
       return;
     }
@@ -242,7 +263,7 @@ const Checkout = () => {
         toast.error("Please fill in all address fields before continuing.");
         return;
       }
-      if (!sendAsGift) {
+      if (isAuthenticated && !sendAsGift) {
         await saveNewAddressIfNeeded();
         const currentPhone = (formData.phone || "").trim();
         const savedPhone = (profile?.phone || "").trim();
@@ -294,6 +315,32 @@ const Checkout = () => {
       state: (formData.state || "").trim(),
       zip: (formData.zipCode || "").trim(),
     };
+
+    if (!isAuthenticated) {
+      const items = cartItems
+        .map((i) => {
+          const pid = i.product?._id ?? i.product?.id;
+          return pid ? { productId: String(pid), quantity: Math.max(1, Math.floor(Number(i.quantity)) || 1) } : null;
+        })
+        .filter(Boolean);
+      const { success, orderId, message } = await createGuestOrder({
+        items,
+        shippingAddress,
+        shippingCost: shipping,
+        guestEmail: (formData.email || "").trim(),
+      });
+      setPlacingOrder(false);
+      toast.dismiss("order-processing");
+      if (success && orderId) {
+        clearGuestCart();
+        toast.success("Order placed successfully!");
+        navigate(`/order-success/${orderId}`);
+      } else {
+        toast.error(message || "Failed to place order");
+      }
+      return;
+    }
+
     const { success, orderId, message } = await createOrder({
       shippingAddress,
       shippingCost: shipping,
@@ -320,8 +367,15 @@ const Checkout = () => {
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
 
-  if (!isAuthenticated && !profileLoading) return null;
-  if (profileLoading) {
+  if (!decided) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loading />
+      </div>
+    );
+  }
+  if (!isAuthenticated && !shoppingAllowed) return null;
+  if (profileLoading && isAuthenticated) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <Loading />
@@ -461,6 +515,7 @@ const Checkout = () => {
                             Shipping Address
                           </h2>
                         </div>
+                        {isAuthenticated && (
                         <Link
                           to="/account/addresses"
                           className="text-sm font-medium flex items-center gap-1"
@@ -469,6 +524,7 @@ const Checkout = () => {
                           Manage addresses
                           <FiChevronRight size={14} />
                         </Link>
+                        )}
                       </div>
 
                       {/* Saved addresses from DB (hidden when sending as gift) */}

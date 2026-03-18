@@ -46,6 +46,7 @@ function getSectionLeafItems(value) {
 import { useAuth } from "../../context/AuthContext";
 import { useWishlist } from "../../context/WishlistContext";
 import { useCart } from "../../context/CartContext";
+import { useCookieConsent } from "../../context/CookieConsentContext";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -72,6 +73,7 @@ const Navbar = () => {
   const wishlistCount = wishlistItems?.length ?? 0;
   const { getCartCount } = useCart();
   const cartCount = getCartCount();
+  const { shoppingAllowed, decided } = useCookieConsent();
   const navigate = useNavigate();
   const location = useLocation();
   const searchInputRef = useRef(null);
@@ -616,6 +618,18 @@ const Navbar = () => {
               )}
 
               {/* Login / Register (when not logged in) */}
+              {!isAuthenticated && decided && shoppingAllowed && (
+                <Link to="/my-orders">
+                  <motion.span
+                    whileHover={{ scale: 1.02 }}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg font-semibold text-sm"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    <FiPackage size={16} />
+                    My orders
+                  </motion.span>
+                </Link>
+              )}
               {!isAuthenticated && (
                 <>
                   <Link to="/register">
@@ -1133,6 +1147,19 @@ const Navbar = () => {
                           style={{ backgroundColor: "var(--color-primary)" }}
                         />
                       )}
+                    </motion.button>
+                  </Link>
+                )}
+
+                {!isAuthenticated && decided && shoppingAllowed && (
+                  <Link to="/my-orders" onClick={closeMobileMenu} className="block mb-3">
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm border-2"
+                      style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
+                    >
+                      <FiPackage size={18} />
+                      My orders (guest)
                     </motion.button>
                   </Link>
                 )}

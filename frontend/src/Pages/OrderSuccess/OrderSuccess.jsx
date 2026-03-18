@@ -1,11 +1,14 @@
 import { useParams, Link } from "react-router";
 import { Container } from "../../components";
+import { useAuth } from "../../context/AuthContext";
 import { motion } from "framer-motion";
 import { fadeInUp } from "../../utils/animations";
 import { FiCheckCircle, FiPackage, FiHome } from "react-icons/fi";
 
 const OrderSuccess = () => {
   const { orderId } = useParams();
+  const { isAuthenticated } = useAuth();
+  const ordersPath = isAuthenticated ? "/account/orders" : "/my-orders";
 
   return (
     <div className="min-h-screen py-16 flex items-center">
@@ -59,14 +62,14 @@ const OrderSuccess = () => {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                to="/account/orders"
+                to={ordersPath}
                 className="px-8 py-4 border rounded-lg font-semibold uppercase tracking-wider transition-colors"
                 style={{
                   borderColor: "var(--border-primary)",
                   color: "var(--text-primary)",
                 }}
               >
-                View Orders
+                {isAuthenticated ? "View orders" : "View my orders (this device)"}
               </Link>
               <Link
                 to="/"

@@ -3,12 +3,18 @@ import { protect, requireRole } from "../middlewares/auth.middleware.js";
 import {
   getOrCreateMyConversation,
   sendMessage,
+  getOrCreateGuestConversation,
+  sendGuestMessage,
   listConversations,
   getConversationById,
   adminReply,
 } from "../controller/chat.controller.js";
+import { ensureGuestSession } from "../middlewares/guestSession.middleware.js";
 
 const router = Router();
+
+router.get("/guest/conversation", ensureGuestSession, getOrCreateGuestConversation);
+router.post("/guest/message", ensureGuestSession, sendGuestMessage);
 
 // User: get my conversation, send message
 router.get("/conversation", protect, getOrCreateMyConversation);

@@ -1,6 +1,7 @@
 import Order from "../models/Order.js";
 import { ORDER_STATUS, PAYMENT_STATUS } from "../models/Order.js";
 import User from "../models/User.js";
+import Product from "../models/Product.js";
 
 /** Recalculate order amount from items (subtotal + 8% tax). */
 function recalcAmount(items) {
@@ -105,6 +106,168 @@ export async function createOrder(req, res, next) {
 }
 
 /**
+ * POST /api/orders/guest
+ * Body: { items: [{ productId, quantity }], shippingAddress, shippingCost?, guestEmail? }
+ */
+export async function createGuestOrder(req, res, next) {
+  try {
+    const guestSessionId = req.guestSessionId;
+    if (!guestSessionId) {
+      return res.status(400).json({ success: false, message: "Guest session required" });
+    }
+
+    const { items: rawItems, shippingAddress, shippingCost = 0, guestEmail = "" } = req.body || {};
+    if (!Array.isArray(rawItems) || rawItems.length === 0) {
+      return res.status(400).json({ success: false, message: "Cart items are required" });
+    }
+
+    const items = [];
+    let subtotal = 0;
+    for (const row of rawItems) {
+      const pid = row.productId;
+      const qty = Math.max(1, Math.floor(Number(row.quantity)) || 1);
+      if (!pid) continue;
+      const product = await Product.findById(pid).select(PRODUCT_SELECT).lean();
+      if (!product) continue;
+      const price = product.finalPrice ?? product.price ?? 0;
+      items.push({
+        productId: product._id,
+        name: product.name || "Product",
+        quantity: qty,
+        price,
+      });
+      subtotal += price * qty;
+    }
+
+    if (items.length === 0) {
+      return res.status(400).json({ success: false, message: "No valid products in order" });
+    }
+
+    const tax = Math.round(subtotal * 0.08 * 100) / 100;
+    const shipping = Number(shippingCost) >= 0 ? Number(shippingCost) : 0;
+    const amount = Math.round((subtotal + tax + shipping) * 100) / 100;
+
+    const orderDoc = await Order.create({
+      user: null,
+      guestSessionId,
+      guestEmail: String(guestEmail || "").trim().slice(0, 320),
+      amount,
+      currency: "BDT",
+      status: ORDER_STATUS.PENDING,
+      items,
+      shippingAddress: {
+        name: shippingAddress?.name ?? "",
+        phone: shippingAddress?.phone ?? "",
+        address: shippingAddress?.address ?? "",
+        city: shippingAddress?.city ?? "",
+        state: shippingAddress?.state ?? "",
+        zip: shippingAddress?.zip ?? "",
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      order: {
+        _id: orderDoc._id,
+        orderId: `ORD-${String(orderDoc._id).slice(-10).toUpperCase()}`,
+        amount: orderDoc.amount,
+        currency: orderDoc.currency,
+        status: orderDoc.status,
+        items: orderDoc.items,
+        shippingAddress: orderDoc.shippingAddress,
+        createdAt: orderDoc.createdAt,
+      },
+      orderId: orderDoc._id,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+function mapGuestOrderList(o) {
+  return {
+    _id: o._id,
+    orderId: `ORD-${String(o._id).slice(-10).toUpperCase()}`,
+    date: o.createdAt,
+    status: o.status,
+    paymentStatus:
+      o.paymentStatus ??
+      (o.status === "paid"
+        ? PAYMENT_STATUS.PAID
+        : o.status === "cancelled"
+          ? PAYMENT_STATUS.CANCELLED
+          : PAYMENT_STATUS.PENDING),
+    total: o.amount,
+    currency: o.currency ?? "BDT",
+    items: (o.items || []).map((item) => ({
+      productId: item.productId,
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+    })),
+    shippingAddress: o.shippingAddress,
+  };
+}
+
+export async function getGuestOrders(req, res, next) {
+  try {
+    const guestSessionId = req.guestSessionId;
+    if (!guestSessionId) {
+      return res.json({ success: true, orders: [] });
+    }
+    const orders = await Order.find({ guestSessionId, user: null })
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json({
+      success: true,
+      orders: orders.map(mapGuestOrderList),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getGuestOrderById(req, res, next) {
+  try {
+    const guestSessionId = req.guestSessionId;
+    if (!guestSessionId) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    const { orderId } = req.params;
+    const order = await Order.findOne({
+      _id: orderId,
+      guestSessionId,
+      user: null,
+    }).lean();
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    res.json({
+      success: true,
+      order: {
+        _id: order._id,
+        orderId: `ORD-${String(order._id).slice(-10).toUpperCase()}`,
+        date: order.createdAt,
+        status: order.status,
+        paymentStatus:
+          order.paymentStatus ??
+          (order.status === "paid"
+            ? PAYMENT_STATUS.PAID
+            : order.status === "cancelled"
+              ? PAYMENT_STATUS.CANCELLED
+              : PAYMENT_STATUS.PENDING),
+        total: order.amount,
+        currency: order.currency ?? "BDT",
+        items: order.items || [],
+        shippingAddress: order.shippingAddress,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * GET /api/orders/me
  * Authenticated user only. Returns current user's orders, newest first.
  */
@@ -185,8 +348,9 @@ export async function getAdminOrders(req, res, next) {
     const list = orders.map((o) => ({
       _id: o._id,
       orderId: `ORD-${String(o._id).slice(-10).toUpperCase()}`,
-      customer: o.user?.name ?? "Guest",
-      email: o.user?.email ?? "",
+      customer: o.user?.name ?? (o.guestSessionId ? "Guest checkout" : "Guest"),
+      email: o.user?.email ?? o.guestEmail ?? "",
+      isGuestOrder: !o.user && !!o.guestSessionId,
       date: o.createdAt,
       status: o.status,
       paymentStatus: o.paymentStatus ?? (o.status === "paid" ? PAYMENT_STATUS.PAID : o.status === "cancelled" ? PAYMENT_STATUS.CANCELLED : PAYMENT_STATUS.PENDING),

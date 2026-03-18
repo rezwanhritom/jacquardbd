@@ -4,11 +4,11 @@ import { FiPhone } from "react-icons/fi";
 import { footerData } from "../../data/footer";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { useChat } from "../../context/ChatContext";
-import { useAuth } from "../../context/AuthContext";
+import { useCookieConsent } from "../../context/CookieConsentContext";
 
 const Footer = () => {
   const { openChat } = useChat();
-  const { isAuthenticated } = useAuth();
+  const { openCookieSettings } = useCookieConsent();
 
   return (
     <footer
@@ -92,10 +92,7 @@ const Footer = () => {
                     {link.isLiveChat ? (
                       <button
                         type="button"
-                        onClick={() => {
-                          if (isAuthenticated) openChat();
-                          else window.location.href = "/login";
-                        }}
+                        onClick={() => openChat()}
                         className="text-left w-full"
                       >
                         <motion.span
@@ -146,7 +143,14 @@ const Footer = () => {
             >
               {footerData.copyright}
             </motion.p>
-            <div className="flex flex-wrap gap-6 justify-center md:justify-end">
+            <div className="flex flex-wrap gap-6 justify-center md:justify-end items-center">
+              <button
+                type="button"
+                onClick={openCookieSettings}
+                className="text-sm text-white/70 hover:text-white transition-colors"
+              >
+                Cookie settings
+              </button>
               {footerData.legal.map((link, index) => (
                 <motion.div
                   key={link.id}
