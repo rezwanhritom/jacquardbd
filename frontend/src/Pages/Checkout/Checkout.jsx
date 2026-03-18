@@ -24,6 +24,7 @@ import { getProfile, updateProfile } from "../../services/user.service";
 import { getShippingOptions } from "../../services/shipping.service";
 import { createOrder, createGuestOrder } from "../../services/orders.service";
 import { previewCoupon } from "../../services/coupons.service";
+import { getRewardAccount, previewReward } from "../../services/rewards.service";
 import Loading from "../../components/Loading";
 
 const emptyAddressForm = () => ({
@@ -114,6 +115,11 @@ const Checkout = () => {
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponLoading, setCouponLoading] = useState(false);
+  const [rewardAccount, setRewardAccount] = useState(null);
+  const [usePendingReward, setUsePendingReward] = useState(false);
+  const [checkoutRewardRuleId, setCheckoutRewardRuleId] = useState(null);
+  const [rewardPreview, setRewardPreview] = useState(null);
+  const [rewardPreviewLoading, setRewardPreviewLoading] = useState(false);
 
   const cartFingerprint = useMemo(
     () =>
@@ -130,6 +136,26 @@ const Checkout = () => {
 
   useEffect(() => {
     setAppliedCoupon(null);
+  }, [cartFingerprint]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !authUser?._id) {
+      setRewardAccount(null);
+      setUsePendingReward(false);
+      setCheckoutRewardRuleId(null);
+      setRewardPreview(null);
+      return;
+    }
+    getRewardAccount().then((res) => {
+      if (res.success) {
+        setRewardAccount(res);
+        if (res.pendingReward) setUsePendingReward(true);
+      }
+    });
+  }, [isAuthenticated, authUser?._id]);
+
+  useEffect(() => {
+    setCheckoutRewardRuleId(null);
   }, [cartFingerprint]);
 
   // Load shipping options from DB
@@ -383,6 +409,8 @@ const Checkout = () => {
       shippingAddress,
       shippingCost: shipping,
       couponCode: appliedCoupon?.code || "",
+      usePendingReward: pendingRewardApplies,
+      rewardRuleId: checkoutRuleApplies ? checkoutRewardRuleId : undefined,
     });
     setPlacingOrder(false);
     toast.dismiss("order-processing");
@@ -444,14 +472,86 @@ const Checkout = () => {
     toast.success("Coupon removed");
   };
 
+  useEffect(() => {
+    if (!isAuthenticated || cartItems.length === 0) {
+      setRewardPreview(null);
+      return;
+    }
+    const items = buildCouponPreviewItems();
+    if (items.length === 0) return;
+    const pending = rewardAccount?.pendingReward;
+    const timer = setTimeout(() => {
+      setRewardPreviewLoading(true);
+      previewReward({
+        items,
+        couponCode: appliedCoupon?.code || "",
+        usePendingReward: !!(usePendingReward && pending),
+        rewardRuleId: usePendingReward || !checkoutRewardRuleId ? undefined : checkoutRewardRuleId,
+      })
+        .then((res) => {
+          setRewardPreviewLoading(false);
+          if (res.success && ((Number(res.discount) > 0) || res.freeShipping)) {
+            setRewardPreview(res);
+          } else if (res.success && res.previewOnly) {
+            setRewardPreview(null);
+          } else if (!res.success && res.source === "pending") {
+            setRewardPreview({ ...res, pendingFailed: true });
+          } else if (!res.success && checkoutRewardRuleId && !usePendingReward) {
+            setRewardPreview(res);
+          } else {
+            setRewardPreview(null);
+          }
+        })
+        .catch(() => {
+          setRewardPreviewLoading(false);
+          setRewardPreview(null);
+        });
+    }, 280);
+    return () => clearTimeout(timer);
+  }, [
+    isAuthenticated,
+    cartFingerprint,
+    appliedCoupon?.code,
+    usePendingReward,
+    checkoutRewardRuleId,
+    rewardAccount?.pendingReward,
+    cartItems.length,
+    buildCouponPreviewItems,
+  ]);
+
   const subtotal = getCartTotal();
   const couponDiscount = appliedCoupon?.discount ?? 0;
   const subtotalAfterCoupon = Math.max(0, Math.round((subtotal - couponDiscount) * 100) / 100);
 
+  const rewardApplies =
+    rewardPreview?.success && ((Number(rewardPreview.discount) > 0) || rewardPreview.freeShipping);
+  const rewardDiscountAmt = rewardApplies ? Number(rewardPreview.discount) || 0 : 0;
+  const rewardFreeShip = rewardApplies && !!rewardPreview.freeShipping;
+  const subtotalAfterReward = Math.max(
+    0,
+    Math.round((subtotalAfterCoupon - rewardDiscountAmt) * 100) / 100
+  );
+
   const selectedShipping = shippingOptions.find((s) => s.id === formData.shippingMethod);
   const shipping = selectedShipping != null && typeof selectedShipping.price === "number" ? selectedShipping.price : 0;
-  const tax = subtotalAfterCoupon * 0.08;
-  const total = subtotalAfterCoupon + shipping + tax;
+  const shippingFinal = rewardFreeShip ? 0 : shipping;
+  const tax = subtotalAfterReward * 0.08;
+  const total = subtotalAfterReward + shippingFinal + tax;
+
+  const pendingRewardApplies =
+    !!(
+      rewardAccount?.pendingReward &&
+      usePendingReward &&
+      rewardApplies &&
+      rewardPreview?.source === "pending"
+    );
+  const checkoutRuleApplies =
+    !!(
+      !usePendingReward &&
+      checkoutRewardRuleId &&
+      rewardApplies &&
+      rewardPreview?.source === "rule"
+    );
 
   if (!decided) {
     return (
@@ -1084,6 +1184,106 @@ const Checkout = () => {
                           </div>
                         )}
                       </div>
+
+                      {isAuthenticated && rewardAccount && (
+                        <div
+                          className="mt-6 p-4 rounded-lg border-2 space-y-3"
+                          style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-primary)" }}
+                        >
+                          <div className="flex items-center gap-2 font-semibold" style={{ color: "var(--text-primary)" }}>
+                            <FiGift size={20} style={{ color: "var(--color-primary)" }} />
+                            Reward points
+                          </div>
+                          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                            Balance:{" "}
+                            <strong style={{ color: "var(--color-primary)" }}>
+                              {rewardAccount.rewardPoints ?? 0}
+                            </strong>{" "}
+                            pts · Earn 1 pt per ৳100 spent
+                          </p>
+                          {rewardAccount.pendingReward && (
+                            <label className="flex items-start gap-2 text-sm cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={usePendingReward}
+                                onChange={(e) => {
+                                  setUsePendingReward(e.target.checked);
+                                  if (e.target.checked) setCheckoutRewardRuleId(null);
+                                }}
+                                className="mt-1"
+                              />
+                              <span style={{ color: "var(--text-secondary)" }}>
+                                Use saved reward: <strong>{rewardAccount.pendingReward.name}</strong> (
+                                {rewardAccount.pendingReward.pointsCost} pts already redeemed)
+                              </span>
+                            </label>
+                          )}
+                          {rewardAccount.pendingReward &&
+                            usePendingReward &&
+                            rewardPreview?.pendingFailed && (
+                              <p className="text-sm" style={{ color: "var(--color-tertiary)" }}>
+                                {rewardPreview.message} — uncheck above to place this order without the saved reward, or
+                                adjust your cart.
+                              </p>
+                            )}
+                          {(!rewardAccount.pendingReward || !usePendingReward) && (
+                            <div className="space-y-2">
+                              <p className="text-xs font-medium" style={{ color: "var(--text-tertiary)" }}>
+                                Or redeem points on this order
+                              </p>
+                              <select
+                                value={checkoutRewardRuleId || ""}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setCheckoutRewardRuleId(v || null);
+                                  if (v) setUsePendingReward(false);
+                                }}
+                                className="w-full px-3 py-2 rounded-lg border-2 text-sm"
+                                style={{
+                                  borderColor: "var(--border-primary)",
+                                  backgroundColor: "var(--bg-secondary)",
+                                  color: "var(--text-primary)",
+                                }}
+                              >
+                                <option value="">None</option>
+                                {(rewardAccount.rules || []).map((r) => {
+                                  const cost = Number(r.pointsRequired) || 0;
+                                  const enough = (rewardAccount.rewardPoints ?? 0) >= cost;
+                                  return (
+                                    <option key={r._id} value={r._id} disabled={!enough}>
+                                      {r.name} ({cost} pts)
+                                      {!enough ? " — not enough points" : ""}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            </div>
+                          )}
+                          {rewardPreviewLoading && (
+                            <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                              Checking reward…
+                            </p>
+                          )}
+                          {rewardApplies && (
+                            <p className="text-sm font-medium" style={{ color: "var(--color-primary)" }}>
+                              ✓ {rewardPreview.label}:{" "}
+                              {rewardFreeShip
+                                ? "Free shipping"
+                                : `−৳${rewardDiscountAmt.toFixed(2)}`}
+                            </p>
+                          )}
+                          {!rewardPreviewLoading &&
+                            checkoutRewardRuleId &&
+                            !usePendingReward &&
+                            !rewardApplies &&
+                            rewardPreview &&
+                            !rewardPreview.success && (
+                              <p className="text-sm" style={{ color: "var(--color-tertiary)" }}>
+                                {rewardPreview.message || "This reward does not apply to your cart."}
+                              </p>
+                            )}
+                        </div>
+                      )}
                     </motion.div>
                   )}
 
@@ -1192,6 +1392,14 @@ const Checkout = () => {
                           {appliedCoupon && (
                             <p className="text-sm mt-2 font-mono" style={{ color: "var(--color-primary)" }}>
                               Coupon {appliedCoupon.code}: −৳{appliedCoupon.discount.toFixed(2)}
+                            </p>
+                          )}
+                          {rewardApplies && (
+                            <p className="text-sm mt-2" style={{ color: "var(--color-primary)" }}>
+                              Reward {rewardPreview?.label}:{" "}
+                              {rewardFreeShip
+                                ? "free shipping"
+                                : `−৳${rewardDiscountAmt.toFixed(2)}`}
                             </p>
                           )}
                         </div>
@@ -1339,12 +1547,26 @@ const Checkout = () => {
                       <span style={{ color: "var(--color-primary)" }}>−৳{couponDiscount.toFixed(2)}</span>
                     </div>
                   )}
+                  {rewardDiscountAmt > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span style={{ color: "var(--color-primary)" }}>Reward ({rewardPreview?.label})</span>
+                      <span style={{ color: "var(--color-primary)" }}>−৳{rewardDiscountAmt.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {rewardFreeShip && (
+                    <div className="flex justify-between text-sm">
+                      <span style={{ color: "var(--color-primary)" }}>Reward shipping</span>
+                      <span style={{ color: "var(--color-primary)" }}>Free</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span style={{ color: "var(--text-secondary)" }}>Shipping</span>
                     <span style={{ color: "var(--text-primary)" }}>
-                      {selectedShipping?.price != null && typeof selectedShipping.price === "number"
-                        ? `৳${shipping.toFixed(2)}`
-                        : (selectedShipping?.priceLabel || "Based on distance")}
+                      {rewardFreeShip
+                        ? "৳0.00"
+                        : selectedShipping?.price != null && typeof selectedShipping.price === "number"
+                          ? `৳${shipping.toFixed(2)}`
+                          : (selectedShipping?.priceLabel || "Based on distance")}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">

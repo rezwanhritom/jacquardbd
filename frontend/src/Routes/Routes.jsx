@@ -33,6 +33,7 @@ const AccountMembership = lazy(() => import("../Pages/Account/Membership"));
 const AccountNewsletter = lazy(() => import("../Pages/Account/Newsletter"));
 const AccountSettings = lazy(() => import("../Pages/Account/Settings"));
 const AccountSecurity = lazy(() => import("../Pages/Account/Security"));
+const AccountRewardPoints = lazy(() => import("../Pages/Account/RewardPoints"));
 const Admin = lazy(() => import("../Pages/Admin/Admin"));
 const AdminDashboard = lazy(() => import("../Pages/Admin/Dashboard"));
 const AdminProducts = lazy(() => import("../Pages/Admin/Products"));
@@ -42,6 +43,7 @@ const AdminOrderDetail = lazy(() => import("../Pages/Admin/OrderDetail"));
 const AdminUsers = lazy(() => import("../Pages/Admin/Users"));
 const AdminCampaigns = lazy(() => import("../Pages/Admin/Campaigns"));
 const AdminCoupons = lazy(() => import("../Pages/Admin/Coupons"));
+const AdminRewardRules = lazy(() => import("../Pages/Admin/RewardRules"));
 const AdminFaq = lazy(() => import("../Pages/Admin/Faq"));
 const AdminLiveChat = lazy(() => import("../Pages/Admin/LiveChat"));
 const AdminProductCreate = lazy(() => import("../Pages/Admin/ProductCreate"));
@@ -357,6 +359,14 @@ export const router = createBrowserRouter([
             ),
           },
           {
+            path: "reward-points",
+            element: (
+              <LazyWrapper>
+                <AccountRewardPoints />
+              </LazyWrapper>
+            ),
+          },
+          {
             path: "membership",
             element: (
               <LazyWrapper>
@@ -487,6 +497,14 @@ export const router = createBrowserRouter([
             element: (
               <LazyWrapper>
                 <AdminCoupons />
+              </LazyWrapper>
+            ),
+          },
+          {
+            path: "reward-rules",
+            element: (
+              <LazyWrapper>
+                <AdminRewardRules />
               </LazyWrapper>
             ),
           },

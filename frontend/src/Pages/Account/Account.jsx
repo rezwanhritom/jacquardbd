@@ -13,6 +13,7 @@ import {
   FiSliders,
   FiLogOut,
   FiChevronRight,
+  FiGift,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
@@ -40,6 +41,7 @@ const Account = () => {
     { id: "addresses", label: "Addresses", icon: FiMapPin, path: "/account/addresses", description: "Saved locations" },
     { id: "wishlist", label: "Wishlist", icon: FiHeart, path: "/account/wishlist", description: "Saved items" },
     { id: "cart", label: "Cart", icon: FiShoppingCart, path: "/account/cart", description: "Shopping cart" },
+    { id: "rewards", label: "Reward points", icon: FiGift, path: "/account/reward-points", description: "Points & redeem" },
     { id: "security", label: "Security", icon: FiShield, path: "/account/security", description: "Password & safety" },
     { id: "preferences", label: "Preferences", icon: FiSliders, path: "/account/settings", description: "App settings" },
   ];
@@ -50,9 +52,11 @@ const Account = () => {
     navigate("/");
   };
 
-  const currentTab = tabs.find(
-    (t) => t.path === location.pathname || (t.path === "/account" && location.pathname === "/account")
-  ) || tabs[0];
+  const currentTab =
+    tabs.find((t) => {
+      if (t.path === "/account") return location.pathname === "/account";
+      return location.pathname === t.path || location.pathname.startsWith(`${t.path}/`);
+    }) || tabs[0];
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -151,8 +155,9 @@ const Account = () => {
                   {tabs.map((tab, index) => {
                     const Icon = tab.icon;
                     const isActive =
-                      location.pathname === tab.path ||
-                      (tab.path === "/account" && location.pathname === "/account");
+                      tab.path === "/account"
+                        ? location.pathname === "/account"
+                        : location.pathname === tab.path || location.pathname.startsWith(`${tab.path}/`);
                     
                     return (
                       <motion.div
@@ -295,8 +300,9 @@ const Account = () => {
                       {tabs.map((tab) => {
                         const Icon = tab.icon;
                         const isActive =
-                          location.pathname === tab.path ||
-                          (tab.path === "/account" && location.pathname === "/account");
+                          tab.path === "/account"
+                            ? location.pathname === "/account"
+                            : location.pathname === tab.path || location.pathname.startsWith(`${tab.path}/`);
                         return (
                           <Link
                             key={tab.id}

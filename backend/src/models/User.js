@@ -42,6 +42,24 @@ const userSchema = new mongoose.Schema(
       },
     ],
     addresses: [addressSchema],
+    /** Earn 1 point per ৳100 spent (logged-in orders). Admin can adjust. */
+    rewardPoints: { type: Number, default: 0, min: 0 },
+    /**
+     * User redeemed points from account for use on next checkout (discount or free shipping).
+     * Cleared when an order consumes the reward.
+     */
+    pendingReward: {
+      ruleId: { type: mongoose.Schema.Types.ObjectId, ref: "RewardRule" },
+      name: { type: String, default: "" },
+      pointsCost: { type: Number, default: 0 },
+      benefitType: { type: String, enum: ["discount", "free_shipping"], default: "discount" },
+      discountType: { type: String, enum: ["percentage", "fixed"], default: "percentage" },
+      discountValue: { type: Number, default: 0 },
+      maxDiscountAmount: { type: Number, default: null },
+      minOrderSubtotal: { type: Number, default: 0 },
+      productIds: [{ type: String }],
+      redeemedAt: { type: Date, default: Date.now },
+    },
   },
   { timestamps: true }
 );

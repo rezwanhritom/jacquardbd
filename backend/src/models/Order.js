@@ -57,6 +57,13 @@ const orderSchema = new mongoose.Schema(
     /** Applied at checkout (uppercase code). */
     couponCode: { type: String, default: "", trim: true },
     couponDiscount: { type: Number, default: 0, min: 0 },
+    /** Reward points redemption (logged-in only). */
+    rewardDiscount: { type: Number, default: 0, min: 0 },
+    rewardFreeShipping: { type: Boolean, default: false },
+    rewardPointsRedeemed: { type: Number, default: 0, min: 0 },
+    rewardRuleLabel: { type: String, default: "" },
+    rewardFromPending: { type: Boolean, default: false },
+    pointsEarned: { type: Number, default: 0, min: 0 },
     sslcommerz: {
       tran_id: { type: String, unique: true, sparse: true },
       val_id: String,

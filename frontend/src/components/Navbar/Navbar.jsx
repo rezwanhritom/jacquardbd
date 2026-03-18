@@ -21,6 +21,7 @@ import {
   FiShield,
   FiSliders,
   FiChevronRight,
+  FiGift,
 } from "react-icons/fi";
 import { categoryTree } from "../../data/categoryTree";
 import { slideInFromRight, fadeIn } from "../../utils/animations";
@@ -576,6 +577,7 @@ const Navbar = () => {
                             { path: "/account/addresses", label: "Addresses", icon: FiMapPin },
                             { path: "/account/wishlist", label: "Wishlist", icon: FiHeart },
                             { path: "/account/cart", label: "Cart", icon: FiShoppingCart },
+                            { path: "/account/reward-points", label: "Reward points", icon: FiGift },
                             { path: "/account/security", label: "Security", icon: FiShield },
                             { path: "/account/settings", label: "Settings", icon: FiSliders },
                           ].map((item) => {
@@ -1145,6 +1147,7 @@ const Navbar = () => {
                             { path: "/account/addresses", label: "Addresses", icon: FiMapPin },
                             { path: "/account/wishlist", label: "Wishlist", icon: FiHeart },
                             { path: "/account/cart", label: "Cart", icon: FiShoppingCart },
+                            { path: "/account/reward-points", label: "Reward points", icon: FiGift },
                             { path: "/account/security", label: "Security", icon: FiShield },
                             { path: "/account/settings", label: "Settings", icon: FiSliders },
                           ].map((item) => {

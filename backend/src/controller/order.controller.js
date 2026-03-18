@@ -9,6 +9,10 @@ import {
   claimCouponSlot,
   releaseCouponSlot,
 } from "../utils/couponApply.js";
+import RewardRule from "../models/RewardRule.js";
+import { evaluateRewardForCart } from "../utils/rewardApply.js";
+
+const REWARD_RULE_ID = /^[a-fA-F0-9]{24}$/;
 
 /** Recalculate order amount from items (subtotal + 8% tax). */
 function recalcAmount(items) {
@@ -40,7 +44,13 @@ const PRODUCT_SELECT = "name price _id originalPrice discount finalPrice";
 export async function createOrder(req, res, next) {
   try {
     const userId = req.user._id;
-    const { shippingAddress, shippingCost = 0, couponCode: rawCoupon } = req.body || {};
+    const {
+      shippingAddress,
+      shippingCost = 0,
+      couponCode: rawCoupon,
+      usePendingReward = true,
+      rewardRuleId: rawRewardRuleId,
+    } = req.body || {};
 
     const user = await User.findById(userId).populate({ path: "cart.product", select: PRODUCT_SELECT }).lean();
     if (!user) return res.status(401).json({ success: false, message: "User not found" });
@@ -102,9 +112,84 @@ export async function createOrder(req, res, next) {
       }
     }
 
-    const afterDiscount = Math.round((subtotal - couponDiscount) * 100) / 100;
-    const tax = Math.round(afterDiscount * 0.08 * 100) / 100;
-    const amount = Math.round((afterDiscount + tax + shipping) * 100) / 100;
+    const afterCoupon = Math.round((subtotal - couponDiscount) * 100) / 100;
+
+    let rewardDiscount = 0;
+    let rewardFreeShipping = false;
+    let rewardPointsRedeemed = 0;
+    let rewardRuleLabel = "";
+    let rewardFromPending = false;
+    let deductedForCheckoutRule = 0;
+
+    const userRewardState = await User.findById(userId).select("rewardPoints pendingReward").lean();
+    const pending = userRewardState?.pendingReward?.ruleId ? userRewardState.pendingReward : null;
+
+    if (usePendingReward && pending) {
+      const ruleLike = {
+        benefitType: pending.benefitType || "discount",
+        discountType: pending.discountType || "percentage",
+        discountValue: pending.discountValue ?? 0,
+        maxDiscountAmount: pending.maxDiscountAmount,
+        minOrderSubtotal: pending.minOrderSubtotal ?? 0,
+        products: (pending.productIds || []).map((id) => ({ _id: id })),
+      };
+      const ev = evaluateRewardForCart(ruleLike, items, afterCoupon);
+      if (!ev.ok) {
+        return res.status(400).json({
+          success: false,
+          message: `${ev.message} Turn off "use saved reward" in checkout or adjust your cart.`,
+        });
+      }
+      rewardDiscount = ev.discount;
+      rewardFreeShipping = ev.freeShipping;
+      rewardPointsRedeemed = Number(pending.pointsCost) || 0;
+      rewardRuleLabel = pending.name || "Reward";
+      rewardFromPending = true;
+    } else if (rawRewardRuleId && REWARD_RULE_ID.test(String(rawRewardRuleId))) {
+      const rule = await RewardRule.findById(rawRewardRuleId).lean();
+      if (!rule || rule.status !== "Active") {
+        return res.status(400).json({ success: false, message: "Invalid reward offer" });
+      }
+      const cost = Number(rule.pointsRequired) || 0;
+      if ((userRewardState?.rewardPoints ?? 0) < cost) {
+        return res.status(400).json({ success: false, message: "Not enough reward points" });
+      }
+      const ev = evaluateRewardForCart(
+        {
+          benefitType: rule.benefitType,
+          discountType: rule.discountType,
+          discountValue: rule.discountValue,
+          maxDiscountAmount: rule.maxDiscountAmount,
+          minOrderSubtotal: rule.minOrderSubtotal,
+          products: rule.products,
+        },
+        items,
+        afterCoupon
+      );
+      if (!ev.ok) {
+        return res.status(400).json({ success: false, message: ev.message });
+      }
+      const afterDeduct = await User.findOneAndUpdate(
+        { _id: userId, rewardPoints: { $gte: cost } },
+        { $inc: { rewardPoints: -cost } },
+        { new: true }
+      ).lean();
+      if (!afterDeduct) {
+        return res.status(400).json({ success: false, message: "Not enough reward points" });
+      }
+      deductedForCheckoutRule = cost;
+      rewardDiscount = ev.discount;
+      rewardFreeShipping = ev.freeShipping;
+      rewardPointsRedeemed = cost;
+      rewardRuleLabel = rule.name || "";
+    }
+
+    const afterReward = Math.round((afterCoupon - rewardDiscount) * 100) / 100;
+    const shippingApplied = rewardFreeShipping ? 0 : shipping;
+    const tax = Math.round(afterReward * 0.08 * 100) / 100;
+    const amount = Math.round((afterReward + tax + shippingApplied) * 100) / 100;
+    const spendForPoints = Math.max(0, afterCoupon - rewardDiscount);
+    const pointsEarned = Math.floor(spendForPoints / 100);
 
     let orderDoc;
     try {
@@ -116,6 +201,12 @@ export async function createOrder(req, res, next) {
         items,
         couponCode: couponCodeStored,
         couponDiscount,
+        rewardDiscount,
+        rewardFreeShipping,
+        rewardPointsRedeemed,
+        rewardRuleLabel,
+        rewardFromPending,
+        pointsEarned,
         shippingAddress: {
           name: shippingAddress?.name ?? "",
           phone: shippingAddress?.phone ?? "",
@@ -127,10 +218,17 @@ export async function createOrder(req, res, next) {
       });
     } catch (createErr) {
       if (claimedCouponId) await releaseCouponSlot(claimedCouponId);
+      if (deductedForCheckoutRule > 0) {
+        await User.findByIdAndUpdate(userId, { $inc: { rewardPoints: deductedForCheckoutRule } });
+      }
       throw createErr;
     }
 
-    await User.findByIdAndUpdate(userId, { $set: { cart: [] } });
+    const userUpdate = { $set: { cart: [] }, $inc: { rewardPoints: pointsEarned } };
+    if (rewardFromPending) {
+      userUpdate.$unset = { pendingReward: 1 };
+    }
+    await User.findByIdAndUpdate(userId, userUpdate);
 
     const orderId = `ORD-${String(orderDoc._id).slice(-10).toUpperCase()}`;
     res.status(201).json({
@@ -145,6 +243,9 @@ export async function createOrder(req, res, next) {
         shippingAddress: orderDoc.shippingAddress,
         couponCode: orderDoc.couponCode || "",
         couponDiscount: orderDoc.couponDiscount ?? 0,
+        rewardDiscount: orderDoc.rewardDiscount ?? 0,
+        rewardFreeShipping: !!orderDoc.rewardFreeShipping,
+        rewardRuleLabel: orderDoc.rewardRuleLabel || "",
         createdAt: orderDoc.createdAt,
       },
       orderId: orderDoc._id,

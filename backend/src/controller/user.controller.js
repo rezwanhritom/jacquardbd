@@ -77,7 +77,9 @@ export async function getOneUserAdmin(req, res, next) {
     if (!userId || !MONGO_ID_REGEX.test(userId)) {
       return res.status(400).json({ success: false, message: "Invalid user ID" });
     }
-    const user = await User.findById(userId).select("name email avatar role phone createdAt premiumAppliedAt addresses").lean();
+    const user = await User.findById(userId)
+      .select("name email avatar role phone createdAt premiumAppliedAt addresses rewardPoints")
+      .lean();
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
@@ -105,6 +107,7 @@ export async function getOneUserAdmin(req, res, next) {
         phone: user.phone ?? "",
         createdAt: user.createdAt,
         addresses,
+        rewardPoints: user.rewardPoints ?? 0,
       },
     });
   } catch (err) {
@@ -176,7 +179,8 @@ export async function updateUserAdmin(req, res, next) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    const { name, email, password, role, phone, addresses: addressesBody } = req.body || {};
+    const { name, email, password, role, phone, addresses: addressesBody, rewardPoints: rpBody } =
+      req.body || {};
 
     if (name !== undefined) {
       const trimmed = String(name).trim();
@@ -226,11 +230,25 @@ export async function updateUserAdmin(req, res, next) {
         isDefault: a.isDefault,
       }));
     }
+    if (rpBody !== undefined) {
+      const n = Math.max(0, Math.floor(Number(rpBody)) || 0);
+      user.rewardPoints = n;
+    }
 
     await user.save();
 
-    const updated = await User.findById(userId).select("name email avatar role phone createdAt premiumAppliedAt addresses").lean();
-    res.json({ success: true, user: { ...updated, premiumAppliedAt: updated.premiumAppliedAt ?? null }, message: "User updated" });
+    const updated = await User.findById(userId)
+      .select("name email avatar role phone createdAt premiumAppliedAt addresses rewardPoints")
+      .lean();
+    res.json({
+      success: true,
+      user: {
+        ...updated,
+        premiumAppliedAt: updated.premiumAppliedAt ?? null,
+        rewardPoints: updated.rewardPoints ?? 0,
+      },
+      message: "User updated",
+    });
   } catch (err) {
     next(err);
   }
@@ -382,7 +400,7 @@ export async function getProfile(req, res, next) {
     }
 
     const user = await User.findById(userId)
-      .select("name email avatar phone createdAt updatedAt addresses")
+      .select("name email avatar phone createdAt updatedAt addresses rewardPoints")
       .lean();
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
@@ -412,6 +430,7 @@ export async function getProfile(req, res, next) {
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
         addresses,
+        rewardPoints: user.rewardPoints ?? 0,
       },
     });
   } catch (err) {

@@ -28,6 +28,7 @@ const Users = () => {
     password: "",
     role: "user",
     addresses: [],
+    rewardPoints: 0,
   });
   const [loadingUser, setLoadingUser] = useState(false);
   const [editingAddressIndex, setEditingAddressIndex] = useState(null);
@@ -73,7 +74,7 @@ const Users = () => {
 
   const openCreateForm = () => {
     setEditingUser(null);
-    setFormData({ name: "", email: "", phone: "", password: "", role: "user", addresses: [] });
+    setFormData({ name: "", email: "", phone: "", password: "", role: "user", addresses: [], rewardPoints: 0 });
     setEditingAddressIndex(null);
     setAddressForm(null);
     setShowForm(true);
@@ -88,6 +89,7 @@ const Users = () => {
       password: "",
       role: customer.role || "user",
       addresses: [],
+      rewardPoints: 0,
     });
     setEditingAddressIndex(null);
     setAddressForm(null);
@@ -100,6 +102,7 @@ const Users = () => {
         ...prev,
         phone: result.user.phone || "",
         addresses: Array.isArray(result.user.addresses) ? result.user.addresses : [],
+        rewardPoints: result.user.rewardPoints ?? 0,
       }));
     }
   };
@@ -107,7 +110,7 @@ const Users = () => {
   const handleCancelForm = () => {
     setShowForm(false);
     setEditingUser(null);
-    setFormData({ name: "", email: "", phone: "", password: "", role: "user", addresses: [] });
+    setFormData({ name: "", email: "", phone: "", password: "", role: "user", addresses: [], rewardPoints: 0 });
     setEditingAddressIndex(null);
     setAddressForm(null);
   };
@@ -151,7 +154,13 @@ const Users = () => {
   const handleSubmitUser = async (e) => {
     e.preventDefault();
     if (editingUser) {
-      const payload = { name: formData.name.trim(), email: formData.email.trim(), phone: (formData.phone || "").trim(), role: formData.role };
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: (formData.phone || "").trim(),
+        role: formData.role,
+        rewardPoints: Math.max(0, Math.floor(Number(formData.rewardPoints)) || 0),
+      };
       if (formData.password.trim()) payload.password = formData.password;
       if (Array.isArray(formData.addresses)) {
         const defaultIdx = formData.addresses.findIndex((a) => a.isDefault);
@@ -368,6 +377,28 @@ const Users = () => {
                     }}
                   />
                 </div>
+                {editingUser && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
+                      Reward points
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={formData.rewardPoints}
+                      onChange={(e) => setFormData({ ...formData, rewardPoints: e.target.value })}
+                      className="w-full px-4 py-3 border-2 rounded-lg outline-none"
+                      style={{
+                        borderColor: "var(--border-primary)",
+                        backgroundColor: "var(--bg-primary)",
+                        color: "var(--text-primary)",
+                      }}
+                    />
+                    <p className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>
+                      Admin only. Customers earn 1 point per ৳100 spent on orders.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {editingUser && (
