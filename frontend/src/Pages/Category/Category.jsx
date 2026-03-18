@@ -467,7 +467,7 @@ const Category = () => {
               </p>
             )}
             {subcategoryDisplay && (
-              <p className="text-base md:text-lg font-medium" style={{ color: "var(--text-primary)" }}>
+              <p className="text-sm md:text-base font-normal tracking-wide" style={{ color: "var(--text-tertiary)" }}>
                 {subcategoryDisplay}
               </p>
             )}

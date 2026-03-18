@@ -272,3 +272,27 @@
 *::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
 }
+
+/* react-hot-toast: smaller, compact notifications */
+.toast-compact {
+  gap: 6px !important;
+}
+.toast-compact svg {
+  width: 12px !important;
+  height: 12px !important;
+  min-width: 12px !important;
+  min-height: 12px !important;
+}
+
+/* Home hero: mobile fits in viewport with 4:5 slot; desktop 21:9-style wide strip */
+.jacquard-hero-home {
+  width: 100%;
+  height: min(85dvh, calc(100vw * 5 / 4));
+}
+@media (min-width: 640px) {
+  .jacquard-hero-home {
+    height: min(78vh, calc(100vw * 9 / 21));
+    min-height: 280px;
+    max-height: 820px;
+  }
+}

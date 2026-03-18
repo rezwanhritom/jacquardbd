@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiHeart,
@@ -10,14 +10,11 @@ import {
   FiChevronRight,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
-import { useAuth } from "../../context/AuthContext";
 import { useWishlist } from "../../context/WishlistContext";
 import { useCart } from "../../context/CartContext";
 import { hasDiscount } from "../../utils/productUtils";
 
 const ProductCard = ({ product, index = 0, viewMode = "grid", brickSlot = null }) => {
-  const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const { addToCart, isInCart } = useCart();
   const inWishlist = isInWishlist(product);
@@ -102,11 +99,6 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", brickSlot = null }
     e.preventDefault();
     e.stopPropagation();
     if (outOfStock) return;
-    if (!isAuthenticated) {
-      toast.error("Please login to add items to cart");
-      navigate("/login");
-      return;
-    }
     if (inCart) {
       toast.error("Product already in cart");
       return;
@@ -199,8 +191,8 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", brickSlot = null }
             <div className="min-w-0 flex-1 space-y-2 sm:space-y-3 w-full max-w-full overflow-hidden">
               <div className="min-w-0">
                 <h3
-                  className="text-lg sm:text-2xl font-semibold mb-1 sm:mb-2 group-hover:underline break-words [word-break:break-word]"
-                  style={{ color: "var(--text-primary)" }}
+                  className="text-sm sm:text-base font-medium mb-1 sm:mb-1.5 group-hover:underline break-words [word-break:break-word] leading-snug"
+                  style={{ color: "var(--text-secondary)" }}
                 >
                   {product.name}
                 </h3>
@@ -216,7 +208,7 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", brickSlot = null }
               <div className="flex flex-col gap-0.5 min-w-0">
                 <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
                   <span
-                    className="text-lg sm:text-2xl font-bold tabular-nums shrink-0"
+                    className="text-base sm:text-lg font-semibold tabular-nums shrink-0"
                     style={{ color: "var(--color-primary)" }}
                   >
                     ৳{(product.price ?? 0).toFixed(2)}
@@ -407,9 +399,9 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", brickSlot = null }
             )}
           </div>
 
-          {/* Wishlist & Cart icons: below image, above product name */}
+          {/* Wishlist & Cart: below image on smaller screens only (desktop: use navbar / product page) */}
           <div
-            className={`flex items-center justify-center gap-2 py-2 ${isBrickFull ? "px-4 sm:px-8" : isBrickHalf ? "px-2" : ""}`}
+            className={`flex lg:hidden items-center justify-center gap-2 py-2 ${isBrickFull ? "px-4 sm:px-8" : isBrickHalf ? "px-2" : ""}`}
           >
             <motion.button
               type="button"
@@ -454,34 +446,34 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", brickSlot = null }
             </motion.button>
           </div>
 
-          {/* Product Info */}
+          {/* Product Info — centered below image; lighter than category headings */}
           <div
-            className={`space-y-2 ${isBrickFull ? "px-4 sm:px-10 pb-6 sm:pb-8 text-center max-w-2xl mx-auto" : isBrickHalf ? "px-2 sm:px-3 pb-4" : ""}`}
+            className={`space-y-1.5 text-center max-w-full mx-auto ${isBrickFull ? "px-4 sm:px-10 pb-6 sm:pb-8 max-w-2xl" : isBrickHalf ? "px-2 sm:px-3 pb-4" : "px-1"}`}
           >
             <h3
-              className={`font-semibold group-hover:underline transition-all ${isBrickFull ? "text-xl sm:text-2xl md:text-3xl" : "text-lg"}`}
-              style={{ color: "var(--text-primary)" }}
+              className={`font-medium group-hover:underline transition-all leading-snug ${isBrickFull ? "text-base sm:text-lg md:text-xl" : "text-sm sm:text-base"}`}
+              style={{ color: "var(--text-secondary)" }}
             >
               {product.name}
             </h3>
-            <div className="flex flex-col gap-0.5">
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-xl font-bold" style={{ color: "var(--color-primary)" }}>
+            <div className="flex flex-col gap-0.5 items-center">
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <span className="text-base sm:text-lg font-semibold tabular-nums" style={{ color: "var(--color-primary)" }}>
                   ৳{(product.price ?? 0).toFixed(2)}
                 </span>
                 {hasDiscount(product) && product.discount != null && product.discount > 0 && (
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: "var(--color-tertiary)", color: "white" }}>
+                  <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ backgroundColor: "var(--color-tertiary)", color: "white" }}>
                     -{product.discount}%
                   </span>
                 )}
               </div>
               {hasDiscount(product) && product.originalPrice != null && (
-                <span className="text-sm line-through" style={{ color: "var(--text-tertiary)" }}>
+                <span className="text-xs sm:text-sm line-through tabular-nums" style={{ color: "var(--text-tertiary)" }}>
                   ৳{product.originalPrice.toFixed(2)}
                 </span>
               )}
               {product.campaignName && (
-                <span className="text-xs font-medium" style={{ color: "var(--color-primary)" }}>
+                <span className="text-[11px] sm:text-xs font-normal" style={{ color: "var(--text-tertiary)" }}>
                   {product.campaignName}
                 </span>
               )}

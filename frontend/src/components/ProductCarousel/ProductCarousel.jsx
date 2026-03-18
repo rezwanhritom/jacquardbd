@@ -179,12 +179,12 @@ const ProductCarousel = ({ title, subtitle, products, showViewAll = true, compac
                         </div>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <h3 className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>
+                    <div className="space-y-1.5 text-center">
+                      <h3 className="text-sm sm:text-base font-medium leading-snug" style={{ color: "var(--text-secondary)" }}>
                         {product.name}
                       </h3>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-xl font-bold" style={{ color: "var(--color-primary)" }}>
+                      <div className="flex flex-col gap-0.5 items-center">
+                        <span className="text-base font-semibold tabular-nums" style={{ color: "var(--color-primary)" }}>
                           ৳{(product.price ?? 0).toFixed(2)}
                         </span>
                         {hasDiscount(product) && product.originalPrice != null && (

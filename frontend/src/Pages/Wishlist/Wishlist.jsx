@@ -336,7 +336,7 @@ const WishlistCard = ({ product, index, isRemoving, isMovingToCart, onRemove, on
         </div>
       </Link>
 
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-3 text-center">
         <div>
           <p
             className="text-xs uppercase tracking-wider mb-1"
@@ -346,16 +346,16 @@ const WishlistCard = ({ product, index, isRemoving, isMovingToCart, onRemove, on
           </p>
           <Link to={`/product/${slugOrId}`}>
             <h3
-              className="font-semibold text-base line-clamp-1 hover:underline transition-all"
-              style={{ color: "var(--text-primary)" }}
+              className="font-medium text-sm sm:text-base line-clamp-2 hover:underline transition-all leading-snug text-center"
+              style={{ color: "var(--text-secondary)" }}
             >
               {product.name}
             </h3>
           </Link>
         </div>
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-0.5 items-center text-center">
           <span
-            className="text-lg font-bold"
+            className="text-base font-semibold tabular-nums"
             style={{ color: "var(--color-primary)" }}
           >
             ৳{(product.price ?? 0).toFixed(2)}

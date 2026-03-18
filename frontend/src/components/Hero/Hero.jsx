@@ -1,19 +1,16 @@
 /**
- * Hero: single static image only. Image always fits within the frame (contain);
- * may show neutral background on sides/top/bottom if aspect ratio differs.
+ * Home hero: mobile uses a 4:5 slot capped by viewport (fits on screen);
+ * desktop uses a 21:9-style height. Image object-cover — design for those ratios.
  */
 const Hero = () => {
   const heroImage = "/home-hero.png";
 
   return (
-    <section
-      className="relative h-[55vh] sm:h-[60vh] lg:h-[75vh] overflow-hidden flex items-center justify-center bg-neutral-200"
-      aria-label="Hero"
-    >
+    <section className="relative w-full overflow-hidden bg-neutral-200 jacquard-hero-home" aria-label="Hero">
       <img
         src={heroImage}
         alt=""
-        className="w-full h-full object-contain object-center"
+        className="absolute inset-0 w-full h-full object-cover object-center"
       />
     </section>
   );

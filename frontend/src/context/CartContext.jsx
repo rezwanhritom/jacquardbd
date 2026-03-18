@@ -14,6 +14,10 @@ export function useCart() {
 }
 
 export const GUEST_CART_STORAGE_KEY = "jacquard_guest_cart";
+/** User chose “Dismiss” — never show the guest login prompt again */
+export const GUEST_CART_LOGIN_PROMPT_DISMISSED_KEY = "jacquard_guest_cart_login_prompt_dismissed";
+/** User opened Log in or Sign up from the prompt — do not show again on later guest adds */
+export const GUEST_CART_LOGIN_PROMPT_COMPLETED_KEY = "jacquard_guest_cart_login_prompt_completed";
 const MONGO_ID_REGEX = /^[a-fA-F0-9]{24}$/;
 
 function productId(p) {
@@ -60,6 +64,7 @@ export function CartProvider({ children }) {
   const { decided, shoppingAllowed } = useCookieConsent();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [guestCartLoginPromptOpen, setGuestCartLoginPromptOpen] = useState(false);
   const mergedGuestRef = useRef(false);
 
   const setCartFromEntries = useCallback((entries) => {
@@ -101,6 +106,25 @@ export function CartProvider({ children }) {
   useEffect(() => {
     if (!isAuthenticated) mergedGuestRef.current = false;
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated) setGuestCartLoginPromptOpen(false);
+  }, [isAuthenticated]);
+
+  const dismissGuestCartLoginPrompt = useCallback(() => {
+    try {
+      localStorage.setItem(GUEST_CART_LOGIN_PROMPT_DISMISSED_KEY, "1");
+    } catch {}
+    setGuestCartLoginPromptOpen(false);
+  }, []);
+
+  /** After user taps Log in or Sign up — no more prompts for guest adds */
+  const completeGuestCartLoginPrompt = useCallback(() => {
+    try {
+      localStorage.setItem(GUEST_CART_LOGIN_PROMPT_COMPLETED_KEY, "1");
+    } catch {}
+    setGuestCartLoginPromptOpen(false);
+  }, []);
 
   // Merge guest cart into server cart after login
   useEffect(() => {
@@ -207,6 +231,13 @@ export function CartProvider({ children }) {
         const next = [...cartItems, entry];
         setCartItems(next);
         persistGuestCart(next);
+        try {
+          const dismissed = localStorage.getItem(GUEST_CART_LOGIN_PROMPT_DISMISSED_KEY) === "1";
+          const completed = localStorage.getItem(GUEST_CART_LOGIN_PROMPT_COMPLETED_KEY) === "1";
+          if (!dismissed && !completed) setGuestCartLoginPromptOpen(true);
+        } catch {
+          setGuestCartLoginPromptOpen(true);
+        }
         return { success: true };
       }
 
@@ -324,6 +355,9 @@ export function CartProvider({ children }) {
     refetchCart,
     isGuestCart: !isAuthenticated && shoppingAllowed,
     clearGuestCart,
+    guestCartLoginPromptOpen,
+    dismissGuestCartLoginPrompt,
+    completeGuestCartLoginPrompt,
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

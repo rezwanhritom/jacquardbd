@@ -196,7 +196,7 @@ const Products = () => {
                       y: hoveredProduct === product.id ? 0 : 10,
                     }}
                     transition={{ duration: 0.3 }}
-                    className="absolute bottom-12 left-0 right-0 flex justify-center space-x-3 px-4"
+                    className="absolute bottom-12 left-0 right-0 flex justify-center space-x-3 px-4 lg:hidden"
                   >
                     <motion.button
                       whileHover={{ scale: 1.1 }}
@@ -223,10 +223,12 @@ const Products = () => {
                   </motion.div>
                 </div>
 
-                <div className="p-4 space-y-2">
-                  <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>{product.name}</h3>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
+                <div className="p-4 space-y-1.5 text-center">
+                  <h3 className="text-sm sm:text-base font-medium leading-snug" style={{ color: "var(--text-secondary)" }}>
+                    {product.name}
+                  </h3>
+                  <div className="flex flex-col gap-0.5 items-center">
+                    <span className="text-base font-semibold tabular-nums" style={{ color: "var(--color-primary)" }}>
                       ৳{(product.price ?? 0).toFixed(2)}
                     </span>
                     {hasDiscount(product) && product.originalPrice != null && (

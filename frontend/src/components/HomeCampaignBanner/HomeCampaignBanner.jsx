@@ -38,11 +38,12 @@ const HomeCampaignBanner = () => {
       className="relative overflow-hidden"
       style={{
         backgroundColor: "var(--bg-secondary)",
-        minHeight: hasBanner ? "320px" : undefined,
       }}
     >
       {activeCampaign.banner && activeCampaign.banner.trim() && !imageError && (
-        <div className="relative h-[320px] md:h-[400px] lg:h-[480px]">
+        <div
+          className="relative w-full max-sm:h-[min(48dvh,calc(100vw*9/16))] sm:h-[360px] md:h-[400px] lg:h-[460px] max-sm:max-h-[520px]"
+        >
           <img
             src={activeCampaign.banner}
             alt=""

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router";
 import { motion } from "framer-motion";
-import { jsPDF } from "jspdf";
 import { Container } from "../../components";
+import { downloadOrderInvoice } from "../../utils/orderInvoicePdf";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { FiPackage, FiCreditCard, FiMapPin, FiChevronLeft, FiDownload } from "react-icons/fi";
 import { getGuestOrderById } from "../../services/orders.service";
@@ -36,33 +36,6 @@ function getPaymentStatusDisplay(order) {
     order.paymentStatus ||
     (order.status === "paid" ? "paid" : order.status === "cancelled" ? "cancelled" : "pending");
   return formatStatus(ps);
-}
-
-function downloadInvoice(order) {
-  const addr = order.shippingAddress || {};
-  const items = order.items || [];
-  const orderId = String(order.orderId || order._id || "—");
-  const dateStr = order.date
-    ? new Date(order.date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
-    : "—";
-  const total = Number(order.total).toFixed(2);
-  const currency = order.currency || "BDT";
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  let y = 20;
-  doc.setFontSize(18);
-  doc.text("Invoice (guest)", 20, y);
-  y += 10;
-  doc.setFontSize(10);
-  doc.text(`Order ID: ${orderId}  |  Date: ${dateStr}`, 20, y);
-  y += 10;
-  items.forEach((item) => {
-    doc.text(`${item.name ?? "Item"} × ${item.quantity} — ${currency} ${((item.price ?? 0) * (item.quantity ?? 0)).toFixed(2)}`, 20, y);
-    y += 6;
-  });
-  y += 4;
-  doc.setFontSize(11);
-  doc.text(`Total: ${currency} ${total}`, 20, y);
-  doc.save(`Invoice-${orderId.replace(/\s/g, "-")}.pdf`);
 }
 
 const GuestOrderDetail = () => {
@@ -161,7 +134,9 @@ const GuestOrderDetail = () => {
               </span>
               <motion.button
                 type="button"
-                onClick={() => downloadInvoice(order)}
+                onClick={() =>
+                  downloadOrderInvoice({ ...order, total: order.total ?? order.amount }, { guest: true })
+                }
                 className="flex items-center gap-2 px-4 py-2 border-2 rounded-lg font-semibold text-sm"
                 style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
               >

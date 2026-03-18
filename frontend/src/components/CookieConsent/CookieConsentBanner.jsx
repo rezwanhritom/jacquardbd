@@ -57,7 +57,7 @@ export default function CookieConsentBanner() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 24 }}
-            className="fixed z-[251] left-3 right-3 bottom-3 sm:left-4 sm:right-4 sm:bottom-4 md:left-8 md:right-auto md:bottom-8 md:max-w-xl lg:max-w-2xl max-h-[min(92vh,calc(100dvh-1.5rem))] overflow-hidden flex flex-col rounded-2xl shadow-2xl border"
+            className="fixed z-[251] left-3 right-3 bottom-3 top-auto max-h-[min(92vh,calc(100dvh-1.5rem))] overflow-hidden flex flex-col rounded-2xl shadow-2xl border max-w-xl sm:max-w-lg lg:max-w-2xl lg:left-1/2 lg:right-auto lg:top-1/2 lg:bottom-auto lg:w-[min(calc(100vw-2rem),42rem)] lg:-translate-x-1/2 lg:-translate-y-1/2"
             style={{
               backgroundColor: "var(--bg-primary)",
               borderColor: "var(--border-primary)",

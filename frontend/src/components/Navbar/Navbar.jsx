@@ -174,15 +174,16 @@ const Navbar = () => {
           backgroundColor: "var(--bg-primary)",
         }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full min-w-0">
-          <div className="flex items-center justify-between gap-2 sm:gap-4 h-16 sm:h-20 min-h-0">
-            {/* Logo — can shrink on small widths to avoid overlap */}
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-6 xl:px-8 w-full min-w-0">
+          <div className="grid w-full min-w-0 items-center h-16 sm:h-20 min-h-0 gap-x-2 sm:gap-x-3 grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-x-4">
+            {/* Logo */}
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex-shrink-0 min-w-0 flex items-center"
+              className="flex min-w-0 items-center z-30 relative pr-1 col-start-1 row-start-1"
+              style={{ backgroundColor: "var(--bg-primary)" }}
             >
-              <Link to="/" className="flex items-center gap-2 sm:gap-3 group min-w-0">
+              <Link to="/" className="flex items-center gap-1.5 sm:gap-3 group min-w-0 max-w-[42vw] sm:max-w-none">
                 <motion.img
                   src="/images/logo.png"
                   alt={navigationData.logo}
@@ -191,7 +192,7 @@ const Navbar = () => {
                   transition={{ duration: 0.5 }}
                 />
                 <motion.span
-                  className="text-lg sm:text-xl md:text-2xl font-bold tracking-wider truncate"
+                  className="text-base sm:text-xl lg:text-lg xl:text-2xl font-bold tracking-wider truncate"
                   style={{ color: "var(--color-primary)" }}
                   whileHover={{ x: 2 }}
                 >
@@ -200,9 +201,8 @@ const Navbar = () => {
               </Link>
             </motion.div>
 
-            {/* Desktop Navigation: when search open, show only search box; else show Men, Women, etc. */}
-            <div className="hidden lg:flex items-center gap-0.5 flex-1 justify-center min-w-0">
-              {searchOpen ? (
+            {searchOpen ? (
+              <div className="hidden lg:flex lg:col-start-2 min-w-0 w-full max-w-full justify-center items-center px-2 sm:px-4 z-20 overflow-hidden">
                 <motion.form
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -244,8 +244,10 @@ const Navbar = () => {
                     </button>
                   </div>
                 </motion.form>
-              ) : (
-              <>
+              </div>
+            ) : (
+            <div className="hidden lg:flex lg:col-start-2 min-w-0 w-full max-w-full items-center justify-center z-20 overflow-visible px-1 xl:px-2">
+              <div className="flex flex-nowrap items-center justify-center gap-0 xl:gap-0.5 max-w-full overflow-x-auto overflow-y-visible [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden pointer-events-auto">
               {navigationData.links.map((link) => {
                 const isActive = isActivePath(link.path);
                 return (
@@ -257,7 +259,7 @@ const Navbar = () => {
                 >
                   <Link to={link.path}>
                     <motion.div
-                      className="px-3 py-2 rounded-lg font-semibold text-sm uppercase tracking-wide transition-colors relative whitespace-nowrap"
+                      className="px-1.5 xl:px-2.5 2xl:px-3 py-2 rounded-lg font-semibold text-[11px] xl:text-xs 2xl:text-sm uppercase tracking-wide transition-colors relative whitespace-nowrap"
                       style={{
                         color: isActive ? "var(--color-primary)" : "var(--text-secondary)",
                       }}
@@ -287,7 +289,7 @@ const Navbar = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
                         transition={{ duration: 0.2, ease: "easeOut" }}
-                        className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-[600px] shadow-2xl rounded-xl p-8 z-[100]"
+                        className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-[min(600px,calc(100vw-2rem))] max-w-[600px] shadow-2xl rounded-xl p-6 xl:p-8 z-[100]"
                         style={{
                           backgroundColor: "var(--bg-primary)",
                           border: "1px solid var(--border-primary)",
@@ -355,12 +357,16 @@ const Navbar = () => {
                 </div>
                 );
               })}
-              </>
-              )}
+              </div>
             </div>
+            )}
 
-            {/* Right Actions */}
-            <div className="hidden lg:flex items-center space-x-4 flex-shrink-0">
+            {/* Right: desktop icons + mobile controls */}
+            <div
+              className="col-start-2 row-start-1 lg:col-start-3 flex items-center justify-end gap-1.5 xl:gap-2 flex-shrink-0 z-30 relative pl-1 min-w-0"
+              style={{ backgroundColor: "var(--bg-primary)" }}
+            >
+              <div className="hidden lg:flex items-center gap-2 xl:gap-3 flex-shrink-0">
               {!searchOpen && (
                 <motion.button
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -512,8 +518,8 @@ const Navbar = () => {
                 </Link>
               )}
 
-              {/* Account dropdown (when logged in) */}
-              {isAuthenticated && (
+              {/* Account (logged in) or My orders (guest) — same slot */}
+              {isAuthenticated ? (
                 <div
                   className="relative"
                   onMouseEnter={() => setAccountMenuOpen(true)}
@@ -596,15 +602,41 @@ const Navbar = () => {
                     )}
                   </AnimatePresence>
                 </div>
+              ) : (
+                <Link to="/my-orders" className="flex items-center" title="My orders">
+                  <motion.span
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="p-2 rounded-lg transition-colors inline-flex"
+                    style={{
+                      color: location.pathname.startsWith("/my-orders")
+                        ? "var(--color-primary)"
+                        : "var(--text-secondary)",
+                      backgroundColor: "transparent",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = "var(--color-primary)";
+                      e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!location.pathname.startsWith("/my-orders")) {
+                        e.currentTarget.style.color = "var(--text-secondary)";
+                      }
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                    aria-label="My orders"
+                  >
+                    <FiPackage size={20} />
+                  </motion.span>
+                </Link>
               )}
 
-              {/* Logout (when logged in) */}
               {isAuthenticated && (
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setLogoutModalOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm uppercase tracking-wide transition-all border"
+                  className="flex items-center gap-1.5 xl:gap-2 px-2.5 xl:px-4 py-2 xl:py-2.5 rounded-lg font-semibold text-xs xl:text-sm uppercase tracking-wide transition-all border"
                   style={{
                     borderColor: "var(--border-primary)",
                     color: "var(--text-primary)",
@@ -613,23 +645,10 @@ const Navbar = () => {
                   aria-label="Log out"
                 >
                   <FiLogOut size={16} />
-                  <span>Logout</span>
+                  <span className="hidden sm:inline">Logout</span>
                 </motion.button>
               )}
 
-              {/* Login / Register (when not logged in) */}
-              {!isAuthenticated && decided && shoppingAllowed && (
-                <Link to="/my-orders">
-                  <motion.span
-                    whileHover={{ scale: 1.02 }}
-                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg font-semibold text-sm"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    <FiPackage size={16} />
-                    My orders
-                  </motion.span>
-                </Link>
-              )}
               {!isAuthenticated && (
                 <>
                   <Link to="/register">
@@ -671,10 +690,10 @@ const Navbar = () => {
                   </Link>
                 </>
               )}
-            </div>
+              </div>
 
-            {/* Mobile: search bar (auto-hide on scroll down; icon when hidden) + dark mode + menu */}
-            <div className="lg:hidden flex items-center gap-2 flex-1 min-w-0 justify-end">
+            {/* Mobile: search + dark mode + menu */}
+            <div className="flex lg:hidden items-center gap-2 flex-shrink-0 justify-end">
               <AnimatePresence mode="wait">
                 {mobileSearchVisible ? (
                   <motion.form
@@ -773,6 +792,7 @@ const Navbar = () => {
                   )}
                 </AnimatePresence>
               </motion.button>
+            </div>
             </div>
           </div>
         </div>
@@ -1048,7 +1068,27 @@ const Navbar = () => {
                     );
                   })}
 
-                  {/* Mobile Account (when logged in) — expandable like Men/Women */}
+                  <Link
+                    to={isAuthenticated ? "/account/orders" : "/my-orders"}
+                    onClick={closeMobileMenu}
+                    className="block px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide transition-colors"
+                    style={{
+                      color:
+                        (isAuthenticated && /^\/account\/orders(\/|$)/.test(location.pathname)) ||
+                        (!isAuthenticated && location.pathname.startsWith("/my-orders"))
+                          ? "white"
+                          : "var(--text-secondary)",
+                      backgroundColor:
+                        (isAuthenticated && /^\/account\/orders(\/|$)/.test(location.pathname)) ||
+                        (!isAuthenticated && location.pathname.startsWith("/my-orders"))
+                          ? "var(--color-primary)"
+                          : "transparent",
+                    }}
+                  >
+                    My orders
+                  </Link>
+
+                  {/* Mobile Account (when logged in): tap "Account" → /account; tap row elsewhere → expand */}
                   {isAuthenticated && (
                     <motion.div
                       initial={{ opacity: 0, x: 20 }}
@@ -1057,39 +1097,44 @@ const Navbar = () => {
                       className="space-y-0"
                     >
                       <div
-                        className="w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide"
+                        role="button"
+                        tabIndex={0}
+                        className="w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide cursor-pointer touch-manipulation"
                         style={{
                           color: isActivePath("/account") || mobileExpandedAccount ? "white" : "var(--text-secondary)",
                           backgroundColor: isActivePath("/account") || mobileExpandedAccount ? "var(--color-primary)" : "transparent",
                         }}
+                        onClick={() => {
+                          setMobileExpandedAccount((a) => !a);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setMobileExpandedAccount((a) => !a);
+                          }
+                        }}
+                        aria-expanded={mobileExpandedAccount}
+                        aria-label={mobileExpandedAccount ? "Collapse account menu" : "Expand account menu"}
                       >
                         <Link
                           to="/account"
-                          onClick={closeMobileMenu}
-                          className="flex-1 min-w-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            closeMobileMenu();
+                          }}
+                          className="min-w-0 shrink-0"
                           style={{ color: "inherit" }}
                         >
                           Account
                         </Link>
-                        <motion.button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setMobileExpandedAccount((a) => !a);
-                          }}
-                          className="flex-shrink-0 p-2 -mr-2 touch-manipulation"
-                          style={{ color: isActivePath("/account") || mobileExpandedAccount ? "white" : "var(--text-secondary)" }}
-                          aria-expanded={mobileExpandedAccount}
-                          aria-label={mobileExpandedAccount ? "Collapse account menu" : "Expand account menu"}
+                        <motion.span
+                          className="flex-shrink-0 p-2 -mr-2 pointer-events-none"
+                          style={{ color: "inherit" }}
+                          animate={{ rotate: mobileExpandedAccount ? 90 : 0 }}
+                          transition={{ duration: 0.2 }}
                         >
-                          <motion.span
-                            animate={{ rotate: mobileExpandedAccount ? 90 : 0 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            <FiChevronRight size={20} />
-                          </motion.span>
-                        </motion.button>
+                          <FiChevronRight size={20} />
+                        </motion.span>
                       </div>
                       {mobileExpandedAccount && (
                         <div className="pl-4 pr-2 pb-2 space-y-0">
@@ -1151,19 +1196,6 @@ const Navbar = () => {
                           style={{ backgroundColor: "var(--color-primary)" }}
                         />
                       )}
-                    </motion.button>
-                  </Link>
-                )}
-
-                {!isAuthenticated && decided && shoppingAllowed && (
-                  <Link to="/my-orders" onClick={closeMobileMenu} className="block mb-3">
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm border-2"
-                      style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
-                    >
-                      <FiPackage size={18} />
-                      My orders (guest)
                     </motion.button>
                   </Link>
                 )}
@@ -1266,7 +1298,7 @@ const Navbar = () => {
                       </span>
                     )}
                   </Link>
-                  {isAuthenticated && (
+                  {isAuthenticated ? (
                     <Link
                       to="/account"
                       onClick={closeMobileMenu}
@@ -1274,8 +1306,23 @@ const Navbar = () => {
                       style={{
                         color: isActivePath("/account") ? "var(--color-primary)" : "var(--text-secondary)",
                       }}
+                      aria-label="My account"
                     >
                       <FiUser size={24} />
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/my-orders"
+                      onClick={closeMobileMenu}
+                      className="p-3 rounded-lg transition-colors"
+                      style={{
+                        color: location.pathname.startsWith("/my-orders")
+                          ? "var(--color-primary)"
+                          : "var(--text-secondary)",
+                      }}
+                      aria-label="My orders"
+                    >
+                      <FiPackage size={24} />
                     </Link>
                   )}
                 </div>

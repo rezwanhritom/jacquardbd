@@ -13,6 +13,7 @@ import {
   FiEdit2,
   FiPlus,
   FiGift,
+  FiCreditCard,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
@@ -66,15 +67,25 @@ function addressAndProfileToFormData(addr, user) {
   };
 }
 
-/** Right-side label for shipping option (delivery/availability text). */
+/** Right-side label for shipping option (delivery window). */
 function getShippingOptionLabel(option) {
-  if (!option || !option.id) return "";
-  const id = String(option.id).toLowerCase();
-  if (id === "standard") return "5-7 business days";
-  if (id === "express") return "2-3 business days";
-  if (id === "overnight") return "Dhaka, Chattagram and Barishal only";
+  if (!option) return "";
+  const id = String(option.id || "").toLowerCase();
+  const name = String(option.name || "").toLowerCase();
+  if (id === "standard" || name.includes("standard")) return "2-4 days";
+  if (id === "express" || name.includes("express")) return "1-2 days";
+  if (id === "overnight" || name.includes("overnight")) return "Dhaka, Chattagram and Barishal only";
   if (option.price != null && typeof option.price === "number") return `৳${Number(option.price).toFixed(2)}`;
   return option.priceLabel || "";
+}
+
+function normalizeOrderForInvoice(o) {
+  if (!o) return null;
+  return {
+    ...o,
+    total: o.amount ?? o.total,
+    date: o.createdAt ?? o.date,
+  };
 }
 
 const Checkout = () => {
@@ -93,6 +104,7 @@ const Checkout = () => {
   const [formData, setFormData] = useState({
     ...emptyAddressForm(),
     shippingMethod: "",
+    paymentMethod: "cash",
   });
   const [placingOrder, setPlacingOrder] = useState(false);
   const [sendAsGift, setSendAsGift] = useState(false);
@@ -123,6 +135,7 @@ const Checkout = () => {
       ...emptyAddressForm(),
       country: "Bangladesh",
       shippingMethod: shippingOptions[0].id,
+      paymentMethod: "cash",
     }));
   }, [isAuthenticated, decided, shoppingAllowed, shippingOptions]);
 
@@ -273,7 +286,7 @@ const Checkout = () => {
         }
       }
     }
-    if (currentStep < 3) setCurrentStep(currentStep + 1);
+    if (currentStep < 4) setCurrentStep(currentStep + 1);
   };
 
   const handleUpdatePhone = async () => {
@@ -323,7 +336,7 @@ const Checkout = () => {
           return pid ? { productId: String(pid), quantity: Math.max(1, Math.floor(Number(i.quantity)) || 1) } : null;
         })
         .filter(Boolean);
-      const { success, orderId, message } = await createGuestOrder({
+      const { success, orderId, order, message } = await createGuestOrder({
         items,
         shippingAddress,
         shippingCost: shipping,
@@ -334,14 +347,16 @@ const Checkout = () => {
       if (success && orderId) {
         clearGuestCart();
         toast.success("Order placed successfully!");
-        navigate(`/order-success/${orderId}`);
+        navigate(`/order-success/${orderId}`, {
+          state: { order: normalizeOrderForInvoice(order) },
+        });
       } else {
         toast.error(message || "Failed to place order");
       }
       return;
     }
 
-    const { success, orderId, message } = await createOrder({
+    const { success, orderId, order, message } = await createOrder({
       shippingAddress,
       shippingCost: shipping,
     });
@@ -350,7 +365,9 @@ const Checkout = () => {
     if (success && orderId) {
       await refetchCart();
       toast.success("Order placed successfully!");
-      navigate(`/order-success/${orderId}`);
+      navigate(`/order-success/${orderId}`, {
+        state: { order: normalizeOrderForInvoice(order) },
+      });
     } else {
       toast.error(message || "Failed to place order");
     }
@@ -404,7 +421,8 @@ const Checkout = () => {
   const steps = [
     { id: 1, name: "Address", icon: FiMapPin },
     { id: 2, name: "Shipping", icon: FiTruck },
-    { id: 3, name: "Review", icon: FiCheck },
+    { id: 3, name: "Payment", icon: FiCreditCard },
+    { id: 4, name: "Review", icon: FiCheck },
   ];
 
   const stepVariants = {
@@ -462,7 +480,7 @@ const Checkout = () => {
                         )}
                       </motion.div>
                       <span
-                        className={`text-xs mt-2 font-semibold ${
+                        className={`text-[10px] sm:text-xs mt-2 font-semibold text-center px-0.5 ${
                           isActive ? "" : "opacity-60"
                         }`}
                         style={{ color: isActive ? "var(--text-primary)" : "var(--text-secondary)" }}
@@ -471,7 +489,7 @@ const Checkout = () => {
                       </span>
                     </div>
                     {!isLast && (
-                      <div className="flex-1 mx-4 h-0.5 relative">
+                      <div className="flex-1 mx-1 sm:mx-2 md:mx-4 h-0.5 relative min-w-[8px]">
                         <div
                           className="absolute inset-0"
                           style={{ backgroundColor: "var(--bg-tertiary)" }}
@@ -799,7 +817,12 @@ const Checkout = () => {
                                 const checked = e.target.checked;
                                 setSendAsGift(checked);
                                 if (checked) {
-                                  setFormData((prev) => ({ ...emptyAddressForm(), country: "Bangladesh", shippingMethod: prev.shippingMethod }));
+                                  setFormData((prev) => ({
+                                    ...emptyAddressForm(),
+                                    country: "Bangladesh",
+                                    shippingMethod: prev.shippingMethod,
+                                    paymentMethod: prev.paymentMethod || "cash",
+                                  }));
                                   setSelectedAddressId("new");
                                   setCurrentStep(1);
                                 } else if (profile && authUser) {
@@ -808,7 +831,13 @@ const Checkout = () => {
                                     setSelectedAddressId(defaultAddr._id);
                                     setFormData((prev) => ({ ...prev, ...addressAndProfileToFormData(defaultAddr, profile) }));
                                   } else {
-                                    setFormData((prev) => ({ ...emptyAddressForm(), ...profileContactFields(profile), country: "Bangladesh", shippingMethod: prev.shippingMethod }));
+                                    setFormData((prev) => ({
+                                      ...emptyAddressForm(),
+                                      ...profileContactFields(profile),
+                                      country: "Bangladesh",
+                                      shippingMethod: prev.shippingMethod,
+                                      paymentMethod: prev.paymentMethod || "cash",
+                                    }));
                                   }
                                 }
                               }}
@@ -887,8 +916,55 @@ const Checkout = () => {
                     </motion.div>
                   )}
 
-                  {/* Step 3: Review (DB-synced: formData, selectedShipping, cartItems) */}
+                  {/* Step 3: Payment */}
                   {currentStep === 3 && (
+                    <motion.div
+                      key="payment"
+                      variants={stepVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      transition={{ duration: 0.3 }}
+                      className="p-6 rounded-lg space-y-6"
+                      style={{ backgroundColor: "var(--bg-secondary)" }}
+                    >
+                      <div className="flex items-center space-x-3 mb-4">
+                        <FiCreditCard size={24} style={{ color: "var(--color-primary)" }} />
+                        <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+                          Payment
+                        </h2>
+                      </div>
+                      <div
+                        className="flex items-center gap-4 p-4 border-2 rounded-lg ring-2"
+                        style={{
+                          borderColor: "var(--color-primary)",
+                          backgroundColor: "var(--bg-primary)",
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="cash"
+                          checked={formData.paymentMethod === "cash"}
+                          readOnly
+                          className="w-5 h-5 flex-shrink-0 pointer-events-none"
+                          style={{ accentColor: "var(--color-primary)" }}
+                          aria-checked="true"
+                        />
+                        <div>
+                          <div className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                            Cash on delivery
+                          </div>
+                          <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                            Pay with cash when your order arrives. More payment options coming soon.
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Step 4: Review */}
+                  {currentStep === 4 && (
                     <motion.div
                       key="review"
                       variants={stepVariants}
@@ -967,6 +1043,31 @@ const Checkout = () => {
                         </div>
                       </div>
 
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                            Payment
+                          </h3>
+                          <button
+                            type="button"
+                            onClick={() => setCurrentStep(3)}
+                            className="flex items-center gap-1 text-sm"
+                            style={{ color: "var(--color-primary)" }}
+                          >
+                            <FiEdit2 size={14} />
+                            Edit
+                          </button>
+                        </div>
+                        <div className="p-4 rounded-lg" style={{ backgroundColor: "var(--bg-primary)" }}>
+                          <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                            Cash on delivery
+                          </p>
+                          <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
+                            Pay when your order arrives
+                          </p>
+                        </div>
+                      </div>
+
                       {/* Order Items Review */}
                       <div className="space-y-4">
                         <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
@@ -1026,7 +1127,7 @@ const Checkout = () => {
                     </motion.button>
                   )}
                   <div className="flex-1" />
-                  {currentStep < 3 ? (
+                  {currentStep < 4 ? (
                     <motion.button
                       type="button"
                       onClick={handleNext}

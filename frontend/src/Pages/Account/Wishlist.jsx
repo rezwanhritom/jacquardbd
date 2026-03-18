@@ -201,15 +201,15 @@ const Wishlist = () => {
                       </motion.div>
                     </div>
                   </div>
-                  <div className="p-4 space-y-2">
+                  <div className="p-4 space-y-2 text-center">
                     <p className="text-xs uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
                       {getDisplayCategory(product)}
                     </p>
-                    <h3 className="font-semibold group-hover:underline transition-all" style={{ color: "var(--text-primary)" }}>
+                    <h3 className="text-sm sm:text-base font-medium group-hover:underline transition-all leading-snug" style={{ color: "var(--text-secondary)" }}>
                       {product.name}
                     </h3>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
+                    <div className="flex flex-col gap-0.5 items-center">
+                      <span className="text-base font-semibold tabular-nums" style={{ color: "var(--color-primary)" }}>
                         ৳{Number(price).toFixed(2)}
                       </span>
                       {hasDiscount(product) && product.originalPrice != null && (

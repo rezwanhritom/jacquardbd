@@ -169,7 +169,7 @@ const ParallaxProductCard = ({ image, title, description, to }) => {
           >
             <div ref={textBlockRef} className="max-w-md">
               <h3
-                className={`text-xl md:text-2xl lg:text-3xl font-bold leading-tight drop-shadow-lg mb-2 ${useLightText ? "text-white" : "text-black"}`}
+                className={`text-lg md:text-xl lg:text-2xl font-medium leading-tight drop-shadow-lg mb-2 ${useLightText ? "text-white" : "text-black"}`}
               >
                 {title}
               </h3>
