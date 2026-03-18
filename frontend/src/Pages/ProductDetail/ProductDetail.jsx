@@ -56,11 +56,11 @@ const ProductDetail = () => {
   const { addToCart, isInCart } = useCart();
   const isInWishlist = product ? isInWishlistContext(product) : false;
   const addedToCart = product ? isInCart(product) : false;
-  const [specsOpen, setSpecsOpen] = useState(false);
   const [specCompositionOpen, setSpecCompositionOpen] = useState(false);
   const [specSizeFitOpen, setSpecSizeFitOpen] = useState(false);
   const [specCareOpen, setSpecCareOpen] = useState(false);
   const [specTraceabilityOpen, setSpecTraceabilityOpen] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
   const isNumericId = /^\d+$/.test(productId);
   const fromApi = !isNumericId;
@@ -195,17 +195,31 @@ const ProductDetail = () => {
     }
   };
 
+  const attrs = product.attributes || {};
+  const toList = (v) => (Array.isArray(v) ? v : v ? [String(v)] : []).filter(Boolean);
+  const comp = toList(attrs.composition);
+  const fit = toList(attrs.sizeAndFit);
+  const care = toList(attrs.care);
+  const trace = toList(attrs.traceability);
+
+  const rawDescription =
+    product.description && String(product.description).trim()
+      ? String(product.description).trim()
+      : "";
+  const descNeedsMore =
+    rawDescription.length > 140 || rawDescription.split(/\n/).filter(Boolean).length > 2;
+
   return (
-    <div className="min-h-screen py-16">
+    <div className="min-h-screen max-lg:pt-0 lg:py-16 pb-12 lg:pb-16 overflow-x-hidden">
       <Container>
         <motion.div
           initial="initial"
           animate="animate"
           variants={staggerContainer}
-          className="space-y-12"
+          className="space-y-8 lg:space-y-12"
         >
-          {/* Breadcrumb */}
-          <motion.div variants={fadeInUp}>
+          {/* Breadcrumb — desktop only at top */}
+          <motion.div variants={fadeInUp} className="hidden lg:block">
             <Link
               to="/"
               className="inline-flex items-center space-x-2 text-sm transition-colors"
@@ -223,24 +237,38 @@ const ProductDetail = () => {
           </motion.div>
 
           {/* Main Product Section */}
-          <motion.div
-            variants={fadeInUp}
-            className="grid grid-cols-1 lg:grid-cols-2 gap-12"
-          >
-            {/* Image Gallery */}
-            <div>
+          <motion.div variants={fadeInUp} className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-12">
+            {/* Image Gallery — edge-to-edge on mobile */}
+            <div className="max-lg:w-screen max-lg:max-w-[100vw] max-lg:relative max-lg:left-1/2 max-lg:-translate-x-1/2 lg:w-full lg:translate-x-0 lg:left-0">
               <ImageGallery images={product.images} productName={product.name} />
             </div>
 
             {/* Product Info */}
-            <div className="space-y-6">
+            <div className="space-y-4 lg:space-y-6 px-0 sm:px-0 pt-4 lg:pt-0 max-lg:px-1">
+              <motion.div variants={fadeInUp} className="lg:hidden mb-1">
+                <Link
+                  to="/"
+                  className="inline-flex items-center gap-1.5 text-xs transition-colors"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  <FiChevronLeft size={14} />
+                  <span>Back</span>
+                </Link>
+              </motion.div>
+
               {/* Category & Rating */}
               <div>
-                <p className="text-sm font-bold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
+                <p
+                  className="text-[11px] lg:text-sm font-bold uppercase tracking-wider mb-1.5 lg:mb-2"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
                   {getDisplayCategory(product)}
                 </p>
-                <div className="flex items-center gap-4 mb-3">
-                  <h1 className="text-4xl md:text-5xl font-bold" style={{ color: "var(--text-primary)" }}>
+                <div className="flex flex-wrap items-center gap-2 lg:gap-4 mb-2 lg:mb-3">
+                  <h1
+                    className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold leading-tight max-w-full"
+                    style={{ color: "var(--text-primary)" }}
+                  >
                     {product.name}
                   </h1>
                   {averageRating > 0 && (
@@ -255,7 +283,7 @@ const ProductDetail = () => {
                           }}
                         />
                       ))}
-                      <span className="text-sm ml-1" style={{ color: "var(--text-secondary)" }}>
+                      <span className="text-xs lg:text-sm ml-1" style={{ color: "var(--text-secondary)" }}>
                         ({reviews.length})
                       </span>
                     </div>
@@ -264,29 +292,29 @@ const ProductDetail = () => {
               </div>
 
               {/* Price */}
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="text-4xl font-bold" style={{ color: "var(--color-primary)" }}>
+              <div className="flex flex-col gap-0.5 lg:gap-1">
+                <div className="flex items-center gap-2 lg:gap-3 flex-wrap">
+                  <span className="text-2xl sm:text-3xl lg:text-4xl font-bold tabular-nums" style={{ color: "var(--color-primary)" }}>
                     ৳{(product.price ?? 0).toFixed(2)}
                   </span>
                   {hasDiscount(product) && product.discount != null && product.discount > 0 && (
-                    <span className="px-4 py-2 text-sm font-bold text-white rounded-lg" style={{ backgroundColor: "var(--color-tertiary)" }}>
+                    <span className="px-2.5 py-1 lg:px-4 lg:py-2 text-xs lg:text-sm font-bold text-white rounded-lg" style={{ backgroundColor: "var(--color-tertiary)" }}>
                       -{product.discount}% off
                     </span>
                   )}
                 </div>
                 {hasDiscount(product) && product.originalPrice != null && (
                   <>
-                    <span className="text-2xl line-through" style={{ color: "var(--text-tertiary)" }}>
+                    <span className="text-base lg:text-2xl line-through tabular-nums" style={{ color: "var(--text-tertiary)" }}>
                       ৳{product.originalPrice.toFixed(2)}
                     </span>
-                    <span className="px-4 py-2 text-sm font-semibold text-white rounded-lg w-fit" style={{ backgroundColor: "var(--color-tertiary)" }}>
+                    <span className="px-2.5 py-1 lg:px-4 lg:py-2 text-xs lg:text-sm font-semibold text-white rounded-lg w-fit" style={{ backgroundColor: "var(--color-tertiary)" }}>
                       Save ৳{(product.originalPrice - (product.price ?? 0)).toFixed(2)}
                     </span>
                   </>
                 )}
                 {product.campaignName && (
-                  <p className="text-sm font-medium mt-1" style={{ color: "var(--color-primary)" }}>
+                  <p className="text-xs lg:text-sm font-medium mt-0.5 lg:mt-1" style={{ color: "var(--color-primary)" }}>
                     Campaign: {product.campaignName}
                   </p>
                 )}
@@ -303,42 +331,42 @@ const ProductDetail = () => {
 
               {/* Quantity */}
               <div>
-                <label className="block text-sm font-semibold mb-3 uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>
+                <label className="block text-xs lg:text-sm font-semibold mb-2 lg:mb-3 uppercase tracking-wider" style={{ color: "var(--text-primary)" }}>
                   Quantity
                 </label>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 lg:gap-4">
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-12 h-12 flex items-center justify-center border-2 rounded-lg transition-colors"
+                    className="w-10 h-10 lg:w-12 lg:h-12 flex items-center justify-center border-2 rounded-lg transition-colors"
                     style={{ borderColor: "var(--border-primary)" }}
                   >
-                    <span style={{ color: "var(--text-primary)" }}>-</span>
+                    <span className="text-lg" style={{ color: "var(--text-primary)" }}>-</span>
                   </motion.button>
-                  <span className="text-xl font-semibold w-16 text-center" style={{ color: "var(--text-primary)" }}>
+                  <span className="text-lg lg:text-xl font-semibold w-12 lg:w-16 text-center" style={{ color: "var(--text-primary)" }}>
                     {quantity}
                   </span>
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setQuantity(quantity + 1)}
-                    className="w-12 h-12 flex items-center justify-center border-2 rounded-lg transition-colors"
+                    className="w-10 h-10 lg:w-12 lg:h-12 flex items-center justify-center border-2 rounded-lg transition-colors"
                     style={{ borderColor: "var(--border-primary)" }}
                   >
-                    <span style={{ color: "var(--text-primary)" }}>+</span>
+                    <span className="text-lg" style={{ color: "var(--text-primary)" }}>+</span>
                   </motion.button>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-2 lg:gap-3 pt-2 lg:pt-4">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleAddToCart}
                   disabled={addedToCart}
-                  className={`flex-1 px-6 py-3 text-white font-semibold tracking-wide rounded-lg flex items-center justify-center gap-2 transition-all ${
+                  className={`flex-1 px-4 py-2.5 lg:px-6 lg:py-3 text-sm lg:text-base text-white font-semibold tracking-wide rounded-lg flex items-center justify-center gap-2 transition-all ${
                     addedToCart ? "opacity-90" : ""
                   }`}
                   style={{
@@ -368,7 +396,7 @@ const ProductDetail = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleAddToWishlist}
-                  className="p-3 border-2 rounded-lg flex items-center justify-center transition-colors"
+                  className="p-2.5 lg:p-3 border-2 rounded-lg flex items-center justify-center transition-colors shrink-0"
                   style={{
                     borderColor: isInWishlist ? "var(--color-primary)" : "var(--border-primary)",
                     color: isInWishlist ? "var(--color-primary)" : "var(--text-primary)",
@@ -380,7 +408,7 @@ const ProductDetail = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleShare}
-                  className="p-3 border-2 rounded-lg flex items-center justify-center transition-colors"
+                  className="p-2.5 lg:p-3 border-2 rounded-lg flex items-center justify-center transition-colors shrink-0"
                   style={{
                     borderColor: "var(--border-primary)",
                     color: "var(--text-primary)",
@@ -390,25 +418,46 @@ const ProductDetail = () => {
                 </motion.button>
               </div>
 
-              {/* Product Details */}
-              <div className="pt-8 border-t space-y-5" style={{ borderColor: "var(--border-primary)" }}>
-                <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
-                  Product Details
+              {/* Product Details + description */}
+              <div className="pt-6 lg:pt-8 border-t space-y-3 lg:space-y-4" style={{ borderColor: "var(--border-primary)" }}>
+                <h3 className="text-base lg:text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Product details
                 </h3>
-                <div className="space-y-4 text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                  {product.description ? (
-                    product.description.includes("\n") ? (
-                      product.description
-                        .split("\n")
-                        .filter((line) => line.trim())
-                        .map((para, i) => <p key={i}>{para.trim()}</p>)
-                    ) : (
-                      <p>{product.description}</p>
-                    )
+                <div className="text-xs lg:text-sm leading-relaxed space-y-2" style={{ color: "var(--text-secondary)" }}>
+                  {rawDescription ? (
+                    <>
+                      <div
+                        className={!descriptionExpanded && descNeedsMore ? "line-clamp-3" : ""}
+                        style={{ wordBreak: "break-word" }}
+                      >
+                        {rawDescription.includes("\n") ? (
+                          rawDescription
+                            .split("\n")
+                            .filter((line) => line.trim())
+                            .map((para, i) => (
+                              <p key={i} className={i > 0 ? "mt-2" : ""}>
+                                {para.trim()}
+                              </p>
+                            ))
+                        ) : (
+                          <p>{rawDescription}</p>
+                        )}
+                      </div>
+                      {descNeedsMore && (
+                        <button
+                          type="button"
+                          onClick={() => setDescriptionExpanded((e) => !e)}
+                          className="text-xs lg:text-sm font-semibold uppercase tracking-wider pt-1 border-0 bg-transparent cursor-pointer"
+                          style={{ color: "var(--color-primary)" }}
+                        >
+                          {descriptionExpanded ? "See less" : "See more"}
+                        </button>
+                      )}
+                    </>
                   ) : (
                     <>
                       <p>Crafted from premium materials for lasting comfort and style.</p>
-                      <ul className="list-disc list-inside space-y-2 pl-1">
+                      <ul className="list-disc list-inside space-y-1.5 pl-0.5 text-xs lg:text-sm">
                         <li>Premium heavyweight cotton</li>
                         <li>Relaxed silhouette</li>
                         <li>Structured high-neck hood</li>
@@ -419,139 +468,85 @@ const ProductDetail = () => {
                 </div>
               </div>
 
-              {/* Specifications: main dropdown, then Composition / Size & Fit / Care / Traceability as nested dropdowns */}
-              {(() => {
-                const attrs = product.attributes || {};
-                const toList = (v) => (Array.isArray(v) ? v : v ? [String(v)] : []).filter(Boolean);
-                const comp = toList(attrs.composition);
-                const fit = toList(attrs.sizeAndFit);
-                const care = toList(attrs.care);
-                const trace = toList(attrs.traceability);
-                const hasAny = comp.length > 0 || fit.length > 0 || care.length > 0 || trace.length > 0;
-                if (!hasAny) return null;
-                return (
-                  <div className="pt-6 border-t" style={{ borderColor: "var(--border-primary)" }}>
-                    <button
-                      type="button"
-                      onClick={() => setSpecsOpen((o) => !o)}
-                      className="w-full flex items-center justify-between py-3 text-left"
-                      style={{ color: "var(--text-primary)" }}
-                      aria-expanded={specsOpen}
+              {/* Four information sections — headers always visible; expand per section */}
+              <div className="pt-5 lg:pt-6 border-t" style={{ borderColor: "var(--border-primary)" }}>
+                <h3 className="text-base lg:text-xl font-semibold mb-3 lg:mb-4" style={{ color: "var(--text-primary)" }}>
+                  Product information
+                </h3>
+                <div className="space-y-0">
+                  {[
+                    {
+                      id: "comp",
+                      title: "Composition",
+                      open: specCompositionOpen,
+                      set: setSpecCompositionOpen,
+                      lines: comp,
+                    },
+                    {
+                      id: "fit",
+                      title: "Size & Fit",
+                      open: specSizeFitOpen,
+                      set: setSpecSizeFitOpen,
+                      lines: fit,
+                    },
+                    {
+                      id: "care",
+                      title: "Care",
+                      open: specCareOpen,
+                      set: setSpecCareOpen,
+                      lines: care,
+                    },
+                    {
+                      id: "trace",
+                      title: "Traceability",
+                      open: specTraceabilityOpen,
+                      set: setSpecTraceabilityOpen,
+                      lines: trace,
+                    },
+                  ].map((section) => (
+                    <div
+                      key={section.id}
+                      className="border-b last:border-b-0"
+                      style={{ borderColor: "var(--border-primary)" }}
                     >
-                      <h3 className="text-xl font-semibold">Specifications</h3>
-                      <FiChevronDown
-                        size={22}
-                        className="shrink-0 transition-transform duration-200"
-                        style={{ transform: specsOpen ? "rotate(180deg)" : "rotate(0deg)", color: "var(--text-secondary)" }}
-                      />
-                    </button>
-                    {specsOpen && (
-                      <div className="space-y-1 pb-2">
-                        {comp.length > 0 && (
-                          <div className="rounded-lg border" style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)" }}>
-                            <button
-                              type="button"
-                              onClick={() => setSpecCompositionOpen((o) => !o)}
-                              className="w-full flex items-center justify-between px-4 py-3 text-left"
-                              style={{ color: "var(--text-primary)" }}
-                              aria-expanded={specCompositionOpen}
-                            >
-                              <span className="text-sm font-bold uppercase tracking-wider">Composition</span>
-                              <FiChevronDown
-                                size={18}
-                                className="shrink-0 transition-transform duration-200"
-                                style={{ transform: specCompositionOpen ? "rotate(180deg)" : "rotate(0deg)", color: "var(--text-tertiary)" }}
-                              />
-                            </button>
-                            {specCompositionOpen && (
-                              <ul className="list-disc list-inside px-4 pb-3 pt-0 space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                                {comp.map((line, i) => (
-                                  <li key={i}>{line}</li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        )}
-                        {fit.length > 0 && (
-                          <div className="rounded-lg border" style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)" }}>
-                            <button
-                              type="button"
-                              onClick={() => setSpecSizeFitOpen((o) => !o)}
-                              className="w-full flex items-center justify-between px-4 py-3 text-left"
-                              style={{ color: "var(--text-primary)" }}
-                              aria-expanded={specSizeFitOpen}
-                            >
-                              <span className="text-sm font-bold uppercase tracking-wider">Size &amp; Fit</span>
-                              <FiChevronDown
-                                size={18}
-                                className="shrink-0 transition-transform duration-200"
-                                style={{ transform: specSizeFitOpen ? "rotate(180deg)" : "rotate(0deg)", color: "var(--text-tertiary)" }}
-                              />
-                            </button>
-                            {specSizeFitOpen && (
-                              <ul className="list-disc list-inside px-4 pb-3 pt-0 space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                                {fit.map((line, i) => (
-                                  <li key={i}>{line}</li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        )}
-                        {care.length > 0 && (
-                          <div className="rounded-lg border" style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)" }}>
-                            <button
-                              type="button"
-                              onClick={() => setSpecCareOpen((o) => !o)}
-                              className="w-full flex items-center justify-between px-4 py-3 text-left"
-                              style={{ color: "var(--text-primary)" }}
-                              aria-expanded={specCareOpen}
-                            >
-                              <span className="text-sm font-bold uppercase tracking-wider">Care</span>
-                              <FiChevronDown
-                                size={18}
-                                className="shrink-0 transition-transform duration-200"
-                                style={{ transform: specCareOpen ? "rotate(180deg)" : "rotate(0deg)", color: "var(--text-tertiary)" }}
-                              />
-                            </button>
-                            {specCareOpen && (
-                              <ul className="list-disc list-inside px-4 pb-3 pt-0 space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                                {care.map((line, i) => (
-                                  <li key={i}>{line}</li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        )}
-                        {trace.length > 0 && (
-                          <div className="rounded-lg border" style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-secondary)" }}>
-                            <button
-                              type="button"
-                              onClick={() => setSpecTraceabilityOpen((o) => !o)}
-                              className="w-full flex items-center justify-between px-4 py-3 text-left"
-                              style={{ color: "var(--text-primary)" }}
-                              aria-expanded={specTraceabilityOpen}
-                            >
-                              <span className="text-sm font-bold uppercase tracking-wider">Traceability</span>
-                              <FiChevronDown
-                                size={18}
-                                className="shrink-0 transition-transform duration-200"
-                                style={{ transform: specTraceabilityOpen ? "rotate(180deg)" : "rotate(0deg)", color: "var(--text-tertiary)" }}
-                              />
-                            </button>
-                            {specTraceabilityOpen && (
-                              <ul className="list-disc list-inside px-4 pb-3 pt-0 space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                                {trace.map((line, i) => (
-                                  <li key={i}>{line}</li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+                      <button
+                        type="button"
+                        onClick={() => section.set((o) => !o)}
+                        className="w-full flex items-center justify-between py-3 lg:py-3.5 text-left gap-3 border-0 bg-transparent cursor-pointer"
+                        style={{ color: "var(--text-primary)" }}
+                        aria-expanded={section.open}
+                      >
+                        <span className="text-[11px] lg:text-sm font-bold uppercase tracking-wider">
+                          {section.title}
+                        </span>
+                        <FiChevronDown
+                          size={20}
+                          className="shrink-0 transition-transform duration-200 border-0"
+                          style={{
+                            transform: section.open ? "rotate(180deg)" : "rotate(0deg)",
+                            color: "var(--text-secondary)",
+                          }}
+                        />
+                      </button>
+                      {section.open && (
+                        <div className="pb-3 pl-0 pr-1 -mt-1">
+                          {section.lines.length > 0 ? (
+                            <ul className="list-disc list-inside space-y-1 text-xs lg:text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                              {section.lines.map((line, i) => (
+                                <li key={i}>{line}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-xs lg:text-sm pb-1" style={{ color: "var(--text-tertiary)" }}>
+                              No details available for this section.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </motion.div>
 

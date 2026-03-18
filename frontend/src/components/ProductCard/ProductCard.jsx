@@ -165,20 +165,20 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", brickSlot = null }
                   <button
                     type="button"
                     onClick={prevImage}
-                    className="absolute left-1 top-1/2 -translate-y-1/2 z-10 p-1.5 sm:p-2 rounded-md opacity-90 shadow-lg"
-                    style={{ backgroundColor: "rgba(0,0,0,0.45)", color: "#fff" }}
+                    className="absolute left-0.5 top-1/2 -translate-y-1/2 z-10 p-1 sm:p-1.5 border-0 outline-none focus:outline-none focus:ring-0 bg-transparent opacity-85 hover:opacity-100"
+                    style={{ color: "#fff", filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.85))" }}
                     aria-label="Previous photo"
                   >
-                    <FiChevronLeft size={20} strokeWidth={2.5} />
+                    <FiChevronLeft size={22} strokeWidth={2.5} />
                   </button>
                   <button
                     type="button"
                     onClick={nextImage}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 z-10 p-1.5 sm:p-2 rounded-md opacity-90 shadow-lg"
-                    style={{ backgroundColor: "rgba(0,0,0,0.45)", color: "#fff" }}
+                    className="absolute right-0.5 top-1/2 -translate-y-1/2 z-10 p-1 sm:p-1.5 border-0 outline-none focus:outline-none focus:ring-0 bg-transparent opacity-85 hover:opacity-100"
+                    style={{ color: "#fff", filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.85))" }}
                     aria-label="Next photo"
                   >
-                    <FiChevronRight size={20} strokeWidth={2.5} />
+                    <FiChevronRight size={22} strokeWidth={2.5} />
                   </button>
                   <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1 z-10">
                     {images.map((_, idx) => (
@@ -367,40 +367,20 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", brickSlot = null }
                 <button
                   type="button"
                   onClick={prevImage}
-                  className="absolute left-1/2 top-2 -translate-x-1/2 z-10 p-2 rounded-md transition-opacity hover:opacity-100 opacity-90 shadow-lg"
-                  style={{
-                    backgroundColor: "rgba(0,0,0,0.45)",
-                    color: "#fff",
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.outline = "2px solid var(--color-primary)";
-                    e.currentTarget.style.outlineOffset = "2px";
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.outline = "none";
-                  }}
+                  className="absolute left-1/2 top-2 -translate-x-1/2 z-10 p-1 border-0 outline-none focus:outline-none focus:ring-0 bg-transparent opacity-80 hover:opacity-100 transition-opacity"
+                  style={{ color: "#fff", filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.85))" }}
                   aria-label="Previous image"
                 >
-                  <FiChevronUp size={22} strokeWidth={2.5} />
+                  <FiChevronUp size={24} strokeWidth={2.5} />
                 </button>
                 <button
                   type="button"
                   onClick={nextImage}
-                  className="absolute left-1/2 bottom-8 -translate-x-1/2 z-10 p-2 rounded-md transition-opacity hover:opacity-100 opacity-90 shadow-lg"
-                  style={{
-                    backgroundColor: "rgba(0,0,0,0.45)",
-                    color: "#fff",
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.outline = "2px solid var(--color-primary)";
-                    e.currentTarget.style.outlineOffset = "2px";
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.outline = "none";
-                  }}
+                  className="absolute left-1/2 bottom-8 -translate-x-1/2 z-10 p-1 border-0 outline-none focus:outline-none focus:ring-0 bg-transparent opacity-80 hover:opacity-100 transition-opacity"
+                  style={{ color: "#fff", filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.85))" }}
                   aria-label="Next image"
                 >
-                  <FiChevronDown size={22} strokeWidth={2.5} />
+                  <FiChevronDown size={24} strokeWidth={2.5} />
                 </button>
               </>
             )}

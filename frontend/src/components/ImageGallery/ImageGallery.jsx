@@ -1,22 +1,247 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiChevronUp, FiChevronDown, FiZoomIn, FiX } from "react-icons/fi";
+import { FiChevronUp, FiChevronDown, FiChevronLeft, FiChevronRight, FiX } from "react-icons/fi";
 
 const MIN_SWIPE = 50;
 
+function distance(touches) {
+  if (touches.length < 2) return 0;
+  const [a, b] = [touches[0], touches[1]];
+  return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+}
+
+/** Full-screen viewer: pinch-zoom + pan; side arrows change image */
+function FullscreenImageViewer({
+  open,
+  onClose,
+  images,
+  selectedIndex,
+  setSelectedIndex,
+  productName,
+}) {
+  const [scale, setScale] = useState(1);
+  const [tx, setTx] = useState(0);
+  const [ty, setTy] = useState(0);
+  const lastDist = useRef(0);
+  const modeRef = useRef(null);
+  const panOriginRef = useRef(null);
+  const overlayRef = useRef(null);
+  const scaleRef = useRef(1);
+  const txRef = useRef(0);
+  const tyRef = useRef(0);
+
+  const src = images[selectedIndex];
+  const hasMultiple = images.length > 1;
+
+  useEffect(() => {
+    scaleRef.current = scale;
+    txRef.current = tx;
+    tyRef.current = ty;
+  }, [scale, tx, ty]);
+
+  useEffect(() => {
+    if (!open) return;
+    setScale(1);
+    setTx(0);
+    setTy(0);
+    scaleRef.current = 1;
+    txRef.current = 0;
+    tyRef.current = 0;
+  }, [open, selectedIndex]);
+
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    const el = overlayRef.current;
+    if (!open || !el) return;
+    const block = (e) => {
+      if (e.touches && e.touches.length > 1) e.preventDefault();
+    };
+    el.addEventListener("touchmove", block, { passive: false });
+    return () => el.removeEventListener("touchmove", block);
+  }, [open]);
+
+  const handleTouchStart = useCallback((e) => {
+    if (e.touches.length === 2) {
+      modeRef.current = "pinch";
+      lastDist.current = distance(e.touches);
+    } else if (e.touches.length === 1) {
+      if (scaleRef.current > 1.02) {
+        modeRef.current = "pan";
+        panOriginRef.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+          tx: txRef.current,
+          ty: tyRef.current,
+        };
+      }
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e) => {
+    if (modeRef.current === "pinch" && e.touches.length === 2) {
+      e.preventDefault();
+      const d = distance(e.touches);
+      if (lastDist.current > 0) {
+        const f = d / lastDist.current;
+        setScale((s) => {
+          const ns = Math.min(5, Math.max(1, s * f));
+          scaleRef.current = ns;
+          return ns;
+        });
+      }
+      lastDist.current = d;
+    } else if (modeRef.current === "pan" && e.touches.length === 1 && panOriginRef.current) {
+      e.preventDefault();
+      const p = panOriginRef.current;
+      const ntx = p.tx + e.touches[0].clientX - p.x;
+      const nty = p.ty + e.touches[0].clientY - p.y;
+      txRef.current = ntx;
+      tyRef.current = nty;
+      setTx(ntx);
+      setTy(nty);
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    modeRef.current = null;
+    lastDist.current = 0;
+    panOriginRef.current = null;
+    setScale((s) => {
+      if (s < 1.05) {
+        scaleRef.current = 1;
+        txRef.current = 0;
+        tyRef.current = 0;
+        setTx(0);
+        setTy(0);
+        return 1;
+      }
+      scaleRef.current = s;
+      return s;
+    });
+  }, []);
+
+  if (!open) return null;
+
+  return createPortal(
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-[300] flex flex-col bg-black touch-manipulation"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Product image zoom"
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute right-4 z-20 p-2 border-0 outline-none focus:outline-none bg-transparent"
+        style={{
+          top: "max(1rem, env(safe-area-inset-top))",
+          color: "#fff",
+          filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.9))",
+        }}
+        aria-label="Close"
+      >
+        <FiX size={28} strokeWidth={2} />
+      </button>
+
+      {hasMultiple && (
+        <>
+          <button
+            type="button"
+            onClick={() => setSelectedIndex((i) => (i - 1 + images.length) % images.length)}
+            className="absolute left-1 top-1/2 -translate-y-1/2 z-20 p-2 border-0 outline-none focus:outline-none bg-transparent opacity-90 hover:opacity-100"
+            style={{ color: "#fff", filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.9))" }}
+            aria-label="Previous image"
+          >
+            <FiChevronLeft size={32} strokeWidth={2.5} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedIndex((i) => (i + 1) % images.length)}
+            className="absolute right-1 top-1/2 -translate-y-1/2 z-20 p-2 border-0 outline-none focus:outline-none bg-transparent opacity-90 hover:opacity-100"
+            style={{ color: "#fff", filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.9))" }}
+            aria-label="Next image"
+          >
+            <FiChevronRight size={32} strokeWidth={2.5} />
+          </button>
+        </>
+      )}
+
+      <div
+        className="flex-1 flex items-center justify-center overflow-hidden pt-14 pb-8 px-2"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={(e) => {
+          if (e.target === e.currentTarget && scale <= 1.02) onClose();
+        }}
+      >
+        <img
+          src={src}
+          alt={productName}
+          className="max-h-full max-w-full object-contain select-none"
+          style={{
+            transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
+          }}
+          draggable={false}
+        />
+      </div>
+
+      {hasMultiple && (
+        <div className="flex justify-center gap-1.5 pb-6" style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}>
+          {images.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setSelectedIndex(i)}
+              className={`h-1.5 rounded-full border-0 p-0 transition-all ${i === selectedIndex ? "w-6" : "w-1.5 opacity-50"}`}
+              style={{ backgroundColor: "#fff" }}
+              aria-label={`Photo ${i + 1}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>,
+    document.body
+  );
+}
+
 const ImageGallery = ({ images, productName }) => {
+  const safeImages = Array.isArray(images) && images.length > 0 ? images : ["/images/product-placeholder.png"];
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+  const [fullscreenOpen, setFullscreenOpen] = useState(false);
+  const [isNarrow, setIsNarrow] = useState(
+    typeof window !== "undefined" ? window.matchMedia("(max-width: 1023px)").matches : false
+  );
+
   const touchStartYRef = useRef(null);
   const touchEndYRef = useRef(null);
+  const blockFullscreenTapRef = useRef(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const fn = () => setIsNarrow(mq.matches);
+    mq.addEventListener("change", fn);
+    return () => mq.removeEventListener("change", fn);
+  }, []);
 
   const nextImage = () => {
-    setSelectedIndex((prev) => (prev + 1) % images.length);
+    setSelectedIndex((prev) => (prev + 1) % safeImages.length);
   };
 
   const prevImage = () => {
-    setSelectedIndex((prev) => (prev - 1 + images.length) % images.length);
+    setSelectedIndex((prev) => (prev - 1 + safeImages.length) % safeImages.length);
   };
 
   const onTouchStart = (e) => {
@@ -29,16 +254,23 @@ const ImageGallery = ({ images, productName }) => {
   const onTouchEnd = () => {
     const start = touchStartYRef.current;
     const end = touchEndYRef.current;
-    if (start == null || end == null || images.length <= 1) {
-      touchStartYRef.current = null;
-      touchEndYRef.current = null;
-      return;
-    }
-    const delta = start - end;
-    if (delta > MIN_SWIPE) nextImage();
-    else if (delta < -MIN_SWIPE) prevImage();
     touchStartYRef.current = null;
     touchEndYRef.current = null;
+    if (start == null || end == null) return;
+    const delta = start - end;
+    if (safeImages.length > 1 && (delta > MIN_SWIPE || delta < -MIN_SWIPE)) {
+      blockFullscreenTapRef.current = true;
+      window.setTimeout(() => {
+        blockFullscreenTapRef.current = false;
+      }, 450);
+      if (delta > MIN_SWIPE) nextImage();
+      else prevImage();
+    } else if (Math.abs(delta) > 12) {
+      blockFullscreenTapRef.current = true;
+      window.setTimeout(() => {
+        blockFullscreenTapRef.current = false;
+      }, 450);
+    }
   };
 
   const handleMouseMove = (e) => {
@@ -49,11 +281,21 @@ const ImageGallery = ({ images, productName }) => {
     setZoomPosition({ x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) });
   };
 
+  const openFullscreenMobile = () => {
+    if (isNarrow) {
+      setIsZoomed(false);
+      setFullscreenOpen(true);
+    }
+  };
+
+  const arrowBtn =
+    "p-1 z-10 border-0 outline-none focus:outline-none bg-transparent opacity-75 hover:opacity-100 transition-opacity";
+  const arrowIconStyle = { color: "#fff", filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.85))" };
+
   return (
-    <div className="space-y-4">
-      {/* Main Image: vertical swipe up/down to change image */}
+    <div className="space-y-0 lg:space-y-4">
       <div
-        className="relative aspect-square overflow-hidden rounded-lg group touch-none"
+        className="relative overflow-hidden max-lg:aspect-[4/5] lg:aspect-square max-lg:rounded-none lg:rounded-lg group touch-none max-lg:w-full"
         style={{ backgroundColor: "var(--bg-tertiary)" }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
@@ -62,124 +304,105 @@ const ImageGallery = ({ images, productName }) => {
         <AnimatePresence mode="wait">
           <motion.img
             key={selectedIndex}
-            src={images[selectedIndex]}
-            alt={`${productName} - Image ${selectedIndex + 1}`}
-            className="w-full h-full object-cover cursor-zoom-in"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: isZoomed ? 2 : 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.3 }}
-            onClick={() => setIsZoomed(!isZoomed)}
-            onMouseMove={isZoomed ? handleMouseMove : undefined}
+            src={safeImages[selectedIndex]}
+            alt={productName}
+            className={`w-full h-full object-cover ${isNarrow ? "cursor-pointer" : "cursor-zoom-in"}`}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: isNarrow ? 1 : isZoomed ? 2 : 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.25 }}
+            onClick={() => {
+              if (isNarrow) {
+                if (!blockFullscreenTapRef.current) openFullscreenMobile();
+              } else setIsZoomed(!isZoomed);
+            }}
+            onMouseMove={!isNarrow && isZoomed ? handleMouseMove : undefined}
             style={{
-              transformOrigin: isZoomed ? `${zoomPosition.x}% ${zoomPosition.y}%` : "center",
-              cursor: isZoomed ? "zoom-out" : "zoom-in",
+              transformOrigin: !isNarrow && isZoomed ? `${zoomPosition.x}% ${zoomPosition.y}%` : "center",
+              cursor: !isNarrow && isZoomed ? "zoom-out" : isNarrow ? "pointer" : "zoom-in",
             }}
           />
         </AnimatePresence>
 
-        {/* Zoom Indicator */}
-        {!isZoomed && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="absolute top-4 right-4 p-2 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
-          >
-            <FiZoomIn size={20} style={{ color: "var(--text-primary)" }} />
-          </motion.div>
-        )}
-
-        {/* Zoom Close Button */}
-        {isZoomed && (
+        {!isNarrow && isZoomed && (
           <motion.button
             initial={{ opacity: 0, scale: 0 }}
             animate={{ opacity: 1, scale: 1 }}
-            onClick={() => setIsZoomed(false)}
-            className="absolute top-4 right-4 p-2 rounded-full backdrop-blur-sm z-10"
-            style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsZoomed(false);
+            }}
+            className="absolute top-4 right-4 p-1 z-10 border-0 outline-none focus:outline-none bg-transparent"
+            style={{ color: "var(--text-primary)", filter: "drop-shadow(0 0 2px #fff) drop-shadow(0 1px 2px rgba(0,0,0,0.5))" }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
+            aria-label="Close zoom"
           >
             <FiX size={20} style={{ color: "var(--text-primary)" }} />
           </motion.button>
         )}
 
-        {/* Navigation Arrows: up/down, low opacity, fixed position (no scale so they stay in place) */}
-        {images.length > 1 && (
+        {safeImages.length > 1 && (
           <>
             <button
               type="button"
-              onClick={prevImage}
-              className="absolute left-1/2 top-4 -translate-x-1/2 p-3 rounded-full backdrop-blur-sm opacity-40 hover:opacity-70 transition-opacity z-10"
-              style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
-              onFocus={(e) => {
-                e.currentTarget.style.outline = "2px solid var(--color-primary)";
-                e.currentTarget.style.outlineOffset = "2px";
+              onClick={(e) => {
+                e.stopPropagation();
+                prevImage();
               }}
-              onBlur={(e) => {
-                e.currentTarget.style.outline = "none";
-              }}
+              className={`absolute left-1/2 top-3 -translate-x-1/2 ${arrowBtn}`}
+              style={arrowIconStyle}
               aria-label="Previous image"
             >
-              <FiChevronUp size={24} style={{ color: "var(--text-primary)" }} />
+              <FiChevronUp size={26} strokeWidth={2.5} />
             </button>
             <button
               type="button"
-              onClick={nextImage}
-              className="absolute left-1/2 bottom-4 -translate-x-1/2 p-3 rounded-full backdrop-blur-sm opacity-40 hover:opacity-70 transition-opacity z-10"
-              style={{ backgroundColor: "rgba(255, 255, 255, 0.9)" }}
-              onFocus={(e) => {
-                e.currentTarget.style.outline = "2px solid var(--color-primary)";
-                e.currentTarget.style.outlineOffset = "2px";
+              onClick={(e) => {
+                e.stopPropagation();
+                nextImage();
               }}
-              onBlur={(e) => {
-                e.currentTarget.style.outline = "none";
-              }}
+              className={`absolute left-1/2 bottom-3 -translate-x-1/2 ${arrowBtn}`}
+              style={arrowIconStyle}
               aria-label="Next image"
             >
-              <FiChevronDown size={24} style={{ color: "var(--text-primary)" }} />
+              <FiChevronDown size={26} strokeWidth={2.5} />
             </button>
           </>
         )}
-
-        {/* Image Counter */}
-        {images.length > 1 && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}>
-            <span className="text-sm text-white">
-              {selectedIndex + 1} / {images.length}
-            </span>
-          </div>
-        )}
       </div>
 
-      {/* Thumbnail Gallery */}
-      {images.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-          {images.map((image, index) => (
+      {safeImages.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide max-lg:px-4 max-lg:pt-3 lg:px-0">
+          {safeImages.map((image, index) => (
             <motion.button
               key={index}
+              type="button"
               onClick={() => setSelectedIndex(index)}
-              className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                index === selectedIndex ? "border-opacity-100" : "border-opacity-0"
-              }`}
+              className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden transition-all"
               style={{
-                borderColor: index === selectedIndex ? "var(--color-primary)" : "transparent",
                 backgroundColor: "var(--bg-tertiary)",
+                outline: index === selectedIndex ? "2px solid var(--color-primary)" : "none",
+                outlineOffset: 2,
               }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              aria-label={`Thumbnail ${index + 1}`}
             >
-              <img
-                src={image}
-                alt={`Thumbnail ${index + 1}`}
-                className="w-full h-full object-cover"
-              />
+              <img src={image} alt="" className="w-full h-full object-cover" />
             </motion.button>
           ))}
         </div>
       )}
+
+      <FullscreenImageViewer
+        open={fullscreenOpen}
+        onClose={() => setFullscreenOpen(false)}
+        images={safeImages}
+        selectedIndex={selectedIndex}
+        setSelectedIndex={setSelectedIndex}
+        productName={productName}
+      />
     </div>
   );
 };

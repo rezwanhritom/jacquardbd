@@ -1013,9 +1013,9 @@ const Checkout = () => {
                     <motion.button
                       type="button"
                       onClick={handlePrevious}
-                      className="flex items-center gap-2 px-6 py-3 border-2 rounded-lg font-semibold transition-colors"
+                      className="flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-colors border-0 outline-none focus:outline-none focus:ring-0"
                       style={{
-                        borderColor: "var(--border-primary)",
+                        backgroundColor: "var(--bg-secondary)",
                         color: "var(--text-primary)",
                       }}
                       whileHover={{ scale: 1.02 }}

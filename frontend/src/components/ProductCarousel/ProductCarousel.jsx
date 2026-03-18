@@ -79,11 +79,10 @@ const ProductCarousel = ({ title, subtitle, products, showViewAll = true, compac
             <button
               type="button"
               onClick={() => scroll("prev")}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-12 h-12 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm opacity-40 hover:opacity-70 transition-opacity"
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 w-10 h-10 flex items-center justify-center border-0 outline-none focus:outline-none focus:ring-0 bg-transparent opacity-50 hover:opacity-90 transition-opacity"
               style={{
-                backgroundColor: "var(--bg-primary)",
                 color: "var(--text-primary)",
-                border: "1px solid var(--border-primary)",
+                filter: "drop-shadow(0 1px 2px rgba(255,255,255,0.6)) drop-shadow(0 1px 3px rgba(0,0,0,0.4))",
               }}
               aria-label="Previous"
             >
@@ -95,11 +94,10 @@ const ProductCarousel = ({ title, subtitle, products, showViewAll = true, compac
             <button
               type="button"
               onClick={() => scroll("next")}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-12 h-12 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm opacity-40 hover:opacity-70 transition-opacity"
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 w-10 h-10 flex items-center justify-center border-0 outline-none focus:outline-none focus:ring-0 bg-transparent opacity-50 hover:opacity-90 transition-opacity"
               style={{
-                backgroundColor: "var(--bg-primary)",
                 color: "var(--text-primary)",
-                border: "1px solid var(--border-primary)",
+                filter: "drop-shadow(0 1px 2px rgba(255,255,255,0.6)) drop-shadow(0 1px 3px rgba(0,0,0,0.4))",
               }}
               aria-label="Next"
             >

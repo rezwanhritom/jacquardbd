@@ -126,20 +126,20 @@ const Products = () => {
                     <button
                       type="button"
                       onClick={(e) => handlePrevImage(product.id, product.images.length, e)}
-                      className="p-2 rounded-full shadow-lg backdrop-blur-sm z-10 pointer-events-auto opacity-40 hover:opacity-70 transition-opacity"
-                      style={{ backgroundColor: "var(--bg-primary)" }}
+                      className="p-1 z-10 pointer-events-auto border-0 outline-none bg-transparent opacity-70 hover:opacity-100 transition-opacity"
+                      style={{ color: "#fff", filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.85))" }}
                       aria-label="Previous image"
                     >
-                      <FiChevronLeft size={20} style={{ color: "var(--text-primary)" }} />
+                      <FiChevronLeft size={22} strokeWidth={2.5} />
                     </button>
                     <button
                       type="button"
                       onClick={(e) => handleNextImage(product.id, product.images.length, e)}
-                      className="p-2 rounded-full shadow-lg backdrop-blur-sm z-10 pointer-events-auto opacity-40 hover:opacity-70 transition-opacity"
-                      style={{ backgroundColor: "var(--bg-primary)" }}
+                      className="p-1 z-10 pointer-events-auto border-0 outline-none bg-transparent opacity-70 hover:opacity-100 transition-opacity"
+                      style={{ color: "#fff", filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.85))" }}
                       aria-label="Next image"
                     >
-                      <FiChevronRight size={20} style={{ color: "var(--text-primary)" }} />
+                      <FiChevronRight size={22} strokeWidth={2.5} />
                     </button>
                   </div>
 
