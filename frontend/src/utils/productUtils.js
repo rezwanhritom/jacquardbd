@@ -125,3 +125,26 @@ export function paginateProducts(products, currentPage, itemsPerPage = 12) {
   const totalPages = Math.ceil(products.length / itemsPerPage);
   return { paginatedProducts, totalPages };
 }
+
+/**
+ * Category brick layout: alternating pair row (up to 2, edge-to-edge) then single full-width row.
+ * 1 product → one “pair” row (full width); 2 → pair; 3 → pair + single; 4 → pair + single + single-wide pair row; 5 → pair + single + pair; etc.
+ */
+export function chunkProductsBrick21(products) {
+  if (!products?.length) return [];
+  const rows = [];
+  let i = 0;
+  let pairPhase = true;
+  while (i < products.length) {
+    if (pairPhase) {
+      const take = Math.min(2, products.length - i);
+      rows.push({ type: "pair", items: products.slice(i, i + take) });
+      i += take;
+    } else {
+      rows.push({ type: "single", items: [products[i]] });
+      i += 1;
+    }
+    pairPhase = !pairPhase;
+  }
+  return rows;
+}

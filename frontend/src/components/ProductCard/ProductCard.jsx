@@ -1,14 +1,21 @@
 import { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiHeart, FiShoppingBag, FiChevronUp, FiChevronDown } from "react-icons/fi";
+import {
+  FiHeart,
+  FiShoppingBag,
+  FiChevronUp,
+  FiChevronDown,
+  FiChevronLeft,
+  FiChevronRight,
+} from "react-icons/fi";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 import { useWishlist } from "../../context/WishlistContext";
 import { useCart } from "../../context/CartContext";
 import { hasDiscount } from "../../utils/productUtils";
 
-const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
+const ProductCard = ({ product, index = 0, viewMode = "grid", brickSlot = null }) => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
@@ -19,6 +26,11 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const touchStartYRef = useRef(null);
   const touchEndYRef = useRef(null);
+  const touchStartXListRef = useRef(null);
+  const touchEndXListRef = useRef(null);
+
+  const images = Array.isArray(product?.images) ? product.images : [];
+  const imageCount = images.length;
 
   const MIN_SWIPE = 50;
   const onImageTouchStart = (e) => {
@@ -31,28 +43,47 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
   const onImageTouchEnd = () => {
     const start = touchStartYRef.current;
     const end = touchEndYRef.current;
-    if (start == null || end == null || product.images.length <= 1) {
+    if (start == null || end == null || imageCount <= 1) {
       touchStartYRef.current = null;
       touchEndYRef.current = null;
       return;
     }
     const delta = start - end;
-    if (delta > MIN_SWIPE) setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
-    else if (delta < -MIN_SWIPE) setCurrentImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
+    if (delta > MIN_SWIPE) setCurrentImageIndex((prev) => (prev + 1) % imageCount);
+    else if (delta < -MIN_SWIPE) setCurrentImageIndex((prev) => (prev - 1 + imageCount) % imageCount);
     touchStartYRef.current = null;
     touchEndYRef.current = null;
+  };
+
+  /** List view: horizontal swipe — left = next, right = previous (wraps). */
+  const onListImageTouchStart = (e) => {
+    touchStartXListRef.current = e.targetTouches[0].clientX;
+    touchEndXListRef.current = e.targetTouches[0].clientX;
+  };
+  const onListImageTouchMove = (e) => {
+    touchEndXListRef.current = e.targetTouches[0].clientX;
+  };
+  const onListImageTouchEnd = (e) => {
+    const start = touchStartXListRef.current;
+    const end = touchEndXListRef.current;
+    touchStartXListRef.current = null;
+    touchEndXListRef.current = null;
+    if (start == null || end == null || imageCount <= 1) return;
+    const delta = start - end;
+    if (delta > MIN_SWIPE) setCurrentImageIndex((prev) => (prev + 1) % imageCount);
+    else if (delta < -MIN_SWIPE) setCurrentImageIndex((prev) => (prev - 1 + imageCount) % imageCount);
   };
 
   const nextImage = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
+    setCurrentImageIndex((prev) => (prev + 1) % imageCount);
   };
 
   const prevImage = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
+    setCurrentImageIndex((prev) => (prev - 1 + imageCount) % imageCount);
   };
 
   const handleWishlist = async (e) => {
@@ -91,73 +122,131 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: index * 0.05 }}
-        className="group"
+        className="group min-w-0 max-w-full w-full"
       >
         <Link
           to={`/product/${product.slug != null && product.slug !== "" ? product.slug : product.id}`}
-          className="block"
+          className="block min-w-0 max-w-full w-full"
           aria-label={`View ${product.name} details`}
         >
-          <div className="flex gap-6 p-6 rounded-lg" style={{ backgroundColor: "var(--bg-secondary)" }}>
+          <div
+            className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-3 sm:p-6 rounded-lg min-w-0 max-w-full w-full overflow-hidden"
+            style={{ backgroundColor: "var(--bg-secondary)" }}
+          >
             <div
-              className="relative overflow-hidden w-48 h-64 flex-shrink-0 rounded-lg touch-none select-none"
+              className="relative overflow-hidden w-full max-w-[11rem] h-52 sm:max-w-none sm:w-48 sm:h-64 flex-shrink-0 rounded-lg touch-none select-none mx-auto sm:mx-0"
               style={{ backgroundColor: "var(--bg-tertiary)" }}
-              onTouchStart={onImageTouchStart}
-              onTouchMove={onImageTouchMove}
-              onTouchEnd={onImageTouchEnd}
+              onTouchStart={onListImageTouchStart}
+              onTouchMove={onListImageTouchMove}
+              onTouchEnd={onListImageTouchEnd}
+              role="group"
+              aria-label="Product photos, swipe left or right to browse"
             >
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={currentImageIndex}
-                  src={product.images[currentImageIndex]}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                />
-              </AnimatePresence>
+              {imageCount > 0 ? (
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={currentImageIndex}
+                    src={images[currentImageIndex]}
+                    alt={`${product.name} — photo ${currentImageIndex + 1} of ${imageCount}`}
+                    className="w-full h-full object-cover pointer-events-none"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  />
+                </AnimatePresence>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-xs" style={{ color: "var(--text-tertiary)" }}>
+                  No image
+                </div>
+              )}
+              {imageCount > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={prevImage}
+                    className="absolute left-1 top-1/2 -translate-y-1/2 z-10 p-1.5 sm:p-2 rounded-md opacity-90 shadow-lg"
+                    style={{ backgroundColor: "rgba(0,0,0,0.45)", color: "#fff" }}
+                    aria-label="Previous photo"
+                  >
+                    <FiChevronLeft size={20} strokeWidth={2.5} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={nextImage}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 z-10 p-1.5 sm:p-2 rounded-md opacity-90 shadow-lg"
+                    style={{ backgroundColor: "rgba(0,0,0,0.45)", color: "#fff" }}
+                    aria-label="Next photo"
+                  >
+                    <FiChevronRight size={20} strokeWidth={2.5} />
+                  </button>
+                  <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+                    {images.map((_, idx) => (
+                      <div
+                        key={idx}
+                        className={`h-1 rounded-full transition-all ${idx === currentImageIndex ? "w-3.5" : "w-1"}`}
+                        style={{
+                          backgroundColor:
+                            idx === currentImageIndex ? "var(--color-primary)" : "rgba(255,255,255,0.55)",
+                        }}
+                        aria-hidden
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
-            <div className="flex-1 space-y-3">
-              <div>
-                <h3 className="text-2xl font-semibold mb-2 group-hover:underline" style={{ color: "var(--text-primary)" }}>
+            <div className="min-w-0 flex-1 space-y-2 sm:space-y-3 w-full max-w-full overflow-hidden">
+              <div className="min-w-0">
+                <h3
+                  className="text-lg sm:text-2xl font-semibold mb-1 sm:mb-2 group-hover:underline break-words [word-break:break-word]"
+                  style={{ color: "var(--text-primary)" }}
+                >
                   {product.name}
                 </h3>
                 {product.description && (
-                  <p className="text-sm line-clamp-2" style={{ color: "var(--text-secondary)" }}>
+                  <p
+                    className="text-xs sm:text-sm line-clamp-2 break-words [word-break:break-word]"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
                     {product.description}
                   </p>
                 )}
               </div>
-              <div className="flex flex-col gap-0.5">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
+                  <span
+                    className="text-lg sm:text-2xl font-bold tabular-nums shrink-0"
+                    style={{ color: "var(--color-primary)" }}
+                  >
                     ৳{(product.price ?? 0).toFixed(2)}
                   </span>
                   {hasDiscount(product) && product.discount != null && product.discount > 0 && (
-                    <span className="text-sm font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: "var(--color-tertiary)", color: "white" }}>
+                    <span className="text-xs sm:text-sm font-semibold px-2 py-0.5 rounded shrink-0" style={{ backgroundColor: "var(--color-tertiary)", color: "white" }}>
                       -{product.discount}%
                     </span>
                   )}
                 </div>
                 {hasDiscount(product) && product.originalPrice != null && (
-                  <span className="text-lg line-through" style={{ color: "var(--text-tertiary)" }}>
+                  <span className="text-sm sm:text-lg line-through tabular-nums" style={{ color: "var(--text-tertiary)" }}>
                     ৳{product.originalPrice.toFixed(2)}
                   </span>
                 )}
                 {product.campaignName && (
-                  <span className="text-xs font-medium" style={{ color: "var(--color-primary)" }}>
+                  <span
+                    className="text-xs font-medium break-words line-clamp-2 block"
+                    style={{ color: "var(--color-primary)" }}
+                  >
                     {product.campaignName}
                   </span>
                 )}
               </div>
-              <div className="flex gap-3 pt-2">
+              <div className="flex flex-wrap gap-2 sm:gap-3 pt-1 sm:pt-2 min-w-0">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleWishlist}
-                  className="px-6 py-2.5 border-2 rounded-lg text-sm font-semibold uppercase tracking-wider transition-colors"
+                  className="px-3 py-2 sm:px-6 sm:py-2.5 border-2 rounded-lg text-xs sm:text-sm font-semibold uppercase tracking-wider transition-colors max-w-full"
                   style={{
                     borderColor: inWishlist ? "var(--color-primary)" : "var(--border-primary)",
                     color: inWishlist ? "var(--color-primary)" : "var(--text-primary)",
@@ -179,7 +268,7 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
                   whileTap={outOfStock || inCart ? 1 : { scale: 0.95 }}
                   onClick={handleAddToCart}
                   disabled={outOfStock || inCart}
-                  className="px-6 py-2.5 rounded-lg text-sm font-semibold uppercase tracking-wider text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-2 sm:px-6 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold uppercase tracking-wider text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed max-w-full"
                   style={{
                     backgroundColor:
                       outOfStock ? "var(--bg-tertiary)" : inCart ? "var(--bg-tertiary)" : "var(--color-primary)",
@@ -208,11 +297,15 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
     );
   }
 
+  const isBrickHalf = brickSlot === "half";
+  const isBrickFull = brickSlot === "full";
+  const isBrick = isBrickHalf || isBrickFull;
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: isBrick ? 8 : 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
+      transition={{ delay: index * 0.03 }}
       className="group"
     >
       <Link
@@ -220,28 +313,40 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
         className="block"
         aria-label={`View ${product.name} details`}
       >
-        <div className="space-y-4">
+        <div className={isBrickFull ? "space-y-3 sm:space-y-4" : "space-y-4"}>
           {/* Image Container: vertical swipe (up/down) for image change */}
           <div
-            className="relative overflow-hidden aspect-[3/4] rounded-lg touch-none"
+            className={`relative overflow-hidden touch-none ${
+              isBrickFull
+                ? "aspect-[3/4] min-h-[min(88vw,420px)] sm:min-h-[min(75vh,720px)] sm:aspect-auto sm:h-[min(75vh,720px)] md:h-[min(78vh,820px)] rounded-none"
+                : isBrickHalf
+                  ? "aspect-[4/5] sm:aspect-[3/4] rounded-none"
+                  : "aspect-[3/4] rounded-lg"
+            }`}
             style={{ backgroundColor: "var(--bg-tertiary)" }}
             onTouchStart={onImageTouchStart}
             onTouchMove={onImageTouchMove}
             onTouchEnd={onImageTouchEnd}
           >
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={currentImageIndex}
-                src={product.images[currentImageIndex]}
-                alt={product.name}
-                className="w-full h-full object-cover"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                whileHover={{ scale: 1.05 }}
-              />
-            </AnimatePresence>
+            {imageCount > 0 ? (
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={currentImageIndex}
+                  src={images[currentImageIndex]}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  whileHover={{ scale: 1.05 }}
+                />
+              </AnimatePresence>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-sm" style={{ color: "var(--text-tertiary)" }}>
+                No image
+              </div>
+            )}
 
             {/* No tags/badges above image per design */}
 
@@ -257,7 +362,7 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
             )}
 
             {/* Image navigation: up/down arrows — visible on any image */}
-            {product.images.length > 1 && (
+            {imageCount > 1 && (
               <>
                 <button
                   type="button"
@@ -301,9 +406,9 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
             )}
 
             {/* Image indicators (dots) */}
-            {product.images.length > 1 && (
+            {imageCount > 1 && (
               <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-1.5 z-10">
-                {product.images.map((_, idx) => (
+                {images.map((_, idx) => (
                   <div
                     key={idx}
                     className={`h-1.5 rounded-full transition-all ${
@@ -323,7 +428,9 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
           </div>
 
           {/* Wishlist & Cart icons: below image, above product name */}
-          <div className="flex items-center justify-center gap-2 py-2">
+          <div
+            className={`flex items-center justify-center gap-2 py-2 ${isBrickFull ? "px-4 sm:px-8" : isBrickHalf ? "px-2" : ""}`}
+          >
             <motion.button
               type="button"
               whileHover={{ scale: 1.1 }}
@@ -368,8 +475,13 @@ const ProductCard = ({ product, index = 0, viewMode = "grid" }) => {
           </div>
 
           {/* Product Info */}
-          <div className="space-y-2">
-            <h3 className="font-semibold text-lg group-hover:underline transition-all" style={{ color: "var(--text-primary)" }}>
+          <div
+            className={`space-y-2 ${isBrickFull ? "px-4 sm:px-10 pb-6 sm:pb-8 text-center max-w-2xl mx-auto" : isBrickHalf ? "px-2 sm:px-3 pb-4" : ""}`}
+          >
+            <h3
+              className={`font-semibold group-hover:underline transition-all ${isBrickFull ? "text-xl sm:text-2xl md:text-3xl" : "text-lg"}`}
+              style={{ color: "var(--text-primary)" }}
+            >
               {product.name}
             </h3>
             <div className="flex flex-col gap-0.5">
