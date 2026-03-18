@@ -409,6 +409,20 @@ const AdminOrderDetail = () => {
               Order Summary
             </h3>
             <div className="space-y-3 pt-4 border-t" style={{ borderColor: "var(--border-primary)" }}>
+              {order.couponCode && Number(order.couponDiscount) > 0 && (
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span style={{ color: "var(--text-secondary)" }}>Coupon</span>
+                    <span className="font-mono font-semibold" style={{ color: "var(--color-primary)" }}>
+                      {order.couponCode}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span style={{ color: "var(--text-secondary)" }}>Discount</span>
+                    <span style={{ color: "var(--color-primary)" }}>−৳{Number(order.couponDiscount).toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
               <div className="pt-3 border-t" style={{ borderColor: "var(--border-primary)" }}>
                 <div className="flex justify-between text-lg font-bold">
                   <span style={{ color: "var(--text-primary)" }}>Total</span>

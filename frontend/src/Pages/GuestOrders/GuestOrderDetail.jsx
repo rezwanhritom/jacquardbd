@@ -203,8 +203,23 @@ const GuestOrderDetail = () => {
             </div>
             <motion.div variants={fadeInUp} className="p-6 rounded-lg h-fit lg:sticky lg:top-24" style={{ backgroundColor: "var(--bg-secondary)" }}>
               <h3 className="text-xl font-bold mb-4" style={{ color: "var(--text-primary)" }}>
-                Total
+                Order summary
               </h3>
+              {order.couponCode && Number(order.couponDiscount) > 0 && (
+                <div className="space-y-1 text-sm mb-3 pb-3 border-b" style={{ borderColor: "var(--border-primary)" }}>
+                  <div className="flex justify-between">
+                    <span style={{ color: "var(--text-secondary)" }}>Coupon</span>
+                    <span className="font-mono font-semibold" style={{ color: "var(--color-primary)" }}>
+                      {order.couponCode}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span style={{ color: "var(--text-secondary)" }}>Discount</span>
+                    <span style={{ color: "var(--color-primary)" }}>−৳{Number(order.couponDiscount).toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+              <p className="text-sm mb-1" style={{ color: "var(--text-secondary)" }}>Total</p>
               <p className="text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
                 ৳{Number(order.total).toFixed(2)}
               </p>

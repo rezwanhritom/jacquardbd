@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, Link } from "react-router";
 import { Container } from "../../components";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +14,7 @@ import {
   FiPlus,
   FiGift,
   FiCreditCard,
+  FiTag,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
@@ -22,6 +23,7 @@ import { useCookieConsent } from "../../context/CookieConsentContext";
 import { getProfile, updateProfile } from "../../services/user.service";
 import { getShippingOptions } from "../../services/shipping.service";
 import { createOrder, createGuestOrder } from "../../services/orders.service";
+import { previewCoupon } from "../../services/coupons.service";
 import Loading from "../../components/Loading";
 
 const emptyAddressForm = () => ({
@@ -109,6 +111,26 @@ const Checkout = () => {
   const [placingOrder, setPlacingOrder] = useState(false);
   const [sendAsGift, setSendAsGift] = useState(false);
   const guestCheckoutInit = useRef(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  const cartFingerprint = useMemo(
+    () =>
+      cartItems
+        .map((i) => {
+          const pid = i.product?._id ?? i.product?.id;
+          return pid ? `${pid}:${Math.max(1, Math.floor(Number(i.quantity)) || 1)}` : "";
+        })
+        .filter(Boolean)
+        .sort()
+        .join("|"),
+    [cartItems]
+  );
+
+  useEffect(() => {
+    setAppliedCoupon(null);
+  }, [cartFingerprint]);
 
   // Load shipping options from DB
   useEffect(() => {
@@ -341,6 +363,7 @@ const Checkout = () => {
         shippingAddress,
         shippingCost: shipping,
         guestEmail: (formData.email || "").trim(),
+        couponCode: appliedCoupon?.code || "",
       });
       setPlacingOrder(false);
       toast.dismiss("order-processing");
@@ -359,6 +382,7 @@ const Checkout = () => {
     const { success, orderId, order, message } = await createOrder({
       shippingAddress,
       shippingCost: shipping,
+      couponCode: appliedCoupon?.code || "",
     });
     setPlacingOrder(false);
     toast.dismiss("order-processing");
@@ -377,12 +401,57 @@ const Checkout = () => {
     e.preventDefault();
   };
 
+  const buildCouponPreviewItems = useCallback(() => {
+    return cartItems
+      .map((i) => {
+        const pid = i.product?._id ?? i.product?.id;
+        return pid
+          ? {
+              productId: String(pid),
+              quantity: Math.max(1, Math.floor(Number(i.quantity)) || 1),
+            }
+          : null;
+      })
+      .filter(Boolean);
+  }, [cartItems]);
+
+  const handleApplyCoupon = async () => {
+    const code = (couponInput || "").trim();
+    if (!code) {
+      toast.error("Enter a coupon code");
+      return;
+    }
+    const items = buildCouponPreviewItems();
+    if (items.length === 0) {
+      toast.error("Your cart is empty");
+      return;
+    }
+    setCouponLoading(true);
+    const res = await previewCoupon(code, items);
+    setCouponLoading(false);
+    if (res.success && res.discount > 0) {
+      setAppliedCoupon({ code: code.toUpperCase().replace(/\s+/g, ""), discount: res.discount });
+      toast.success(res.message || "Coupon applied");
+    } else {
+      setAppliedCoupon(null);
+      toast.error(res.message || "Invalid coupon");
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput("");
+    toast.success("Coupon removed");
+  };
+
   const subtotal = getCartTotal();
+  const couponDiscount = appliedCoupon?.discount ?? 0;
+  const subtotalAfterCoupon = Math.max(0, Math.round((subtotal - couponDiscount) * 100) / 100);
 
   const selectedShipping = shippingOptions.find((s) => s.id === formData.shippingMethod);
   const shipping = selectedShipping != null && typeof selectedShipping.price === "number" ? selectedShipping.price : 0;
-  const tax = subtotal * 0.08;
-  const total = subtotal + shipping + tax;
+  const tax = subtotalAfterCoupon * 0.08;
+  const total = subtotalAfterCoupon + shipping + tax;
 
   if (!decided) {
     return (
@@ -960,6 +1029,61 @@ const Checkout = () => {
                           </p>
                         </div>
                       </div>
+
+                      <div
+                        className="mt-6 p-4 rounded-lg border-2 space-y-3"
+                        style={{ borderColor: "var(--border-primary)", backgroundColor: "var(--bg-primary)" }}
+                      >
+                        <div className="flex items-center gap-2 font-semibold" style={{ color: "var(--text-primary)" }}>
+                          <FiTag size={20} style={{ color: "var(--color-primary)" }} />
+                          Coupon code
+                        </div>
+                        {appliedCoupon ? (
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                              <p className="font-mono font-bold" style={{ color: "var(--color-primary)" }}>
+                                {appliedCoupon.code}
+                              </p>
+                              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                                ৳{appliedCoupon.discount.toFixed(2)} off your order
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleRemoveCoupon}
+                              className="text-sm font-semibold px-4 py-2 rounded-lg border-2 shrink-0"
+                              style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <input
+                              type="text"
+                              value={couponInput}
+                              onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                              placeholder="ENTER CODE"
+                              className="flex-1 px-4 py-3 border-2 rounded-lg outline-none font-mono text-sm sm:text-base min-w-0"
+                              style={{
+                                borderColor: "var(--border-primary)",
+                                backgroundColor: "var(--bg-secondary)",
+                                color: "var(--text-primary)",
+                              }}
+                              aria-label="Coupon code"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleApplyCoupon}
+                              disabled={couponLoading}
+                              className="px-6 py-3 rounded-lg font-semibold text-white disabled:opacity-60 shrink-0"
+                              style={{ backgroundColor: "var(--color-primary)" }}
+                            >
+                              {couponLoading ? "Checking…" : "Apply"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </motion.div>
                   )}
 
@@ -1065,6 +1189,11 @@ const Checkout = () => {
                           <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
                             Pay when your order arrives
                           </p>
+                          {appliedCoupon && (
+                            <p className="text-sm mt-2 font-mono" style={{ color: "var(--color-primary)" }}>
+                              Coupon {appliedCoupon.code}: −৳{appliedCoupon.discount.toFixed(2)}
+                            </p>
+                          )}
                         </div>
                       </div>
 
@@ -1204,6 +1333,12 @@ const Checkout = () => {
                     <span style={{ color: "var(--text-secondary)" }}>Subtotal</span>
                     <span style={{ color: "var(--text-primary)" }}>৳{subtotal.toFixed(2)}</span>
                   </div>
+                  {couponDiscount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span style={{ color: "var(--color-primary)" }}>Coupon ({appliedCoupon?.code})</span>
+                      <span style={{ color: "var(--color-primary)" }}>−৳{couponDiscount.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span style={{ color: "var(--text-secondary)" }}>Shipping</span>
                     <span style={{ color: "var(--text-primary)" }}>

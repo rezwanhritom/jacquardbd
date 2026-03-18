@@ -41,6 +41,7 @@ const AdminOrdersLayout = lazy(() => import("../Pages/Admin/OrdersLayout"));
 const AdminOrderDetail = lazy(() => import("../Pages/Admin/OrderDetail"));
 const AdminUsers = lazy(() => import("../Pages/Admin/Users"));
 const AdminCampaigns = lazy(() => import("../Pages/Admin/Campaigns"));
+const AdminCoupons = lazy(() => import("../Pages/Admin/Coupons"));
 const AdminFaq = lazy(() => import("../Pages/Admin/Faq"));
 const AdminLiveChat = lazy(() => import("../Pages/Admin/LiveChat"));
 const AdminProductCreate = lazy(() => import("../Pages/Admin/ProductCreate"));
@@ -478,6 +479,14 @@ export const router = createBrowserRouter([
             element: (
               <LazyWrapper>
                 <AdminCampaigns />
+              </LazyWrapper>
+            ),
+          },
+          {
+            path: "coupons",
+            element: (
+              <LazyWrapper>
+                <AdminCoupons />
               </LazyWrapper>
             ),
           },

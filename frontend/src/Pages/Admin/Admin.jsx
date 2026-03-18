@@ -9,6 +9,7 @@ import {
   FiUsers,
   FiBarChart2,
   FiRadio,
+  FiTag,
   FiPlus,
   FiMessageCircle,
   FiMessageSquare,
@@ -23,6 +24,7 @@ const Admin = () => {
     { id: "orders", label: "Orders", icon: FiBarChart2, path: "/admin/orders" },
     { id: "users", label: "Customers", icon: FiUsers, path: "/admin/users" },
     { id: "campaigns", label: "Campaigns", icon: FiRadio, path: "/admin/campaigns" },
+    { id: "coupons", label: "Coupons", icon: FiTag, path: "/admin/coupons" },
     { id: "faq", label: "FAQ", icon: FiMessageCircle, path: "/admin/faq" },
     { id: "chat", label: "Live Chat", icon: FiMessageSquare, path: "/admin/chat" },
   ];
@@ -69,7 +71,8 @@ const Admin = () => {
                     (tab.id === "products" && location.pathname.startsWith("/admin/products")) ||
                     (tab.id === "orders" && location.pathname.startsWith("/admin/orders")) ||
                     (tab.id === "faq" && location.pathname.startsWith("/admin/faq")) ||
-                    (tab.id === "chat" && location.pathname.startsWith("/admin/chat"));
+                    (tab.id === "chat" && location.pathname.startsWith("/admin/chat")) ||
+                    (tab.id === "coupons" && location.pathname.startsWith("/admin/coupons"));
                   return (
                     <Link
                       key={tab.id}

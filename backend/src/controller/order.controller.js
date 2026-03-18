@@ -2,6 +2,13 @@ import Order from "../models/Order.js";
 import { ORDER_STATUS, PAYMENT_STATUS } from "../models/Order.js";
 import User from "../models/User.js";
 import Product from "../models/Product.js";
+import Coupon from "../models/Coupon.js";
+import {
+  normalizeCouponCode,
+  evaluateCouponForCart,
+  claimCouponSlot,
+  releaseCouponSlot,
+} from "../utils/couponApply.js";
 
 /** Recalculate order amount from items (subtotal + 8% tax). */
 function recalcAmount(items) {
@@ -33,7 +40,7 @@ const PRODUCT_SELECT = "name price _id originalPrice discount finalPrice";
 export async function createOrder(req, res, next) {
   try {
     const userId = req.user._id;
-    const { shippingAddress, shippingCost = 0 } = req.body || {};
+    const { shippingAddress, shippingCost = 0, couponCode: rawCoupon } = req.body || {};
 
     const user = await User.findById(userId).populate({ path: "cart.product", select: PRODUCT_SELECT }).lean();
     if (!user) return res.status(401).json({ success: false, message: "User not found" });
@@ -63,25 +70,65 @@ export async function createOrder(req, res, next) {
       return res.status(400).json({ success: false, message: "No valid cart items" });
     }
 
-    const tax = Math.round(subtotal * 0.08 * 100) / 100;
     const shipping = Number(shippingCost) >= 0 ? Number(shippingCost) : 0;
-    const amount = Math.round((subtotal + tax + shipping) * 100) / 100;
 
-    const orderDoc = await Order.create({
-      user: userId,
-      amount,
-      currency: "BDT",
-      status: ORDER_STATUS.PENDING,
-      items,
-      shippingAddress: {
-        name: shippingAddress?.name ?? "",
-        phone: shippingAddress?.phone ?? "",
-        address: shippingAddress?.address ?? "",
-        city: shippingAddress?.city ?? "",
-        state: shippingAddress?.state ?? "",
-        zip: shippingAddress?.zip ?? "",
-      },
-    });
+    let couponDiscount = 0;
+    let couponCodeStored = "";
+    let claimedCouponId = null;
+
+    if (rawCoupon && String(rawCoupon).trim()) {
+      const norm = normalizeCouponCode(rawCoupon);
+      if (norm) {
+        const coupon = await Coupon.findOne({ code: norm }).lean();
+        const ev = await evaluateCouponForCart(coupon, {
+          items,
+          subtotal,
+          userId,
+          guestSessionId: null,
+        });
+        if (!ev.ok) {
+          return res.status(400).json({ success: false, message: ev.message });
+        }
+        const claimed = await claimCouponSlot(coupon._id, coupon.usageLimit);
+        if (!claimed) {
+          return res.status(400).json({
+            success: false,
+            message: "This coupon is no longer available",
+          });
+        }
+        claimedCouponId = coupon._id;
+        couponDiscount = ev.discount;
+        couponCodeStored = norm;
+      }
+    }
+
+    const afterDiscount = Math.round((subtotal - couponDiscount) * 100) / 100;
+    const tax = Math.round(afterDiscount * 0.08 * 100) / 100;
+    const amount = Math.round((afterDiscount + tax + shipping) * 100) / 100;
+
+    let orderDoc;
+    try {
+      orderDoc = await Order.create({
+        user: userId,
+        amount,
+        currency: "BDT",
+        status: ORDER_STATUS.PENDING,
+        items,
+        couponCode: couponCodeStored,
+        couponDiscount,
+        shippingAddress: {
+          name: shippingAddress?.name ?? "",
+          phone: shippingAddress?.phone ?? "",
+          address: shippingAddress?.address ?? "",
+          city: shippingAddress?.city ?? "",
+          state: shippingAddress?.state ?? "",
+          zip: shippingAddress?.zip ?? "",
+        },
+      });
+    } catch (createErr) {
+      if (claimedCouponId) await releaseCouponSlot(claimedCouponId);
+      throw createErr;
+    }
 
     await User.findByIdAndUpdate(userId, { $set: { cart: [] } });
 
@@ -96,6 +143,8 @@ export async function createOrder(req, res, next) {
         status: orderDoc.status,
         items: orderDoc.items,
         shippingAddress: orderDoc.shippingAddress,
+        couponCode: orderDoc.couponCode || "",
+        couponDiscount: orderDoc.couponDiscount ?? 0,
         createdAt: orderDoc.createdAt,
       },
       orderId: orderDoc._id,
@@ -116,7 +165,13 @@ export async function createGuestOrder(req, res, next) {
       return res.status(400).json({ success: false, message: "Guest session required" });
     }
 
-    const { items: rawItems, shippingAddress, shippingCost = 0, guestEmail = "" } = req.body || {};
+    const {
+      items: rawItems,
+      shippingAddress,
+      shippingCost = 0,
+      guestEmail = "",
+      couponCode: rawCoupon,
+    } = req.body || {};
     if (!Array.isArray(rawItems) || rawItems.length === 0) {
       return res.status(400).json({ success: false, message: "Cart items are required" });
     }
@@ -143,27 +198,67 @@ export async function createGuestOrder(req, res, next) {
       return res.status(400).json({ success: false, message: "No valid products in order" });
     }
 
-    const tax = Math.round(subtotal * 0.08 * 100) / 100;
     const shipping = Number(shippingCost) >= 0 ? Number(shippingCost) : 0;
-    const amount = Math.round((subtotal + tax + shipping) * 100) / 100;
 
-    const orderDoc = await Order.create({
-      user: null,
-      guestSessionId,
-      guestEmail: String(guestEmail || "").trim().slice(0, 320),
-      amount,
-      currency: "BDT",
-      status: ORDER_STATUS.PENDING,
-      items,
-      shippingAddress: {
-        name: shippingAddress?.name ?? "",
-        phone: shippingAddress?.phone ?? "",
-        address: shippingAddress?.address ?? "",
-        city: shippingAddress?.city ?? "",
-        state: shippingAddress?.state ?? "",
-        zip: shippingAddress?.zip ?? "",
-      },
-    });
+    let couponDiscount = 0;
+    let couponCodeStored = "";
+    let claimedCouponId = null;
+
+    if (rawCoupon && String(rawCoupon).trim()) {
+      const norm = normalizeCouponCode(rawCoupon);
+      if (norm) {
+        const coupon = await Coupon.findOne({ code: norm }).lean();
+        const ev = await evaluateCouponForCart(coupon, {
+          items,
+          subtotal,
+          userId: null,
+          guestSessionId,
+        });
+        if (!ev.ok) {
+          return res.status(400).json({ success: false, message: ev.message });
+        }
+        const claimed = await claimCouponSlot(coupon._id, coupon.usageLimit);
+        if (!claimed) {
+          return res.status(400).json({
+            success: false,
+            message: "This coupon is no longer available",
+          });
+        }
+        claimedCouponId = coupon._id;
+        couponDiscount = ev.discount;
+        couponCodeStored = norm;
+      }
+    }
+
+    const afterDiscount = Math.round((subtotal - couponDiscount) * 100) / 100;
+    const tax = Math.round(afterDiscount * 0.08 * 100) / 100;
+    const amount = Math.round((afterDiscount + tax + shipping) * 100) / 100;
+
+    let orderDoc;
+    try {
+      orderDoc = await Order.create({
+        user: null,
+        guestSessionId,
+        guestEmail: String(guestEmail || "").trim().slice(0, 320),
+        amount,
+        currency: "BDT",
+        status: ORDER_STATUS.PENDING,
+        items,
+        couponCode: couponCodeStored,
+        couponDiscount,
+        shippingAddress: {
+          name: shippingAddress?.name ?? "",
+          phone: shippingAddress?.phone ?? "",
+          address: shippingAddress?.address ?? "",
+          city: shippingAddress?.city ?? "",
+          state: shippingAddress?.state ?? "",
+          zip: shippingAddress?.zip ?? "",
+        },
+      });
+    } catch (createErr) {
+      if (claimedCouponId) await releaseCouponSlot(claimedCouponId);
+      throw createErr;
+    }
 
     res.status(201).json({
       success: true,
@@ -175,6 +270,8 @@ export async function createGuestOrder(req, res, next) {
         status: orderDoc.status,
         items: orderDoc.items,
         shippingAddress: orderDoc.shippingAddress,
+        couponCode: orderDoc.couponCode || "",
+        couponDiscount: orderDoc.couponDiscount ?? 0,
         createdAt: orderDoc.createdAt,
       },
       orderId: orderDoc._id,
@@ -199,6 +296,8 @@ function mapGuestOrderList(o) {
           : PAYMENT_STATUS.PENDING),
     total: o.amount,
     currency: o.currency ?? "BDT",
+    couponCode: o.couponCode || "",
+    couponDiscount: o.couponDiscount ?? 0,
     items: (o.items || []).map((item) => ({
       productId: item.productId,
       name: item.name,
@@ -258,6 +357,8 @@ export async function getGuestOrderById(req, res, next) {
               : PAYMENT_STATUS.PENDING),
         total: order.amount,
         currency: order.currency ?? "BDT",
+        couponCode: order.couponCode || "",
+        couponDiscount: order.couponDiscount ?? 0,
         items: order.items || [],
         shippingAddress: order.shippingAddress,
       },
@@ -286,6 +387,8 @@ export async function getMyOrders(req, res, next) {
       paymentStatus: o.paymentStatus ?? (o.status === "paid" ? PAYMENT_STATUS.PAID : o.status === "cancelled" ? PAYMENT_STATUS.CANCELLED : PAYMENT_STATUS.PENDING),
       total: o.amount,
       currency: o.currency ?? "BDT",
+      couponCode: o.couponCode || "",
+      couponDiscount: o.couponDiscount ?? 0,
       items: (o.items || []).map((item) => ({
         productId: item.productId,
         name: item.name,
@@ -325,6 +428,8 @@ export async function getMyOrderById(req, res, next) {
         paymentStatus: order.paymentStatus ?? (order.status === "paid" ? PAYMENT_STATUS.PAID : order.status === "cancelled" ? PAYMENT_STATUS.CANCELLED : PAYMENT_STATUS.PENDING),
         total: order.amount,
         currency: order.currency ?? "BDT",
+        couponCode: order.couponCode || "",
+        couponDiscount: order.couponDiscount ?? 0,
         items: order.items || [],
         shippingAddress: order.shippingAddress,
       },
@@ -356,6 +461,8 @@ export async function getAdminOrders(req, res, next) {
       paymentStatus: o.paymentStatus ?? (o.status === "paid" ? PAYMENT_STATUS.PAID : o.status === "cancelled" ? PAYMENT_STATUS.CANCELLED : PAYMENT_STATUS.PENDING),
       total: o.amount,
       currency: o.currency,
+      couponCode: o.couponCode || "",
+      couponDiscount: o.couponDiscount ?? 0,
       items: (o.items || []).map((item) => ({
         productId: item.productId,
         name: item.name,
@@ -450,6 +557,8 @@ export async function getAdminOrderById(req, res, next) {
         paymentStatus: order.paymentStatus ?? (order.status === "paid" ? PAYMENT_STATUS.PAID : order.status === "cancelled" ? PAYMENT_STATUS.CANCELLED : PAYMENT_STATUS.PENDING),
         total: order.amount,
         currency: order.currency ?? "BDT",
+        couponCode: order.couponCode || "",
+        couponDiscount: order.couponDiscount ?? 0,
         items: order.items || [],
         shippingAddress: order.shippingAddress,
       },
@@ -529,6 +638,8 @@ export async function updateOrder(req, res, next) {
         paymentStatus: updated.paymentStatus ?? (updated.status === "paid" ? PAYMENT_STATUS.PAID : updated.status === "cancelled" ? PAYMENT_STATUS.CANCELLED : PAYMENT_STATUS.PENDING),
         total: updated.amount,
         currency: updated.currency ?? "BDT",
+        couponCode: updated.couponCode || "",
+        couponDiscount: updated.couponDiscount ?? 0,
         items: updated.items || [],
         shippingAddress: updated.shippingAddress,
       },

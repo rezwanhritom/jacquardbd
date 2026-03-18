@@ -112,6 +112,12 @@ export function downloadOrderInvoice(order, opts = {}) {
   doc.setDrawColor(0, 0, 0);
   doc.line(startX, y, startX + colW[0] + colW[1] + colW[2] + colW[3], y);
   y += lineH;
+  if (order.couponCode && Number(order.couponDiscount) > 0) {
+    doc.setFont(undefined, "normal");
+    doc.setFontSize(10);
+    doc.text(`Coupon ${order.couponCode}: −${currency} ${Number(order.couponDiscount).toFixed(2)}`, startX, y);
+    y += lineH;
+  }
   doc.setFont(undefined, "bold");
   doc.setFontSize(11);
   doc.text(`Order total: ${currency} ${total}`, startX, y);
