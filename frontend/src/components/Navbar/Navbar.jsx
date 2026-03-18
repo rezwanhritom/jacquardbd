@@ -901,10 +901,14 @@ const Navbar = () => {
                                 e.stopPropagation();
                                 closeMobileMenu();
                               }}
-                              className="min-w-0 shrink-0"
+                              className={`min-w-0 shrink-0 ${expanded ? "normal-case tracking-normal" : ""}`}
                               style={{ color: "inherit" }}
                             >
-                              {link.label}
+                              {expanded
+                                ? link.label === "Men"
+                                  ? "Shop for him"
+                                  : "Shop for her"
+                                : link.label}
                             </Link>
                             <motion.span
                               className="flex-shrink-0 p-2 -mr-2 pointer-events-none"

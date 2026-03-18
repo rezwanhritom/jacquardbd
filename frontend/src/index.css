@@ -93,10 +93,13 @@
   --bg-secondary: #141c18;
   --bg-tertiary: #1a2520;
   
-  /* Text colors */
-  --text-primary: #e8ebe9;
-  --text-secondary: #b0b8b4;
-  --text-tertiary: #7a857f;
+  /*
+   * Text: muted sage / gray-green — avoids harsh near-white glare.
+   * Hierarchy stays clear; all levels are softer than light-mode contrast.
+   */
+  --text-primary: #b9c8c0;
+  --text-secondary: #8fa199;
+  --text-tertiary: #74857c;
   
   /* Border colors */
   --border-primary: #1e2a24;
@@ -109,6 +112,13 @@
   /* Accent colors */
   --accent-light: #1a2520;
   --accent-medium: #26352e;
+}
+
+/* Dark mode: placeholders match mild text scale (not default gray/white) */
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--text-tertiary);
+  opacity: 1;
 }
 
 @layer base {
@@ -241,8 +251,8 @@
 }
 [data-theme="dark"] {
   --scrollbar-track: #1a2520;
-  --scrollbar-thumb: rgba(255, 255, 255, 0.35);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.5);
+  --scrollbar-thumb: rgba(185, 200, 192, 0.35);
+  --scrollbar-thumb-hover: rgba(185, 200, 192, 0.52);
 }
 * {
   scrollbar-width: thin;
