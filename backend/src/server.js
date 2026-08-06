@@ -23,6 +23,7 @@ import rewardRoutes from "./routes/reward.routes.js";
 import shippingRoutes from "./routes/shipping.routes.js";
 import faqRoutes from "./routes/faq.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
+import feedRoutes from "./routes/feed.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -58,6 +59,7 @@ app.use("/api/rewards", rewardRoutes);
 app.use("/api/shipping", shippingRoutes);
 app.use("/api/faq", faqRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/feed", feedRoutes);
 
 app.use(errorHandler);
 
