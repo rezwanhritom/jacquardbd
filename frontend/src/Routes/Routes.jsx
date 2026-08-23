@@ -47,6 +47,7 @@ const AdminRewardRules = lazy(() => import("../Pages/Admin/RewardRules"));
 const AdminFaq = lazy(() => import("../Pages/Admin/Faq"));
 const AdminLiveChat = lazy(() => import("../Pages/Admin/LiveChat"));
 const AdminProductCreate = lazy(() => import("../Pages/Admin/ProductCreate"));
+const AdminHomepage = lazy(() => import("../Pages/Admin/Homepage"));
 
 const Contact = lazy(() => import("../Pages/Contact"));
 const SizeGuide = lazy(() => import("../Pages/SizeGuide"));
@@ -431,6 +432,14 @@ export const router = createBrowserRouter([
             element: (
               <LazyWrapper>
                 <AdminProducts />
+              </LazyWrapper>
+            ),
+          },
+          {
+            path: "homepage",
+            element: (
+              <LazyWrapper>
+                <AdminHomepage />
               </LazyWrapper>
             ),
           },

@@ -32,5 +32,31 @@ export const uploadCampaignBanner = multer({
   limits: { fileSize: MAX_FILE_SIZE, files: 1 },
 }).single("banner");
 
+const HOMEPAGE_MIMES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "video/mp4",
+  "video/quicktime",
+  "video/webm",
+  "video/x-m4v",
+];
+const HOMEPAGE_MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB — lookbook videos
+const HOMEPAGE_MAX_FILES = 8;
+
+function homepageFileFilter(req, file, cb) {
+  if (!HOMEPAGE_MIMES.includes(file.mimetype) && !file.mimetype?.startsWith("video/") && !file.mimetype?.startsWith("image/")) {
+    return cb(new Error("Invalid file type. Upload jpg, png, webp, gif, mp4, mov, or webm."), false);
+  }
+  cb(null, true);
+}
+
+export const uploadHomepageMedia = multer({
+  storage: memoryStorage,
+  fileFilter: homepageFileFilter,
+  limits: { fileSize: HOMEPAGE_MAX_FILE_SIZE, files: HOMEPAGE_MAX_FILES },
+}).array("files", HOMEPAGE_MAX_FILES);
+
 export const ALLOWED_MIMES_LIST = ALLOWED_MIMES;
 export const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE;

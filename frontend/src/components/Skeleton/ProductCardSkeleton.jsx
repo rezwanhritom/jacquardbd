@@ -2,12 +2,13 @@ import Skeleton from "./Skeleton";
 
 const ProductCardSkeleton = () => {
   return (
-    <div className="space-y-4">
-      <Skeleton height="300px" rounded="rounded-lg" />
-      <div className="space-y-2">
-        <Skeleton height="12px" width="60%" />
-        <Skeleton height="16px" width="80%" />
-        <Skeleton height="20px" width="40%" />
+    <div className="space-y-3">
+      <div className="aspect-[3/4] w-full">
+        <Skeleton height="100%" rounded="rounded-lg" />
+      </div>
+      <div className="space-y-2 px-1">
+        <Skeleton height="12px" width="70%" />
+        <Skeleton height="16px" width="40%" />
       </div>
     </div>
   );

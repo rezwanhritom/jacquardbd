@@ -1,99 +1,57 @@
 import { Link } from "react-router";
-import { motion } from "framer-motion";
-import { fadeInUp } from "../../utils/animations";
-import { FiArrowRight } from "react-icons/fi";
 
+/**
+ * Split editorial banner — Nike-style story block with a clear shop path.
+ */
 const FeaturedBanner = () => {
-  const bannerData = {
-    title: "Spring Collection 2024",
-    subtitle: "Limited Edition",
-    description: "Discover our exclusive spring collection featuring premium fabrics and timeless designs",
-    ctaText: "Explore Collection",
-    ctaLink: "/collection/new-arrivals",
-    image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1920&q=80",
-  };
-
   return (
-    <motion.section
-      initial="initial"
-      whileInView="animate"
-      viewport={{ once: true, amount: 0.3 }}
-      variants={fadeInUp}
-      className="relative h-[500px] md:h-[600px] overflow-hidden rounded-none mx-0 mt-0 mb-0"
-      style={{ backgroundColor: "var(--bg-secondary)" }}
-    >
+    <section className="px-2 sm:px-3 lg:px-4 py-2 sm:py-3" aria-label="Brand story">
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: `url(${bannerData.image})`,
-          opacity: 0.4,
-        }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black/40" />
-      
-      <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="max-w-2xl mx-auto space-y-6 text-white"
-        >
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3 }}
-            className="text-sm uppercase tracking-widest font-medium text-white/90"
+        className="grid grid-cols-1 lg:grid-cols-2 overflow-hidden"
+        style={{ backgroundColor: "var(--bg-secondary)" }}
+      >
+        <div className="relative h-[52vw] min-h-[240px] max-h-[360px] lg:h-auto lg:min-h-[480px] lg:max-h-none order-1 lg:order-none">
+          <img
+            src="https://images.unsplash.com/photo-1445205170230-053b83016050?w=1400&q=80"
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        </div>
+        <div className="flex flex-col justify-center px-6 py-10 sm:px-10 sm:py-14 lg:px-16 lg:py-20">
+          <p
+            className="text-[10px] sm:text-xs uppercase tracking-[0.25em] mb-3"
+            style={{ color: "var(--color-tertiary)" }}
           >
-            {bannerData.subtitle}
-          </motion.p>
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.4 }}
-            className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight"
+            Jacquard
+          </p>
+          <h2
+            className="font-display text-3xl sm:text-4xl md:text-5xl font-semibold leading-tight mb-4"
+            style={{ color: "var(--text-primary)" }}
           >
-            {bannerData.title}
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.5 }}
-            className="text-lg md:text-xl text-white/80 max-w-lg mx-auto"
-          >
-            {bannerData.description}
-          </motion.p>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.6 }}
-            className="flex justify-center"
-          >
-            <Link to={bannerData.ctaLink}>
-              <motion.button
-                whileHover={{ scale: 1.05, x: 5 }}
-                whileTap={{ scale: 0.95 }}
-                className="inline-flex items-center gap-3 px-8 py-4 uppercase tracking-wider text-sm font-semibold text-white transition-all"
-                style={{ backgroundColor: "var(--color-primary)" }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--active-color)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--color-primary)";
-                }}
-              >
-                {bannerData.ctaText}
-                <FiArrowRight size={18} />
-              </motion.button>
+            Crafted for everyday elegance
+          </h2>
+          <p className="text-sm sm:text-base leading-relaxed mb-8 max-w-md" style={{ color: "var(--text-secondary)" }}>
+            Timeless cuts, considered fabrics, and pieces you can find in seconds — from new drops to wardrobe staples.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link
+              to="/new-arrivals"
+              className="inline-flex items-center justify-center px-6 py-3.5 text-sm font-semibold text-white"
+              style={{ backgroundColor: "var(--color-primary)" }}
+            >
+              Shop new arrivals
             </Link>
-          </motion.div>
-        </motion.div>
+            <Link
+              to="/about"
+              className="inline-flex items-center justify-center px-6 py-3.5 text-sm font-semibold border"
+              style={{ borderColor: "var(--border-primary)", color: "var(--text-primary)" }}
+            >
+              Our story
+            </Link>
+          </div>
+        </div>
       </div>
-    </motion.section>
+    </section>
   );
 };
 

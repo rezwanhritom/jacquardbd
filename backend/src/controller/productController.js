@@ -13,40 +13,108 @@ import { applyCampaignToProduct, removeCampaignFromProduct } from "../utils/camp
 const MONGO_ID_REGEX = /^[a-fA-F0-9]{24}$/;
 const ALLOWED_COLLECTIONS = ["regular", "new-arrivals", "featured", "campaigns"];
 
+function isRealProductImage(url) {
+  if (!url || typeof url !== "string") return false;
+  const lower = url.toLowerCase();
+  if (lower.includes("product-placeholder")) return false;
+  if (DEFAULT_PRODUCT_IMAGE_URL && lower.includes(String(DEFAULT_PRODUCT_IMAGE_URL).toLowerCase())) return false;
+  return true;
+}
+
+function firstProductImage(product) {
+  const images = Array.isArray(product?.images) ? product.images : [];
+  return images.find(isRealProductImage) || images.find(Boolean) || null;
+}
+
+function withCampaignName(product) {
+  return { ...product, campaignName: product.campaign?.name ?? null };
+}
+
+async function getPaidSalesByProduct(limit = 80) {
+  return Order.aggregate([
+    { $match: { $or: [{ paymentStatus: PAYMENT_STATUS.PAID }, { status: "paid" }] } },
+    { $unwind: "$items" },
+    { $group: { _id: "$items.productId", quantitySold: { $sum: "$items.quantity" } } },
+    { $sort: { quantitySold: -1 } },
+    { $limit: limit },
+  ]);
+}
+
+function toShopTile(product, genderLabel) {
+  if (!product) return null;
+  const image = firstProductImage(product);
+  if (!image) return null;
+  const isMen = genderLabel === "Male";
+  return {
+    title: isMen ? "Men" : "Women",
+    path: isMen ? "/category/men" : "/category/women",
+    image,
+    productName: product.name || "",
+  };
+}
+
+async function getShopByGenderTile(genderLabel, soldIds) {
+  if (soldIds.length) {
+    const soldProducts = await Product.find({
+      _id: { $in: soldIds },
+      status: "active",
+      "categoryPath.0": genderLabel,
+    }).lean();
+    const ordered = soldIds
+      .map((id) => soldProducts.find((p) => p._id.toString() === id.toString()))
+      .filter(Boolean);
+    for (const product of ordered) {
+      const tile = toShopTile(product, genderLabel);
+      if (tile) return tile;
+    }
+  }
+  const latest = await Product.find({ status: "active", "categoryPath.0": genderLabel })
+    .sort({ createdAt: -1 })
+    .limit(24)
+    .lean();
+  for (const product of latest) {
+    const tile = toShopTile(product, genderLabel);
+    if (tile) return tile;
+  }
+  return null;
+}
+
 /**
  * GET /api/products/home
- * Public. Returns { newArrivals: latest 4 products, bestSellers: top 2 by quantity sold or latest 2 }.
+ * Public. New arrivals use the same rule as /new-arrivals (collection + last 30 days).
+ * Best sellers are top paid sales. shopBy.men / shopBy.women use the most-sold product image in that gender.
  */
 export async function getHomeProducts(req, res, next) {
   try {
-    const latest = await Product.find({ status: "active" })
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const newArrivalDocs = await Product.find({
+      status: "active",
+      collection: "new-arrivals",
+      createdAt: { $gte: thirtyDaysAgo },
+    })
       .populate("campaign", "name")
       .lean()
       .sort({ createdAt: -1 })
-      .limit(4);
-    const newArrivals = latest.map((p) => ({
-      ...p,
-      campaignName: p.campaign?.name ?? null,
-    }));
+      .limit(8);
+    const newArrivals = newArrivalDocs.map(withCampaignName);
 
-    const topByQuantity = await Order.aggregate([
-      { $match: { $or: [{ paymentStatus: PAYMENT_STATUS.PAID }, { status: "paid" }] } },
-      { $unwind: "$items" },
-      { $group: { _id: "$items.productId", quantitySold: { $sum: "$items.quantity" } } },
-      { $sort: { quantitySold: -1 } },
-      { $limit: 2 },
-    ]);
-    const topIds = topByQuantity.map((t) => t._id).filter(Boolean);
+    const topByQuantity = await getPaidSalesByProduct(80);
+    const soldIds = topByQuantity.map((t) => t._id).filter(Boolean);
+
+    const topEightIds = soldIds.slice(0, 8);
     let bestSellers = [];
-    if (topIds.length > 0) {
-      const soldProducts = await Product.find({ _id: { $in: topIds }, status: "active" })
+    if (topEightIds.length > 0) {
+      const soldProducts = await Product.find({ _id: { $in: topEightIds }, status: "active" })
         .populate("campaign", "name")
         .lean();
-      const order = topIds.map((id) => soldProducts.find((p) => p._id.toString() === id.toString())).filter(Boolean);
-      bestSellers = order.map((p) => ({ ...p, campaignName: p.campaign?.name ?? null }));
+      bestSellers = topEightIds
+        .map((id) => soldProducts.find((p) => p._id.toString() === id.toString()))
+        .filter(Boolean)
+        .map(withCampaignName);
     }
-    if (bestSellers.length < 2) {
-      const need = 2 - bestSellers.length;
+    if (bestSellers.length < 8) {
+      const need = 8 - bestSellers.length;
       const excludeIds = bestSellers.map((p) => p._id);
       const fill = await Product.find({
         status: "active",
@@ -56,9 +124,15 @@ export async function getHomeProducts(req, res, next) {
         .lean()
         .sort({ createdAt: -1 })
         .limit(need);
-      bestSellers = [...bestSellers, ...fill.map((p) => ({ ...p, campaignName: p.campaign?.name ?? null }))];
+      bestSellers = [...bestSellers, ...fill.map(withCampaignName)];
     }
-    res.json({ success: true, newArrivals, bestSellers });
+
+    const [men, women] = await Promise.all([
+      getShopByGenderTile("Male", soldIds),
+      getShopByGenderTile("Female", soldIds),
+    ]);
+
+    res.json({ success: true, newArrivals, bestSellers, shopBy: { men, women } });
   } catch (err) {
     next(err);
   }

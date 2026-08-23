@@ -14,6 +14,7 @@ import {
   FiPlus,
   FiMessageCircle,
   FiMessageSquare,
+  FiImage,
 } from "react-icons/fi";
 
 const Admin = () => {
@@ -22,6 +23,7 @@ const Admin = () => {
   const tabs = [
     { id: "dashboard", label: "Dashboard", icon: FiLayout, path: "/admin" },
     { id: "products", label: "Products", icon: FiPackage, path: "/admin/products" },
+    { id: "homepage", label: "Homepage", icon: FiImage, path: "/admin/homepage" },
     { id: "orders", label: "Orders", icon: FiBarChart2, path: "/admin/orders" },
     { id: "users", label: "Customers", icon: FiUsers, path: "/admin/users" },
     { id: "campaigns", label: "Campaigns", icon: FiRadio, path: "/admin/campaigns" },
@@ -71,6 +73,7 @@ const Admin = () => {
                   const isActive = location.pathname === tab.path ||
                     (tab.path === "/admin" && location.pathname === "/admin") ||
                     (tab.id === "products" && location.pathname.startsWith("/admin/products")) ||
+                    (tab.id === "homepage" && location.pathname.startsWith("/admin/homepage")) ||
                     (tab.id === "orders" && location.pathname.startsWith("/admin/orders")) ||
                     (tab.id === "faq" && location.pathname.startsWith("/admin/faq")) ||
                     (tab.id === "chat" && location.pathname.startsWith("/admin/chat")) ||

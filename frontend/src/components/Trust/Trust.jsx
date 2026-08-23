@@ -1,12 +1,5 @@
-import { motion } from "framer-motion";
 import { trustData } from "../../data/trust";
-import { fadeInUp, staggerContainer } from "../../utils/animations";
-import {
-  FiTruck,
-  FiRotateCcw,
-  FiShield,
-  FiHeadphones,
-} from "react-icons/fi";
+import { FiTruck, FiRotateCcw, FiShield, FiHeadphones } from "react-icons/fi";
 
 const Trust = () => {
   const getIcon = (iconName) => {
@@ -20,54 +13,35 @@ const Trust = () => {
   };
 
   return (
-    <section 
-      className="py-20 px-4 sm:px-6 lg:px-8 border-y transition-colors duration-300"
-      style={{ 
+    <section
+      className="border-y py-6 sm:py-8 px-4 sm:px-6 lg:px-8"
+      style={{
         backgroundColor: "var(--bg-primary)",
-        borderColor: "var(--border-primary)"
+        borderColor: "var(--border-primary)",
       }}
     >
-      <div className="max-w-7xl mx-auto">
-        <motion.div
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, amount: 0.3 }}
-          variants={staggerContainer}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
-        >
-          {trustData.map((item) => {
-            const Icon = getIcon(item.icon);
-            return (
-              <motion.div
-                key={item.id}
-                variants={fadeInUp}
-                className="text-center group"
+      <div className="max-w-[1600px] mx-auto grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+        {trustData.map((item) => {
+          const Icon = getIcon(item.icon);
+          return (
+            <div key={item.id} className="flex items-start sm:items-center gap-3">
+              <span
+                className="inline-flex items-center justify-center w-10 h-10 shrink-0 rounded-full"
+                style={{ backgroundColor: "var(--bg-secondary)", color: "var(--color-primary)" }}
               >
-                <motion.div
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 transition-colors"
-                  style={{ backgroundColor: "var(--bg-tertiary)" }}
-                  onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = "var(--color-primary)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = "var(--bg-tertiary)";
-                  }}
-                >
-                  <Icon
-                    size={28}
-                    style={{ color: "var(--color-primary)" }}
-                    className="transition-colors"
-                  />
-                </motion.div>
-                <h3 className="text-lg font-semibold mb-2" style={{ color: "var(--color-primary)" }}>
+                <Icon size={18} />
+              </span>
+              <div>
+                <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
                   {item.title}
                 </h3>
-                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{item.description}</p>
-              </motion.div>
-            );
-          })}
-        </motion.div>
+                <p className="text-xs mt-0.5" style={{ color: "var(--text-tertiary)" }}>
+                  {item.description}
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </section>
   );

@@ -2,22 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Site font: Trajan Pro. Place font files in public/fonts/:
-   TrajanPro-Regular.woff2, TrajanPro-Regular.woff, TrajanPro-Bold.woff2, TrajanPro-Bold.woff */
-@font-face {
-  font-family: "Trajan Pro";
-  src: local("Trajan Pro"), url("/fonts/TrajanPro-Regular.woff2") format("woff2"), url("/fonts/TrajanPro-Regular.woff") format("woff");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Trajan Pro";
-  src: local("Trajan Pro Bold"), url("/fonts/TrajanPro-Bold.woff2") format("woff2"), url("/fonts/TrajanPro-Bold.woff") format("woff");
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
+/* Display + UI fonts: Cormorant Garamond (headlines) and Outfit (body). Loaded in index.html. */
 
 /* Accessibility improvements */
 @layer base {
@@ -53,7 +38,8 @@
 }
 
 :root {
-  --font-sans: "Trajan Pro", system-ui, serif;
+  --font-sans: "Outfit", system-ui, sans-serif;
+  --font-display: "Cormorant Garamond", Georgia, serif;
   /* Light Theme — bottle green brand, no light green */
   --color-primary: #004122;
   --color-secondary: #0d5c3a;
@@ -136,6 +122,10 @@
     background-color: var(--bg-primary);
     color: var(--text-primary);
     transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display);
   }
 
   /* Inputs and textareas: standard font so typed text is normal case
@@ -284,15 +274,36 @@
   min-height: 12px !important;
 }
 
-/* Home hero: mobile fits in viewport with 4:5 slot; desktop 21:9-style wide strip */
+/* Home hero: near full-viewport cinematic frame on every device */
 .jacquard-hero-home {
   width: 100%;
-  height: min(85dvh, calc(100vw * 5 / 4));
+  height: min(88dvh, 900px);
+  min-height: 480px;
 }
 @media (min-width: 640px) {
   .jacquard-hero-home {
-    height: min(78vh, calc(100vw * 9 / 21));
-    min-height: 280px;
-    max-height: 820px;
+    height: min(90dvh, 980px);
+    min-height: 560px;
   }
+}
+
+@keyframes jacquard-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.jacquard-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: jacquard-marquee 32s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .jacquard-marquee-track {
+    animation: none;
+  }
+}
+
+.shop-quick-chip:hover {
+  background-color: var(--color-primary) !important;
+  color: #fff !important;
+  border-color: var(--color-primary) !important;
 }

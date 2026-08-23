@@ -7,7 +7,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Trojan Pro"'],
+        sans: ["Outfit", "system-ui", "sans-serif"],
+        display: ['"Cormorant Garamond"', "Georgia", "serif"],
       },
       colors: {
         customBlack: "#09090B",

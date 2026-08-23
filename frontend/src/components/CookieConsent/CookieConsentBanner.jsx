@@ -51,13 +51,19 @@ export default function CookieConsentBanner() {
             onClick={showBanner ? undefined : closeCookieSettings}
           />
           <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[251] flex items-center justify-center p-3 sm:p-4 pointer-events-none"
+          >
+          <motion.div
             role="dialog"
             aria-modal="true"
             aria-labelledby="cookie-consent-title"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 24 }}
-            className="fixed z-[251] left-3 right-3 bottom-3 top-auto max-h-[min(92vh,calc(100dvh-1.5rem))] overflow-hidden flex flex-col rounded-2xl shadow-2xl border max-w-xl sm:max-w-lg lg:max-w-2xl lg:left-1/2 lg:right-auto lg:top-1/2 lg:bottom-auto lg:w-[min(calc(100vw-2rem),42rem)] lg:-translate-x-1/2 lg:-translate-y-1/2"
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.98 }}
+            className="pointer-events-auto w-full max-w-xl lg:max-w-2xl max-h-full overflow-hidden flex flex-col rounded-2xl shadow-2xl border"
             style={{
               backgroundColor: "var(--bg-primary)",
               borderColor: "var(--border-primary)",
@@ -262,6 +268,7 @@ export default function CookieConsentBanner() {
                 </>
               ) : null}
             </div>
+          </motion.div>
           </motion.div>
         </>
       )}

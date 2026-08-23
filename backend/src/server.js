@@ -24,13 +24,21 @@ import shippingRoutes from "./routes/shipping.routes.js";
 import faqRoutes from "./routes/faq.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
 import feedRoutes from "./routes/feed.routes.js";
+import homepageRoutes from "./routes/homepage.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-const allowedOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim())
-  : ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"];
+const localOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:3000",
+];
+const envOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean)
+  : [];
+const allowedOrigins = [...new Set([...localOrigins, ...envOrigins])];
 
 app.use(
   cors({
@@ -60,6 +68,7 @@ app.use("/api/shipping", shippingRoutes);
 app.use("/api/faq", faqRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/feed", feedRoutes);
+app.use("/api/homepage", homepageRoutes);
 
 app.use(errorHandler);
 

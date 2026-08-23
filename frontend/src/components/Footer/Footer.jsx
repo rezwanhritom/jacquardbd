@@ -45,7 +45,7 @@ const Footer = () => {
                   className="h-10 w-auto object-contain"
                   style={{ filter: "brightness(0) invert(1)" }}
                 />
-                <span className="text-2xl font-bold tracking-wider text-white">
+                <span className="font-display text-2xl font-semibold tracking-[0.18em] text-white">
                   {footerData.brand.name}
                 </span>
               </motion.div>
@@ -175,7 +175,6 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Page break and Made by Epsiratech */}
           <div
             className="mt-4 pt-4 border-t flex justify-center"
             style={{ borderColor: "rgba(255, 255, 255, 0.2)" }}
@@ -188,12 +187,12 @@ const Footer = () => {
             >
               Made by{" "}
               <a
-                href="https://epsiratech.com"
+                href="https://gridlooptech.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium text-white/90 underline underline-offset-2 transition-colors hover:text-white"
               >
-                Epsiratech
+                gridlooptech
               </a>
             </motion.p>
           </div>

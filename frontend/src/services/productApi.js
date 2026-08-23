@@ -64,7 +64,7 @@ export async function getProductsByGender(gender, options = {}) {
 }
 
 /**
- * Fetch homepage products: latest 4 new arrivals + top 2 best sellers (or latest 2 if no sales).
+ * Fetch homepage products: latest 8 new arrivals + top 8 best sellers (filled with latest if needed).
  * GET /api/products/home
  */
 export async function getHomeProducts() {
@@ -76,6 +76,7 @@ export async function getHomeProducts() {
       success: false,
       newArrivals: [],
       bestSellers: [],
+      shopBy: { men: null, women: null },
       message: data.message || "Failed to load",
     };
   }
@@ -83,6 +84,10 @@ export async function getHomeProducts() {
     success: true,
     newArrivals: Array.isArray(data.newArrivals) ? data.newArrivals : [],
     bestSellers: Array.isArray(data.bestSellers) ? data.bestSellers : [],
+    shopBy: {
+      men: data.shopBy?.men || null,
+      women: data.shopBy?.women || null,
+    },
   };
 }
 

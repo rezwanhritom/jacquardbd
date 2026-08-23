@@ -23,7 +23,7 @@ export function errorHandler(err, req, res, next) {
     });
   }
   if (err.code === "LIMIT_FILE_SIZE" || err.message?.includes("File too large")) {
-    return res.status(400).json({ success: false, message: "File too large. Max 5MB allowed." });
+    return res.status(400).json({ success: false, message: "File too large." });
   }
   if (err.message?.includes("Invalid file type")) {
     return res.status(400).json({ success: false, message: err.message });

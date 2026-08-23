@@ -260,15 +260,14 @@ const Navbar = () => {
                 >
                   <Link to={link.path}>
                     <motion.div
-                      className="px-1.5 xl:px-2.5 2xl:px-3 py-2 rounded-lg font-semibold text-[11px] xl:text-xs 2xl:text-sm uppercase tracking-wide transition-colors relative whitespace-nowrap"
+                      className="px-2.5 xl:px-3.5 py-2 font-medium text-[11px] xl:text-xs 2xl:text-sm uppercase tracking-[0.16em] transition-colors relative whitespace-nowrap"
                       style={{
                         color: isActive ? "var(--color-primary)" : "var(--text-secondary)",
                       }}
                       whileHover={{
                         color: "var(--color-primary)",
-                        y: -2,
                       }}
-                      whileTap={{ scale: 0.95 }}
+                      whileTap={{ scale: 0.98 }}
                     >
                       {link.label}
                       <motion.div
@@ -286,42 +285,37 @@ const Navbar = () => {
                   <AnimatePresence>
                     {activeMegaMenu === link.label && link.hasMegaMenu && (
                       <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        transition={{ duration: 0.2, ease: "easeOut" }}
-                        className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-[min(600px,calc(100vw-2rem))] max-w-[600px] shadow-2xl rounded-xl p-6 xl:p-8 z-[100]"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 8 }}
+                        transition={{ duration: 0.18, ease: "easeOut" }}
+                        className="absolute top-full left-1/2 -translate-x-1/2 mt-0 w-[min(920px,calc(100vw-2rem))] max-w-[920px] shadow-xl p-8 xl:p-10 z-[100]"
                         style={{
                           backgroundColor: "var(--bg-primary)",
                           border: "1px solid var(--border-primary)",
                         }}
                       >
-                        <div className="grid grid-cols-2 gap-6">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-8">
                           {navigationData.megaMenuCategories[link.label]?.map(
                             (category) => {
                               const genderSlug = link.label.toLowerCase();
                               const sectionSlug = category.title.toLowerCase().replace(/\s+/g, "-");
                               const sectionPath = `/category/${genderSlug}/${sectionSlug}`;
                               return (
-                                <motion.div
-                                  key={category.id}
-                                  initial={{ opacity: 0, x: -10 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: 0.1 }}
-                                >
+                                <div key={category.id}>
                                   <Link
                                     to={sectionPath}
                                     onClick={() => setActiveMegaMenu(null)}
-                                    className="block mb-4"
+                                    className="block mb-3"
                                   >
                                     <h4
-                                      className="font-semibold text-sm uppercase tracking-wide hover:underline"
+                                      className="font-semibold text-xs uppercase tracking-[0.16em]"
                                       style={{ color: "var(--color-primary)" }}
                                     >
                                       {category.title}
                                     </h4>
                                   </Link>
-                                  <ul className="space-y-2">
+                                  <ul className="space-y-1.5">
                                     {category.items.map((item, idx) => {
                                       const itemSlug = item.toLowerCase().replace(/\s+/g, "-");
                                       const itemPath = `/category/${genderSlug}/${sectionSlug}/${itemSlug}`;
@@ -330,27 +324,43 @@ const Navbar = () => {
                                           <Link
                                             to={itemPath}
                                             onClick={() => setActiveMegaMenu(null)}
-                                            className="block"
+                                            className="block text-sm py-0.5 transition-colors"
+                                            style={{ color: "var(--text-tertiary)" }}
+                                            onMouseEnter={(e) => {
+                                              e.currentTarget.style.color = "var(--color-primary)";
+                                            }}
+                                            onMouseLeave={(e) => {
+                                              e.currentTarget.style.color = "var(--text-tertiary)";
+                                            }}
                                           >
-                                            <motion.span
-                                              className="text-sm text-left w-full transition-colors block"
-                                              style={{ color: "var(--text-tertiary)" }}
-                                              whileHover={{
-                                                color: "var(--color-primary)",
-                                                x: 5,
-                                              }}
-                                            >
-                                              {item}
-                                            </motion.span>
+                                            {item}
                                           </Link>
                                         </li>
                                       );
                                     })}
                                   </ul>
-                                </motion.div>
+                                  <Link
+                                    to={sectionPath}
+                                    onClick={() => setActiveMegaMenu(null)}
+                                    className="inline-block mt-3 text-[11px] uppercase tracking-[0.14em] font-medium"
+                                    style={{ color: "var(--color-primary)" }}
+                                  >
+                                    Shop all
+                                  </Link>
+                                </div>
                               );
                             }
                           )}
+                        </div>
+                        <div className="mt-8 pt-5 border-t" style={{ borderColor: "var(--border-primary)" }}>
+                          <Link
+                            to={link.path}
+                            onClick={() => setActiveMegaMenu(null)}
+                            className="text-xs uppercase tracking-[0.18em] font-semibold"
+                            style={{ color: "var(--color-primary)" }}
+                          >
+                            Shop all {link.label}
+                          </Link>
                         </div>
                       </motion.div>
                     )}
@@ -376,7 +386,7 @@ const Navbar = () => {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setSearchOpen(true)}
-                  className="p-2 rounded-lg transition-colors relative"
+                  className="p-2 transition-colors relative"
                   style={{
                     color: "var(--text-secondary)",
                     backgroundColor: "transparent",
@@ -898,10 +908,11 @@ const Navbar = () => {
                           <div
                             role="button"
                             tabIndex={0}
-                            className="w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide cursor-pointer touch-manipulation"
+                            className="w-full flex items-center justify-between px-4 py-3 font-medium text-lg uppercase tracking-[0.14em] cursor-pointer touch-manipulation border-b"
                             style={{
-                              color: isActive || expanded ? "white" : "var(--text-secondary)",
-                              backgroundColor: isActive || expanded ? "var(--color-primary)" : "transparent",
+                              color: isActive || expanded ? "var(--color-primary)" : "var(--text-secondary)",
+                              backgroundColor: "transparent",
+                              borderColor: "var(--border-primary)",
                             }}
                             onClick={() => {
                               setMobileExpandedGender((g) => (g === link.label ? null : link.label));
