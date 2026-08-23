@@ -26,41 +26,22 @@ import {
 import { categoryTree } from "../../data/categoryTree";
 import { slideInFromRight, fadeIn } from "../../utils/animations";
 import { useDarkMode } from "../../context/DarkModeContext";
-
-/** Title to URL slug: "Winter Wear" -> "winter-wear". */
-function toSlug(s) {
-  return (s || "").toLowerCase().replace(/\s+/g, "-");
-}
-/** Flatten section value to list of leaf labels (for mobile subcategory links). */
-function getSectionLeafItems(value) {
-  if (Array.isArray(value)) return value.filter(Boolean);
-  if (value && typeof value === "object") {
-    const items = [];
-    Object.entries(value).forEach(([k, v]) => {
-      items.push(k);
-      if (Array.isArray(v) && v.length) items.push(...v);
-    });
-    return items;
-  }
-  return [];
-}
+import { getNavMenu } from "../../services/productApi";
+import MegaMenu from "./MegaMenu";
+import MobileCategoryList from "./MobileCategoryList";
 import { useAuth } from "../../context/AuthContext";
 import { useWishlist } from "../../context/WishlistContext";
 import { useCart } from "../../context/CartContext";
 import { useCookieConsent } from "../../context/CookieConsentContext";
+import { useChat } from "../../context/ChatContext";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [navbarHidden, setNavbarHidden] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   /** Mobile only: search bar visible only after tapping search icon (icon-only by default) */
   const [mobileSearchVisible, setMobileSearchVisible] = useState(false);
-  const lastScrollY = useRef(0);
-  const scrollThreshold = 80;
   /** Mobile only: which gender row is expanded (Men/Women) */
   const [mobileExpandedGender, setMobileExpandedGender] = useState(null);
-  /** Mobile only: which section is expanded (e.g. "Winter Wear") */
-  const [mobileExpandedSection, setMobileExpandedSection] = useState(null);
   /** Mobile only: whether Account dropdown is expanded */
   const [mobileExpandedAccount, setMobileExpandedAccount] = useState(false);
   const [activeMegaMenu, setActiveMegaMenu] = useState(null);
@@ -75,10 +56,16 @@ const Navbar = () => {
   const { getCartCount } = useCart();
   const cartCount = getCartCount();
   const { shoppingAllowed, decided } = useCookieConsent();
+  const { closeChat } = useChat();
   const navigate = useNavigate();
   const location = useLocation();
   const searchInputRef = useRef(null);
   const mobileSearchInputRef = useRef(null);
+  const megaLeaveTimer = useRef(null);
+  const [navMenu, setNavMenu] = useState({
+    men: { featured: [], sectionImages: {} },
+    women: { featured: [], sectionImages: {} },
+  });
 
   // Check if a path is active
   const isActivePath = (path) => {
@@ -91,21 +78,11 @@ const Navbar = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      const y = window.scrollY;
-      setIsScrolled(y > 20);
-      const isMobile = window.matchMedia("(max-width: 1023px)").matches;
-      if (y > lastScrollY.current && y > scrollThreshold) {
-        setNavbarHidden(true);
-        if (isMobile) setMobileSearchVisible(false);
-        if (!isMobile && !searchQuery.trim()) setSearchOpen(false);
-      } else if (y < lastScrollY.current) {
-        setNavbarHidden(false);
-      }
-      lastScrollY.current = y;
+      setIsScrolled(window.scrollY > 8);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [searchQuery]);
+  }, []);
 
   useEffect(() => {
     if (searchOpen && searchInputRef.current) {
@@ -123,20 +100,44 @@ const Navbar = () => {
     }
   };
 
+  useEffect(() => {
+    setActiveMegaMenu(null);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    document.body.classList.toggle("mobile-nav-open", mobileMenuOpen);
+    if (mobileMenuOpen) closeChat();
+    return () => document.body.classList.remove("mobile-nav-open");
+  }, [mobileMenuOpen, closeChat]);
+
+  useEffect(() => {
+    getNavMenu().then((res) => {
+      if (res.success) {
+        setNavMenu({
+          men: res.men || { featured: [], sectionImages: {} },
+          women: res.women || { featured: [], sectionImages: {} },
+        });
+      }
+    });
+    return () => {
+      if (megaLeaveTimer.current) clearTimeout(megaLeaveTimer.current);
+    };
+  }, []);
+
   const handleMegaMenuHover = (label) => {
-    if (label === "Men" || label === "Women") {
-      setActiveMegaMenu(label);
-    }
+    if (megaLeaveTimer.current) clearTimeout(megaLeaveTimer.current);
+    if (label === "Men" || label === "Women") setActiveMegaMenu(label);
+    else setActiveMegaMenu(null);
   };
 
   const handleMegaMenuLeave = () => {
-    setActiveMegaMenu(null);
+    if (megaLeaveTimer.current) clearTimeout(megaLeaveTimer.current);
+    megaLeaveTimer.current = setTimeout(() => setActiveMegaMenu(null), 180);
   };
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
     setMobileExpandedGender(null);
-    setMobileExpandedSection(null);
     setMobileExpandedAccount(false);
   };
 
@@ -147,63 +148,36 @@ const Navbar = () => {
     navigate("/");
   };
 
-  const getIcon = (name) => {
-    const icons = {
-      search: FiSearch,
-      wishlist: FiHeart,
-      cart: FiShoppingBag,
-      profile: FiUser,
-    };
-    return icons[name] || FiSearch;
-  };
 
   return (
     <>
-      <motion.nav
-        initial={{ y: -100, opacity: 0 }}
-        animate={{
-          y: navbarHidden ? -120 : 0,
-          opacity: 1,
-        }}
-        transition={{ duration: 0, ease: "easeOut" }}
-        className={`fixed top-0 left-0 right-0 z-50 w-full max-w-full overflow-visible transition-all duration-300 ${
-          isScrolled && !navbarHidden
-            ? "shadow-lg backdrop-blur-md bg-opacity-95"
-            : "shadow-sm backdrop-blur-sm bg-opacity-90"
+      <nav
+        className={`fixed top-0 left-0 right-0 z-50 w-full ${
+          isScrolled ? "shadow-md" : "shadow-sm"
         }`}
-        style={{
-          backgroundColor: "var(--bg-primary)",
-        }}
+        style={{ backgroundColor: "var(--bg-primary)" }}
       >
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-6 xl:px-8 w-full min-w-0">
-          <div className="grid w-full min-w-0 items-center h-16 sm:h-20 min-h-0 gap-x-2 sm:gap-x-3 grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-x-4">
+        <div className="w-full px-3 sm:px-5 lg:px-6 xl:px-8 2xl:px-10">
+          <div className="flex w-full items-center h-14 sm:h-16 lg:h-[4.25rem] gap-2 sm:gap-3 lg:gap-4">
             {/* Logo */}
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="flex min-w-0 items-center z-30 relative pr-1 col-start-1 row-start-1"
-              style={{ backgroundColor: "var(--bg-primary)" }}
-            >
-              <Link to="/" className="flex items-center gap-1.5 sm:gap-3 group min-w-0 max-w-[42vw] sm:max-w-none">
-                <motion.img
+            <div className="flex shrink-0 items-center">
+              <Link to="/" className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+                <img
                   src="/images/logo.png"
                   alt={navigationData.logo}
-                  className="h-8 sm:h-10 w-auto object-contain flex-shrink-0"
-                  whileHover={{ rotate: [0, -5, 5, -5, 0] }}
-                  transition={{ duration: 0.5 }}
+                  className="h-7 sm:h-8 lg:h-9 w-auto object-contain shrink-0"
                 />
-                <motion.span
-                  className="text-base sm:text-xl lg:text-lg xl:text-2xl font-bold tracking-wider truncate"
+                <span
+                  className="text-sm sm:text-base lg:text-base font-bold tracking-[0.16em] uppercase"
                   style={{ color: "var(--color-primary)" }}
-                  whileHover={{ x: 2 }}
                 >
                   {navigationData.logo}
-                </motion.span>
+                </span>
               </Link>
-            </motion.div>
+            </div>
 
             {searchOpen ? (
-              <div className="hidden lg:flex lg:col-start-2 min-w-0 w-full max-w-full justify-center items-center px-2 sm:px-4 z-20 overflow-hidden">
+              <div className="hidden lg:flex lg:flex-1 min-w-0 items-center justify-center">
                 <motion.form
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -247,8 +221,8 @@ const Navbar = () => {
                 </motion.form>
               </div>
             ) : (
-            <div className="hidden lg:flex lg:col-start-2 min-w-0 w-full max-w-full items-center justify-center z-20 overflow-visible px-1 xl:px-2">
-              <div className="flex flex-nowrap items-center justify-center gap-0 xl:gap-0.5 max-w-full overflow-x-auto overflow-y-visible [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden pointer-events-auto">
+            <div className="hidden lg:flex flex-1 min-w-0 items-center justify-center">
+              <div className="flex flex-nowrap items-center justify-center gap-0 xl:gap-0.5">
               {navigationData.links.map((link) => {
                 const isActive = isActivePath(link.path);
                 return (
@@ -270,101 +244,8 @@ const Navbar = () => {
                       whileTap={{ scale: 0.98 }}
                     >
                       {link.label}
-                      <motion.div
-                        className="absolute bottom-0 left-0 right-0 h-0.5"
-                        style={{ backgroundColor: "var(--color-primary)" }}
-                        initial={{ scaleX: isActive ? 1 : 0 }}
-                        animate={{ scaleX: isActive ? 1 : 0 }}
-                        whileHover={{ scaleX: 1 }}
-                        transition={{ duration: 0.2 }}
-                      />
                     </motion.div>
                   </Link>
-
-                  {/* Mega Menu */}
-                  <AnimatePresence>
-                    {activeMegaMenu === link.label && link.hasMegaMenu && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 8 }}
-                        transition={{ duration: 0.18, ease: "easeOut" }}
-                        className="absolute top-full left-1/2 -translate-x-1/2 mt-0 w-[min(920px,calc(100vw-2rem))] max-w-[920px] shadow-xl p-8 xl:p-10 z-[100]"
-                        style={{
-                          backgroundColor: "var(--bg-primary)",
-                          border: "1px solid var(--border-primary)",
-                        }}
-                      >
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-8">
-                          {navigationData.megaMenuCategories[link.label]?.map(
-                            (category) => {
-                              const genderSlug = link.label.toLowerCase();
-                              const sectionSlug = category.title.toLowerCase().replace(/\s+/g, "-");
-                              const sectionPath = `/category/${genderSlug}/${sectionSlug}`;
-                              return (
-                                <div key={category.id}>
-                                  <Link
-                                    to={sectionPath}
-                                    onClick={() => setActiveMegaMenu(null)}
-                                    className="block mb-3"
-                                  >
-                                    <h4
-                                      className="font-semibold text-xs uppercase tracking-[0.16em]"
-                                      style={{ color: "var(--color-primary)" }}
-                                    >
-                                      {category.title}
-                                    </h4>
-                                  </Link>
-                                  <ul className="space-y-1.5">
-                                    {category.items.map((item, idx) => {
-                                      const itemSlug = item.toLowerCase().replace(/\s+/g, "-");
-                                      const itemPath = `/category/${genderSlug}/${sectionSlug}/${itemSlug}`;
-                                      return (
-                                        <li key={idx}>
-                                          <Link
-                                            to={itemPath}
-                                            onClick={() => setActiveMegaMenu(null)}
-                                            className="block text-sm py-0.5 transition-colors"
-                                            style={{ color: "var(--text-tertiary)" }}
-                                            onMouseEnter={(e) => {
-                                              e.currentTarget.style.color = "var(--color-primary)";
-                                            }}
-                                            onMouseLeave={(e) => {
-                                              e.currentTarget.style.color = "var(--text-tertiary)";
-                                            }}
-                                          >
-                                            {item}
-                                          </Link>
-                                        </li>
-                                      );
-                                    })}
-                                  </ul>
-                                  <Link
-                                    to={sectionPath}
-                                    onClick={() => setActiveMegaMenu(null)}
-                                    className="inline-block mt-3 text-[11px] uppercase tracking-[0.14em] font-medium"
-                                    style={{ color: "var(--color-primary)" }}
-                                  >
-                                    Shop all
-                                  </Link>
-                                </div>
-                              );
-                            }
-                          )}
-                        </div>
-                        <div className="mt-8 pt-5 border-t" style={{ borderColor: "var(--border-primary)" }}>
-                          <Link
-                            to={link.path}
-                            onClick={() => setActiveMegaMenu(null)}
-                            className="text-xs uppercase tracking-[0.18em] font-semibold"
-                            style={{ color: "var(--color-primary)" }}
-                          >
-                            Shop all {link.label}
-                          </Link>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
                 );
               })}
@@ -373,159 +254,59 @@ const Navbar = () => {
             )}
 
             {/* Right: desktop icons + mobile controls */}
-            <div
-              className="col-start-2 row-start-1 lg:col-start-3 flex items-center justify-end gap-1.5 xl:gap-2 flex-shrink-0 z-30 relative pl-1 min-w-0"
-              style={{ backgroundColor: "var(--bg-primary)" }}
-            >
-              <div className="hidden lg:flex items-center gap-2 xl:gap-3 flex-shrink-0">
+            <div className="ml-auto flex items-center justify-end gap-0.5 sm:gap-1 lg:gap-1.5 shrink-0">
+              <div className="hidden lg:flex items-center gap-0.5 xl:gap-1 shrink-0">
               {!searchOpen && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
+                <button
+                  type="button"
                   onClick={() => setSearchOpen(true)}
-                  className="p-2 transition-colors relative"
-                  style={{
-                    color: "var(--text-secondary)",
-                    backgroundColor: "transparent",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = "var(--color-primary)";
-                    e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = "var(--text-secondary)";
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }}
+                  className="nav-icon-btn"
                   aria-label="Search"
                 >
-                  <FiSearch size={20} />
-                </motion.button>
+                  <FiSearch size={18} />
+                </button>
               )}
 
               {/* Theme Toggle */}
-              <motion.button
-                whileHover={{ scale: 1.1, rotate: 15 }}
-                whileTap={{ scale: 0.95 }}
+              <button
+                type="button"
                 onClick={toggleDarkMode}
-                className="p-2 rounded-lg transition-colors relative"
-                style={{
-                  color: "var(--text-secondary)",
-                  backgroundColor: "transparent",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "var(--color-primary)";
-                  e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--text-secondary)";
-                  e.currentTarget.style.backgroundColor = "transparent";
-                }}
+                className="nav-icon-btn"
                 aria-label="Toggle dark mode"
               >
-                {isDark ? <FiSun size={20} /> : <FiMoon size={20} />}
-              </motion.button>
+                {isDark ? <FiSun size={18} /> : <FiMoon size={18} />}
+              </button>
 
               {/* Wishlist */}
-              <Link to="/wishlist">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="p-2 rounded-lg transition-colors relative"
-                  style={{
-                    color: isActivePath("/wishlist") ? "var(--color-primary)" : "var(--text-secondary)",
-                    backgroundColor: "transparent",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = "var(--color-primary)";
-                    e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActivePath("/wishlist")) {
-                      e.currentTarget.style.color = "var(--text-secondary)";
-                    }
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }}
-                  aria-label="Wishlist"
-                >
-                  <FiHeart size={20} />
-                  {wishlistCount > 0 && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                      style={{ backgroundColor: "var(--color-primary)" }}
-                    >
-                      {wishlistCount}
-                    </motion.span>
-                  )}
-                </motion.button>
+              <Link to="/wishlist" className="nav-icon-btn relative inline-flex" aria-label="Wishlist">
+                <FiHeart size={18} style={{ color: isActivePath("/wishlist") ? "var(--color-primary)" : "inherit" }} />
+                {wishlistCount > 0 && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
+                    style={{ backgroundColor: "var(--color-primary)" }}
+                  >
+                    {wishlistCount}
+                  </span>
+                )}
               </Link>
 
               {/* Cart */}
-              <Link to="/cart">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="p-2 rounded-lg transition-colors relative"
-                  style={{
-                    color: isActivePath("/cart") ? "var(--color-primary)" : "var(--text-secondary)",
-                    backgroundColor: "transparent",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = "var(--color-primary)";
-                    e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActivePath("/cart")) {
-                      e.currentTarget.style.color = "var(--text-secondary)";
-                    }
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }}
-                  aria-label="Shopping Cart"
-                >
-                  <FiShoppingBag size={20} />
-                  {cartCount > 0 && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                      style={{ backgroundColor: "var(--color-primary)" }}
-                    >
-                      {cartCount}
-                    </motion.span>
-                  )}
-                </motion.button>
+              <Link to="/cart" className="nav-icon-btn relative inline-flex" aria-label="Shopping Cart">
+                <FiShoppingBag size={18} style={{ color: isActivePath("/cart") ? "var(--color-primary)" : "inherit" }} />
+                {cartCount > 0 && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-0.5 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
+                    style={{ backgroundColor: "var(--color-primary)" }}
+                  >
+                    {cartCount}
+                  </span>
+                )}
               </Link>
 
               {/* Admin — only visible when user role is admin */}
               {user?.role === "admin" && (
-                <Link to="/admin">
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="p-2 rounded-lg transition-colors"
-                    style={{
-                      color: isActivePath("/admin") ? "var(--color-primary)" : "var(--text-secondary)",
-                      backgroundColor: "transparent",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = "var(--color-primary)";
-                      e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActivePath("/admin")) {
-                        e.currentTarget.style.color = "var(--text-secondary)";
-                      }
-                      e.currentTarget.style.backgroundColor = "transparent";
-                    }}
-                    aria-label="Admin Panel"
-                    title="Admin Panel"
-                  >
-                    <FiGrid size={20} />
-                  </motion.button>
+                <Link to="/admin" className="nav-icon-btn inline-flex" aria-label="Admin Panel" title="Admin Panel">
+                  <FiGrid size={18} style={{ color: isActivePath("/admin") ? "var(--color-primary)" : "inherit" }} />
                 </Link>
               )}
 
@@ -536,27 +317,8 @@ const Navbar = () => {
                   onMouseEnter={() => setAccountMenuOpen(true)}
                   onMouseLeave={() => setAccountMenuOpen(false)}
                 >
-                  <Link to="/account" className="flex items-center">
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="p-2 rounded-lg transition-colors"
-                      style={{
-                        color: isActivePath("/account") ? "var(--color-primary)" : "var(--text-secondary)",
-                        backgroundColor: accountMenuOpen ? "var(--bg-secondary)" : "transparent",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.color = "var(--color-primary)";
-                        e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isActivePath("/account")) e.currentTarget.style.color = "var(--text-secondary)";
-                      }}
-                      aria-label="My Account"
-                      aria-expanded={accountMenuOpen}
-                    >
-                      <FiUser size={20} />
-                    </motion.button>
+                  <Link to="/account" className="nav-icon-btn inline-flex" aria-label="My Account" aria-expanded={accountMenuOpen}>
+                    <FiUser size={18} style={{ color: isActivePath("/account") ? "var(--color-primary)" : "inherit" }} />
                   </Link>
                   <AnimatePresence>
                     {accountMenuOpen && (
@@ -615,40 +377,23 @@ const Navbar = () => {
                   </AnimatePresence>
                 </div>
               ) : (
-                <Link to="/my-orders" className="flex items-center" title="My orders">
-                  <motion.span
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="p-2 rounded-lg transition-colors inline-flex"
+                <Link to="/my-orders" className="nav-icon-btn inline-flex" title="My orders" aria-label="My orders">
+                  <FiPackage
+                    size={18}
                     style={{
                       color: location.pathname.startsWith("/my-orders")
                         ? "var(--color-primary)"
-                        : "var(--text-secondary)",
-                      backgroundColor: "transparent",
+                        : "inherit",
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = "var(--color-primary)";
-                      e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!location.pathname.startsWith("/my-orders")) {
-                        e.currentTarget.style.color = "var(--text-secondary)";
-                      }
-                      e.currentTarget.style.backgroundColor = "transparent";
-                    }}
-                    aria-label="My orders"
-                  >
-                    <FiPackage size={20} />
-                  </motion.span>
+                  />
                 </Link>
               )}
 
               {isAuthenticated && (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                <button
+                  type="button"
                   onClick={() => setLogoutModalOpen(true)}
-                  className="flex items-center gap-1.5 xl:gap-2 px-2.5 xl:px-4 py-2 xl:py-2.5 rounded-lg font-semibold text-xs xl:text-sm uppercase tracking-wide transition-all border"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 font-semibold text-[10px] xl:text-[11px] uppercase tracking-wide border"
                   style={{
                     borderColor: "var(--border-primary)",
                     color: "var(--text-primary)",
@@ -656,56 +401,44 @@ const Navbar = () => {
                   }}
                   aria-label="Log out"
                 >
-                  <FiLogOut size={16} />
-                  <span className="hidden sm:inline">Logout</span>
-                </motion.button>
+                  <FiLogOut size={14} />
+                  <span className="hidden xl:inline">Logout</span>
+                </button>
               )}
 
               {!isAuthenticated && (
                 <>
                   <Link to="/register">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm uppercase tracking-wide transition-colors border"
+                    <span
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 font-semibold text-[10px] xl:text-[11px] uppercase tracking-wide border"
                       style={{
                         borderColor: "var(--color-primary)",
                         color: "var(--color-primary)",
                         backgroundColor: "transparent",
                       }}
-                      aria-label="Register"
                     >
-                      <FiUserPlus size={16} />
-                      <span>Register</span>
-                    </motion.button>
+                      <FiUserPlus size={13} />
+                      <span className="hidden xl:inline">Register</span>
+                    </span>
                   </Link>
                   <Link to="/login">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm uppercase tracking-wide transition-all"
+                    <span
+                      className="flex items-center gap-1.5 px-3 py-1.5 font-semibold text-[10px] xl:text-[11px] uppercase tracking-wide"
                       style={{
                         backgroundColor: "var(--color-primary)",
                         color: "white",
                       }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = "var(--active-color)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "var(--color-primary)";
-                      }}
-                      aria-label="Sign In"
                     >
-                      <FiLogIn size={16} />
+                      <FiLogIn size={13} />
                       <span>Sign In</span>
-                    </motion.button>
+                    </span>
                   </Link>
                 </>
               )}
               </div>
 
             {/* Mobile: search + dark mode + menu */}
-            <div className="flex lg:hidden items-center gap-2 flex-shrink-0 justify-end">
+            <div className="flex lg:hidden items-center gap-0.5 shrink-0 justify-end">
               <AnimatePresence mode="wait">
                 {mobileSearchVisible ? (
                   <motion.form
@@ -713,9 +446,9 @@ const Navbar = () => {
                     initial={{ width: 0, opacity: 0 }}
                     animate={{ width: "auto", opacity: 1 }}
                     exit={{ width: 0, opacity: 0 }}
-                    transition={{ duration: 0.25 }}
+                    transition={{ duration: 0.2 }}
                     onSubmit={handleSearch}
-                    className="flex-1 min-w-0 max-w-[120px] sm:max-w-[150px]"
+                    className="flex-1 min-w-0 max-w-[110px] sm:max-w-[140px]"
                   >
                     <div className="relative w-full">
                       <input
@@ -724,7 +457,7 @@ const Navbar = () => {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder=""
-                        className="w-full px-2 py-1.5 pr-8 text-xs rounded-md outline-none border"
+                        className="w-full px-2 py-1 pr-7 text-[11px] outline-none border"
                         style={{
                           borderColor: "var(--border-primary)",
                           backgroundColor: "var(--bg-secondary)",
@@ -733,87 +466,94 @@ const Navbar = () => {
                       />
                       <button
                         type="submit"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded"
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5"
                         style={{ color: "var(--color-primary)" }}
                         aria-label="Search"
                       >
-                        <FiSearch size={18} />
+                        <FiSearch size={14} />
                       </button>
                     </div>
                   </motion.form>
                 ) : (
-                  <motion.button
+                  <button
                     key="mobile-search-icon"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.2 }}
-                    whileTap={{ scale: 0.95 }}
+                    type="button"
                     onClick={() => {
                       setMobileSearchVisible(true);
                       setTimeout(() => mobileSearchInputRef.current?.focus(), 100);
                     }}
-                    className="p-2.5 rounded-xl flex-shrink-0"
-                    style={{ color: "var(--text-secondary)" }}
+                    className="nav-icon-btn shrink-0"
                     aria-label="Open search"
                   >
-                    <FiSearch size={22} strokeWidth={1.8} />
-                  </motion.button>
+                    <FiSearch size={16} />
+                  </button>
                 )}
               </AnimatePresence>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
+              <button
+                type="button"
                 onClick={toggleDarkMode}
-                className="p-2.5 rounded-xl transition-colors duration-200 flex-shrink-0"
-                style={{ color: "var(--text-secondary)" }}
+                className="nav-icon-btn shrink-0"
                 aria-label="Toggle dark mode"
               >
-                {isDark ? <FiSun size={22} strokeWidth={1.8} /> : <FiMoon size={22} strokeWidth={1.8} />}
-              </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
+                {isDark ? <FiSun size={16} /> : <FiMoon size={16} />}
+              </button>
+              <button
+                type="button"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2.5 rounded-xl transition-colors duration-200 flex items-center justify-center w-10 h-10"
-                style={{ color: "var(--text-primary)" }}
+                className="relative w-8 h-8 flex items-center justify-center shrink-0"
+                style={{ color: "var(--text-primary)", backgroundColor: "transparent" }}
                 aria-label="Toggle menu"
+                aria-expanded={mobileMenuOpen}
               >
-                <AnimatePresence mode="wait">
-                  {mobileMenuOpen ? (
-                    <motion.span
-                      key="close"
-                      initial={{ opacity: 0, rotate: -90 }}
-                      animate={{ opacity: 1, rotate: 0 }}
-                      exit={{ opacity: 0, rotate: 90 }}
-                      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                    >
-                      <FiX size={24} strokeWidth={2} strokeLinecap="round" />
-                    </motion.span>
-                  ) : (
-                    <motion.span
-                      key="menu"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="inline-flex flex-col justify-center items-center gap-1.5"
-                    >
-                      <span className="block w-5 h-0.5 rounded-full transition-opacity" style={{ backgroundColor: "currentColor" }} />
-                      <span className="block w-5 h-0.5 rounded-full transition-opacity" style={{ backgroundColor: "currentColor" }} />
-                      <span className="block w-5 h-0.5 rounded-full transition-opacity" style={{ backgroundColor: "currentColor" }} />
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.button>
+                <span className="relative block w-[18px] h-[12px]">
+                  <span
+                    className="absolute left-0 top-0 h-[2px] w-full bg-current transition-all duration-200 ease-out origin-center"
+                    style={{
+                      transform: mobileMenuOpen ? "translateY(5px) rotate(45deg)" : "none",
+                    }}
+                  />
+                  <span
+                    className="absolute left-0 top-[5px] h-[2px] w-full bg-current transition-opacity duration-150 ease-out"
+                    style={{ opacity: mobileMenuOpen ? 0 : 1 }}
+                  />
+                  <span
+                    className="absolute left-0 bottom-0 h-[2px] w-full bg-current transition-all duration-200 ease-out origin-center"
+                    style={{
+                      transform: mobileMenuOpen ? "translateY(-5px) rotate(-45deg)" : "none",
+                    }}
+                  />
+                </span>
+              </button>
             </div>
             </div>
           </div>
         </div>
-      </motion.nav>
-      {/* Spacer: collapse when nav hidden so content moves up */}
-      <div
-        className={`transition-none overflow-hidden ${navbarHidden ? "h-0" : "h-16 sm:h-20"}`}
-        aria-hidden="true"
-      />
+        <AnimatePresence>
+          {activeMegaMenu && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+              className="hidden lg:block absolute left-0 right-0 top-full z-[100] border-t max-h-[min(68vh,34rem)] overflow-y-auto"
+              style={{
+                backgroundColor: "var(--bg-primary)",
+                borderColor: "var(--border-primary)",
+              }}
+              onMouseEnter={() => handleMegaMenuHover(activeMegaMenu)}
+              onMouseLeave={handleMegaMenuLeave}
+            >
+              <MegaMenu
+                genderLabel={activeMegaMenu}
+                categories={navigationData.megaMenuCategories[activeMegaMenu] || []}
+                featured={(activeMegaMenu === "Women" ? navMenu.women : navMenu.men).featured}
+                onNavigate={() => setActiveMegaMenu(null)}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </nav>
+      <div className="h-14 sm:h-16 lg:h-[4.25rem]" aria-hidden="true" />
 
       {/* Mobile Menu */}
       <AnimatePresence>
@@ -828,11 +568,11 @@ const Navbar = () => {
             />
             <motion.div
               {...slideInFromRight}
-              className="fixed inset-y-0 right-0 w-full max-w-sm shadow-2xl z-50 lg:hidden"
+              className="fixed inset-0 w-full h-full z-50 lg:hidden"
               style={{ backgroundColor: "var(--bg-primary)" }}
             >
-              <div className="flex flex-col h-full p-6">
-                <div className="flex justify-between items-center mb-8">
+              <div className="flex flex-col h-full px-4 py-4">
+                <div className="flex justify-between items-center mb-4">
                   <Link
                     to="/"
                     onClick={closeMobileMenu}
@@ -841,10 +581,10 @@ const Navbar = () => {
                     <img
                       src="/images/logo.png"
                       alt={navigationData.logo}
-                      className="h-8 w-auto object-contain"
+                      className="h-6 w-auto object-contain"
                     />
                     <span
-                      className="text-xl font-bold tracking-wider"
+                      className="text-sm font-bold tracking-[0.16em]"
                       style={{ color: "var(--color-primary)" }}
                     >
                       {navigationData.logo}
@@ -855,19 +595,19 @@ const Navbar = () => {
                     onClick={closeMobileMenu}
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    <FiX size={24} />
+                    <FiX size={18} />
                   </motion.button>
                 </div>
 
                 {/* Mobile Search */}
-                <form onSubmit={handleSearch} className="mb-6">
+                <form onSubmit={handleSearch} className="mb-3">
                   <div className="relative">
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search products..."
-                      className="w-full px-4 py-3 pr-12 border-2 rounded-lg outline-none transition-colors"
+                      className="w-full px-3 py-2 pr-10 border rounded-lg outline-none transition-colors text-sm"
                       style={{
                         borderColor: "var(--border-primary)",
                         backgroundColor: "var(--bg-secondary)",
@@ -879,12 +619,12 @@ const Navbar = () => {
                       className="absolute right-3 top-1/2 -translate-y-1/2"
                       style={{ color: "var(--color-primary)" }}
                     >
-                      <FiSearch size={20} />
+                      <FiSearch size={16} />
                     </button>
                   </div>
                 </form>
 
-                <nav className="flex-1 space-y-2 overflow-y-auto">
+                <nav className="flex-1 space-y-0 overflow-y-auto">
                   {navigationData.links.map((link, index) => {
                     const isActive = isActivePath(link.path);
                     const isMenOrWomen = link.hasMegaMenu && (link.label === "Men" || link.label === "Women");
@@ -899,30 +639,26 @@ const Navbar = () => {
                       return (
                         <motion.div
                           key={link.id}
-                          initial={{ opacity: 0, x: 20 }}
+                          initial={{ opacity: 0, x: 12 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
+                          transition={{ delay: index * 0.03 }}
                           className="space-y-0"
                         >
-                          {/* Men / Women row: touch text → navigate; touch anywhere else in row → expand dropdown */}
                           <div
                             role="button"
                             tabIndex={0}
-                            className="w-full flex items-center justify-between px-4 py-3 font-medium text-lg uppercase tracking-[0.14em] cursor-pointer touch-manipulation border-b"
+                            className="w-full flex items-center justify-between px-3 py-1.5 font-medium text-[13px] uppercase tracking-[0.12em] cursor-pointer touch-manipulation"
                             style={{
                               color: isActive || expanded ? "var(--color-primary)" : "var(--text-secondary)",
                               backgroundColor: "transparent",
-                              borderColor: "var(--border-primary)",
                             }}
                             onClick={() => {
                               setMobileExpandedGender((g) => (g === link.label ? null : link.label));
-                              if (mobileExpandedGender === link.label) setMobileExpandedSection(null);
                             }}
                             onKeyDown={(e) => {
                               if (e.key === "Enter" || e.key === " ") {
                                 e.preventDefault();
                                 setMobileExpandedGender((g) => (g === link.label ? null : link.label));
-                                if (mobileExpandedGender === link.label) setMobileExpandedSection(null);
                               }
                             }}
                             aria-expanded={expanded}
@@ -934,114 +670,26 @@ const Navbar = () => {
                                 e.stopPropagation();
                                 closeMobileMenu();
                               }}
-                              className={`min-w-0 shrink-0 ${expanded ? "normal-case tracking-normal" : ""}`}
-                              style={{ color: "inherit" }}
+                              className="min-w-0 shrink-0"
+                              style={{ color: "inherit", textDecoration: "none" }}
                             >
-                              {expanded
-                                ? link.label === "Men"
-                                  ? "Shop for him"
-                                  : "Shop for her"
-                                : link.label}
+                              {link.label}
                             </Link>
                             <motion.span
-                              className="flex-shrink-0 p-2 -mr-2 pointer-events-none"
+                              className="flex-shrink-0 p-1.5 -mr-1.5 pointer-events-none"
                               style={{ color: "inherit" }}
                               animate={{ rotate: expanded ? 90 : 0 }}
                               transition={{ duration: 0.2 }}
                             >
-                              <FiChevronRight size={20} />
+                              <FiChevronRight size={16} />
                             </motion.span>
                           </div>
-                          {/* Section list: Winter Wear, Regular Wear, ... */}
                           {expanded && (
-                            <div className="pl-4 pr-2 pb-2 space-y-0">
-                              {Object.entries(tree).map(([sectionTitle, sectionValue]) => {
-                                const sectionSlug = toSlug(sectionTitle);
-                                const sectionPath = `/category/${genderSlug}/${sectionSlug}`;
-                                const sectionExpanded = mobileExpandedSection === sectionTitle;
-                                const leafItems = getSectionLeafItems(sectionValue);
-                                const hasChildren = leafItems.length > 0;
-                                return (
-                                  <div key={sectionTitle} className="mt-1">
-                                    {/* Section row: touch text → go to section; touch anywhere else → expand sub-sub-categories */}
-                                    <div
-                                      role={hasChildren ? "button" : undefined}
-                                      tabIndex={hasChildren ? 0 : undefined}
-                                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-base font-medium ${hasChildren ? "cursor-pointer touch-manipulation" : ""}`}
-                                      style={{
-                                        color: sectionExpanded
-                                          ? "var(--color-primary)"
-                                          : "var(--text-secondary)",
-                                      }}
-                                      {...(hasChildren && {
-                                        onClick: () =>
-                                          setMobileExpandedSection((s) =>
-                                            s === sectionTitle ? null : sectionTitle
-                                          ),
-                                        onKeyDown: (e) => {
-                                          if (e.key === "Enter" || e.key === " ") {
-                                            e.preventDefault();
-                                            setMobileExpandedSection((s) =>
-                                              s === sectionTitle ? null : sectionTitle
-                                            );
-                                          }
-                                        },
-                                        ariaExpanded: sectionExpanded,
-                                        ariaLabel: sectionExpanded
-                                          ? "Collapse subcategories"
-                                          : "Expand subcategories",
-                                      })}
-                                    >
-                                      <Link
-                                        to={sectionPath}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          closeMobileMenu();
-                                        }}
-                                        className="min-w-0 shrink-0 capitalize"
-                                        style={{
-                                          color: sectionExpanded
-                                            ? "var(--color-primary)"
-                                            : "var(--text-secondary)",
-                                        }}
-                                      >
-                                        {sectionTitle}
-                                      </Link>
-                                      {hasChildren ? (
-                                        <motion.span
-                                          className="flex-shrink-0 p-2 -mr-2 pointer-events-none"
-                                          style={{ color: "inherit" }}
-                                          animate={{ rotate: sectionExpanded ? 90 : 0 }}
-                                          transition={{ duration: 0.2 }}
-                                        >
-                                          <FiChevronRight size={18} />
-                                        </motion.span>
-                                      ) : null}
-                                    </div>
-                                    {/* Leaf items: Sweatshirts, Hoodies, ... (links) */}
-                                    {sectionExpanded && hasChildren && (
-                                      <div className="pl-3 pb-2 space-y-0.5">
-                                        {leafItems.map((itemLabel) => {
-                                          const itemSlug = toSlug(itemLabel);
-                                          const href = `/category/${genderSlug}/${sectionSlug}/${itemSlug}`;
-                                          return (
-                                            <Link
-                                              key={itemLabel}
-                                              to={href}
-                                              onClick={closeMobileMenu}
-                                              className="block px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                                              style={{ color: "var(--text-tertiary)" }}
-                                            >
-                                              {itemLabel}
-                                            </Link>
-                                          );
-                                        })}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
+                            <MobileCategoryList
+                              tree={tree}
+                              genderSlug={genderSlug}
+                              onNavigate={closeMobileMenu}
+                            />
                           )}
                         </motion.div>
                       );
@@ -1050,29 +698,18 @@ const Navbar = () => {
                     return (
                       <motion.div
                         key={link.id}
-                        initial={{ opacity: 0, x: 20 }}
+                        initial={{ opacity: 0, x: 12 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
+                        transition={{ delay: index * 0.03 }}
                       >
                         <Link
                           to={link.path}
                           onClick={closeMobileMenu}
-                          className="block px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide transition-colors"
+                          className="block px-3 py-1.5 font-medium text-[13px] uppercase tracking-[0.12em] transition-colors"
                           style={{
-                            color: isActive ? "white" : "var(--text-secondary)",
-                            backgroundColor: isActive ? "var(--color-primary)" : "transparent",
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isActive) {
-                              e.currentTarget.style.color = "var(--color-primary)";
-                              e.currentTarget.style.backgroundColor = "transparent";
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!isActive) {
-                              e.currentTarget.style.color = "var(--text-secondary)";
-                              e.currentTarget.style.backgroundColor = "transparent";
-                            }
+                            color: isActive ? "var(--color-primary)" : "var(--text-secondary)",
+                            backgroundColor: "transparent",
+                            textDecoration: "none",
                           }}
                         >
                           {link.label}
@@ -1081,41 +718,19 @@ const Navbar = () => {
                     );
                   })}
 
-                  <Link
-                    to={isAuthenticated ? "/account/orders" : "/my-orders"}
-                    onClick={closeMobileMenu}
-                    className="block px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide transition-colors"
-                    style={{
-                      color:
-                        (isAuthenticated && /^\/account\/orders(\/|$)/.test(location.pathname)) ||
-                        (!isAuthenticated && location.pathname.startsWith("/my-orders"))
-                          ? "white"
-                          : "var(--text-secondary)",
-                      backgroundColor:
-                        (isAuthenticated && /^\/account\/orders(\/|$)/.test(location.pathname)) ||
-                        (!isAuthenticated && location.pathname.startsWith("/my-orders"))
-                          ? "var(--color-primary)"
-                          : "transparent",
-                    }}
-                  >
-                    My orders
-                  </Link>
-
-                  {/* Mobile Account (when logged in): tap "Account" → /account; tap row elsewhere → expand */}
                   {isAuthenticated && (
                     <motion.div
-                      initial={{ opacity: 0, x: 20 }}
+                      initial={{ opacity: 0, x: 12 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 }}
                       className="space-y-0"
                     >
                       <div
                         role="button"
                         tabIndex={0}
-                        className="w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium text-lg uppercase tracking-wide cursor-pointer touch-manipulation"
+                        className="w-full flex items-center justify-between px-3 py-1.5 font-medium text-[13px] uppercase tracking-[0.12em] cursor-pointer touch-manipulation"
                         style={{
-                          color: isActivePath("/account") || mobileExpandedAccount ? "white" : "var(--text-secondary)",
-                          backgroundColor: isActivePath("/account") || mobileExpandedAccount ? "var(--color-primary)" : "transparent",
+                          color: isActivePath("/account") || mobileExpandedAccount ? "var(--color-primary)" : "var(--text-secondary)",
+                          backgroundColor: "transparent",
                         }}
                         onClick={() => {
                           setMobileExpandedAccount((a) => !a);
@@ -1136,21 +751,21 @@ const Navbar = () => {
                             closeMobileMenu();
                           }}
                           className="min-w-0 shrink-0"
-                          style={{ color: "inherit" }}
+                          style={{ color: "inherit", textDecoration: "none" }}
                         >
                           Account
                         </Link>
                         <motion.span
-                          className="flex-shrink-0 p-2 -mr-2 pointer-events-none"
+                          className="flex-shrink-0 p-1.5 -mr-1.5 pointer-events-none"
                           style={{ color: "inherit" }}
                           animate={{ rotate: mobileExpandedAccount ? 90 : 0 }}
                           transition={{ duration: 0.2 }}
                         >
-                          <FiChevronRight size={20} />
+                          <FiChevronRight size={16} />
                         </motion.span>
                       </div>
                       {mobileExpandedAccount && (
-                        <div className="pl-4 pr-2 pb-2 space-y-0">
+                        <div className="pl-4 pr-2 pb-1 space-y-0">
                           {[
                             { path: "/account", label: "Dashboard", icon: FiLayout },
                             { path: "/account/profile", label: "Profile", icon: FiUser },
@@ -1169,125 +784,68 @@ const Navbar = () => {
                                 key={item.path}
                                 to={item.path}
                                 onClick={closeMobileMenu}
-                                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium transition-colors"
+                                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium transition-colors"
                                 style={{
                                   color: isActive ? "var(--color-primary)" : "var(--text-secondary)",
-                                  backgroundColor: isActive ? "var(--bg-secondary)" : "transparent",
+                                  backgroundColor: "transparent",
+                                  textDecoration: "none",
                                 }}
                               >
-                                <Icon size={18} />
+                                <Icon size={15} />
                                 {item.label}
                               </Link>
                             );
                           })}
                         </div>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => setLogoutModalOpen(true)}
+                        className="block w-full text-left px-3 py-1.5 font-medium text-[13px] uppercase tracking-[0.12em]"
+                        style={{ color: "#dc2626", backgroundColor: "transparent" }}
+                      >
+                        Logout
+                      </button>
                     </motion.div>
+                  )}
+
+                  {!isAuthenticated && (
+                    <>
+                      <Link
+                        to="/login"
+                        onClick={closeMobileMenu}
+                        className="block px-3 py-1.5 font-medium text-[13px] uppercase tracking-[0.12em]"
+                        style={{ color: "var(--text-secondary)", textDecoration: "none" }}
+                      >
+                        Sign In
+                      </Link>
+                      <Link
+                        to="/register"
+                        onClick={closeMobileMenu}
+                        className="block px-3 py-1.5 font-medium text-[13px] uppercase tracking-[0.12em]"
+                        style={{ color: "var(--text-secondary)", textDecoration: "none" }}
+                      >
+                        Register
+                      </Link>
+                    </>
                   )}
                 </nav>
 
-                {/* Mobile Admin — only when user role is admin */}
-                {user?.role === "admin" && (
-                  <Link
-                    to="/admin"
-                    onClick={closeMobileMenu}
-                    className="block mb-3"
-                  >
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide border-2 relative"
-                      style={{
-                        borderColor: "var(--color-primary)",
-                        backgroundColor: "transparent",
-                        color: "var(--color-primary)",
-                      }}
-                    >
-                      <FiGrid size={18} />
-                      <span>Admin Panel</span>
-                      {isActivePath("/admin") && (
-                        <span 
-                          className="absolute bottom-1 left-6 right-6 h-0.5"
-                          style={{ backgroundColor: "var(--color-primary)" }}
-                        />
-                      )}
-                    </motion.button>
-                  </Link>
-                )}
-
-                {/* Mobile Login / Register (when not logged in) */}
-                {!isAuthenticated && (
-                  <>
-                    <Link
-                      to="/register"
-                      onClick={closeMobileMenu}
-                      className="block mb-3"
-                    >
-                      <motion.button
-                        whileTap={{ scale: 0.98 }}
-                        className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide border-2"
-                        style={{
-                          borderColor: "var(--color-primary)",
-                          backgroundColor: "transparent",
-                          color: "var(--color-primary)",
-                        }}
-                      >
-                        <FiUserPlus size={18} />
-                        <span>Register</span>
-                      </motion.button>
-                    </Link>
-                    <Link
-                      to="/login"
-                      onClick={closeMobileMenu}
-                      className="block mb-4"
-                    >
-                      <motion.button
-                        whileTap={{ scale: 0.98 }}
-                        className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide"
-                        style={{
-                          backgroundColor: "var(--color-primary)",
-                          color: "white",
-                        }}
-                      >
-                        <FiLogIn size={18} />
-                        <span>Sign In</span>
-                      </motion.button>
-                    </Link>
-                  </>
-                )}
-
-                {/* Mobile Logout (when logged in) */}
-                {isAuthenticated && (
-                  <motion.button
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setLogoutModalOpen(true)}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm uppercase tracking-wide border-2 mb-4"
-                    style={{
-                      borderColor: "var(--border-primary)",
-                      color: "var(--text-primary)",
-                      backgroundColor: "transparent",
-                    }}
-                  >
-                    <FiLogOut size={18} />
-                    <span>Logout</span>
-                  </motion.button>
-                )}
-
                 <div
-                  className="flex items-center justify-around pt-6 border-t space-x-4"
+                  className="flex items-center justify-center gap-6 pt-4 mt-2 border-t shrink-0"
                   style={{ borderColor: "var(--border-primary)" }}
                 >
                   <Link
                     to="/wishlist"
                     onClick={closeMobileMenu}
-                    className="relative p-3 rounded-lg transition-colors"
-                    style={{
-                      color: isActivePath("/wishlist") ? "var(--color-primary)" : "var(--text-secondary)",
-                    }}
+                    className="relative p-2"
+                    style={{ color: isActivePath("/wishlist") ? "var(--color-primary)" : "var(--text-secondary)" }}
+                    aria-label="Wishlist"
                   >
-                    <FiHeart size={24} />
+                    <FiHeart size={20} />
                     {wishlistCount > 0 && (
                       <span
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                        className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
                         style={{ backgroundColor: "var(--color-primary)" }}
                       >
                         {wishlistCount}
@@ -1297,46 +855,29 @@ const Navbar = () => {
                   <Link
                     to="/cart"
                     onClick={closeMobileMenu}
-                    className="relative p-3 rounded-lg transition-colors"
-                    style={{
-                      color: isActivePath("/cart") ? "var(--color-primary)" : "var(--text-secondary)",
-                    }}
+                    className="relative p-2"
+                    style={{ color: isActivePath("/cart") ? "var(--color-primary)" : "var(--text-secondary)" }}
+                    aria-label="Shopping cart"
                   >
-                    <FiShoppingBag size={24} />
+                    <FiShoppingBag size={20} />
                     {cartCount > 0 && (
                       <span
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                        className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
                         style={{ backgroundColor: "var(--color-primary)" }}
                       >
                         {cartCount}
                       </span>
                     )}
                   </Link>
-                  {isAuthenticated ? (
+                  {user?.role === "admin" && (
                     <Link
-                      to="/account"
+                      to="/admin"
                       onClick={closeMobileMenu}
-                      className="p-3 rounded-lg transition-colors"
-                      style={{
-                        color: isActivePath("/account") ? "var(--color-primary)" : "var(--text-secondary)",
-                      }}
-                      aria-label="My account"
+                      className="relative p-2"
+                      style={{ color: isActivePath("/admin") ? "var(--color-primary)" : "var(--text-secondary)" }}
+                      aria-label="Admin Panel"
                     >
-                      <FiUser size={24} />
-                    </Link>
-                  ) : (
-                    <Link
-                      to="/my-orders"
-                      onClick={closeMobileMenu}
-                      className="p-3 rounded-lg transition-colors"
-                      style={{
-                        color: location.pathname.startsWith("/my-orders")
-                          ? "var(--color-primary)"
-                          : "var(--text-secondary)",
-                      }}
-                      aria-label="My orders"
-                    >
-                      <FiPackage size={24} />
+                      <FiGrid size={20} />
                     </Link>
                   )}
                 </div>

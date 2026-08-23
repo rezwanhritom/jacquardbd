@@ -37,7 +37,7 @@ const VideoCard = ({ item }) => {
 };
 
 /**
- * Homepage lookbook videos from admin selection (bundled clips until uploads replace them).
+ * Homepage lookbook videos from ImageKit (admin → homepage/videos).
  */
 const HomeVideos = ({ videos = [] }) => {
   const clips = (videos || []).filter((v) => v?.url);

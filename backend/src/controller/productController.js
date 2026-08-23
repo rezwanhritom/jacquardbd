@@ -81,23 +81,32 @@ async function getShopByGenderTile(genderLabel, soldIds) {
 
 /**
  * GET /api/products/home
- * Public. New arrivals use the same rule as /new-arrivals (collection + last 30 days).
+ * Public. New arrivals = newest active products (tagged new-arrivals first, then latest).
  * Best sellers are top paid sales. shopBy.men / shopBy.women use the most-sold product image in that gender.
  */
 export async function getHomeProducts(req, res, next) {
   try {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const newArrivalDocs = await Product.find({
+    const taggedNew = await Product.find({
       status: "active",
       collection: "new-arrivals",
-      createdAt: { $gte: thirtyDaysAgo },
     })
       .populate("campaign", "name")
       .lean()
       .sort({ createdAt: -1 })
       .limit(8);
-    const newArrivals = newArrivalDocs.map(withCampaignName);
+    let newArrivals = taggedNew.map(withCampaignName);
+    if (newArrivals.length < 8) {
+      const excludeIds = taggedNew.map((p) => p._id);
+      const latestFill = await Product.find({
+        status: "active",
+        _id: { $nin: excludeIds },
+      })
+        .populate("campaign", "name")
+        .lean()
+        .sort({ createdAt: -1 })
+        .limit(8 - newArrivals.length);
+      newArrivals = [...newArrivals, ...latestFill.map(withCampaignName)];
+    }
 
     const topByQuantity = await getPaidSalesByProduct(80);
     const soldIds = topByQuantity.map((t) => t._id).filter(Boolean);
@@ -133,6 +142,54 @@ export async function getHomeProducts(req, res, next) {
     ]);
 
     res.json({ success: true, newArrivals, bestSellers, shopBy: { men, women } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+function toNavProduct(product) {
+  const image = firstProductImage(product);
+  if (!image) return null;
+  return {
+    name: product.name || "",
+    slug: product.slug || String(product._id),
+    image,
+    path: `/product/${product.slug || product._id}`,
+    section: (product.categoryPath && product.categoryPath[1]) || "",
+  };
+}
+
+async function buildNavGender(genderLabel) {
+  const products = await Product.find({
+    status: "active",
+    "categoryPath.0": genderLabel,
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+  const featured = [];
+  const sectionImages = {};
+  for (const product of products) {
+    const item = toNavProduct(product);
+    if (!item) continue;
+    if (featured.length < 4) featured.push(item);
+    if (item.section && !sectionImages[item.section]) {
+      sectionImages[item.section] = item.image;
+    }
+  }
+  return { featured, sectionImages };
+}
+
+/**
+ * GET /api/products/nav
+ * Public. Featured product photos + section images for Men/Women mega menus.
+ */
+export async function getNavMenu(req, res, next) {
+  try {
+    const [men, women] = await Promise.all([
+      buildNavGender("Male"),
+      buildNavGender("Female"),
+    ]);
+    res.json({ success: true, men, women });
   } catch (err) {
     next(err);
   }
@@ -191,6 +248,24 @@ export async function getProductsByCollection(req, res, next) {
       filter.createdAt = { $gte: thirtyDaysAgo };
     }
     let products = await Product.find(filter).populate("campaign", "name").lean().sort({ createdAt: -1 });
+    if (collectionName === "new-arrivals" && products.length === 0) {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      products = await Product.find({
+        status: "active",
+        createdAt: { $gte: thirtyDaysAgo },
+      })
+        .populate("campaign", "name")
+        .lean()
+        .sort({ createdAt: -1 });
+      if (products.length === 0) {
+        products = await Product.find({ status: "active" })
+          .populate("campaign", "name")
+          .lean()
+          .sort({ createdAt: -1 })
+          .limit(24);
+      }
+    }
     if (collectionName === "campaigns") {
       products = products.map((p) => ({ ...p, campaignName: p.campaign?.name ?? null }));
     }

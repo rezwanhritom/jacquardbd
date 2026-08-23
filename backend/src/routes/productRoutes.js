@@ -5,6 +5,7 @@ import {
   createProduct,
   getProductsByCollection,
   getHomeProducts,
+  getNavMenu,
   getAdminProducts,
   updateProduct,
   deleteProduct,
@@ -20,6 +21,8 @@ router.get("/", getProducts);
 router.get("/search", searchProducts);
 // Homepage: latest 4 + top 2 best sellers
 router.get("/home", getHomeProducts);
+// Mega menu photos (must be before /:identifier)
+router.get("/nav", getNavMenu);
 // List by collection (e.g. new-arrivals) - must be before /:identifier
 router.get("/collection/:collectionName", getProductsByCollection);
 // Admin: list all products (active + draft)

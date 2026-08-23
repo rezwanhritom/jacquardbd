@@ -46,8 +46,19 @@ const HOMEPAGE_MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB — lookbook videos
 const HOMEPAGE_MAX_FILES = 8;
 
 function homepageFileFilter(req, file, cb) {
-  if (!HOMEPAGE_MIMES.includes(file.mimetype) && !file.mimetype?.startsWith("video/") && !file.mimetype?.startsWith("image/")) {
-    return cb(new Error("Invalid file type. Upload jpg, png, webp, gif, mp4, mov, or webm."), false);
+  const slot = req.body?.slot;
+  const isVideo = file.mimetype?.startsWith("video/");
+  const isImage = file.mimetype?.startsWith("image/");
+  if (slot === "hero") {
+    if (!isImage) return cb(new Error("Hero only accepts photos (JPG, PNG, WEBP, GIF)."), false);
+    return cb(null, true);
+  }
+  if (slot === "video") {
+    if (!isVideo) return cb(new Error("Videos only accepts MP4, MOV, or WebM."), false);
+    return cb(null, true);
+  }
+  if (!HOMEPAGE_MIMES.includes(file.mimetype) && !isVideo && !isImage) {
+    return cb(new Error("Invalid file type."), false);
   }
   cb(null, true);
 }

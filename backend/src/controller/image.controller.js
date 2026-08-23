@@ -2,6 +2,7 @@ import crypto from "crypto";
 import Product from "../models/Product.js";
 import User from "../models/User.js";
 import { getImageKit, isImageKitConfigured } from "../config/imagekit.js";
+import { sendMediaUploadError } from "../utils/mediaUploadError.js";
 
 const MONGO_ID_REGEX = /^[a-fA-F0-9]{24}$/;
 
@@ -68,10 +69,7 @@ export async function uploadProductImages(req, res, next) {
     const updated = await Product.findById(productId).select("images").lean();
     res.status(201).json({ success: true, message: "Images uploaded", images: urls, productImages: updated?.images || [] });
   } catch (err) {
-    if (process.env.NODE_ENV !== "production") {
-      console.error("[ImageKit] upload error", err?.message || err);
-    }
-    next(err);
+    return sendMediaUploadError(res, err);
   }
 }
 
@@ -94,7 +92,7 @@ export async function uploadCampaignBanner(req, res, next) {
     if (!result?.url) return res.status(500).json({ success: false, message: "Upload failed" });
     res.status(201).json({ success: true, message: "Banner uploaded", url: result.url });
   } catch (err) {
-    next(err);
+    return sendMediaUploadError(res, err);
   }
 }
 
@@ -124,7 +122,7 @@ export async function uploadProfileImage(req, res, next) {
     await User.updateOne({ _id: userId }, { $set: { avatar: result.url } });
     res.status(201).json({ success: true, message: "Profile image uploaded", url: result.url });
   } catch (err) {
-    next(err);
+    return sendMediaUploadError(res, err);
   }
 }
 

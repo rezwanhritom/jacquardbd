@@ -1,14 +1,10 @@
 import HomepageMedia from "../models/HomepageMedia.js";
 import { getImageKit, isImageKitConfigured } from "../config/imagekit.js";
+import { sendMediaUploadError } from "../utils/mediaUploadError.js";
 
-const LOCAL_VIDEOS = [
-  "IMG_5672.MP4",
-  "IMG_6616.MP4",
-  "IMG_6618.MP4",
-  "IMG_7094.MP4",
-  "IMG_7137.MP4",
-  "IMG_7173.MP4",
-];
+/** ImageKit DAM: homepage/photos = hero, homepage/videos = lookbook. */
+const HERO_FOLDER = "homepage/photos";
+const VIDEO_FOLDER = "homepage/videos";
 
 const VIDEO_MIMES = new Set([
   "video/mp4",
@@ -16,6 +12,14 @@ const VIDEO_MIMES = new Set([
   "video/webm",
   "video/x-m4v",
 ]);
+
+function isVideoFile(file) {
+  return VIDEO_MIMES.has(file.mimetype) || file.mimetype?.startsWith("video/");
+}
+
+function isImageFile(file) {
+  return file.mimetype?.startsWith("image/");
+}
 
 function serialize(doc) {
   if (!doc) return null;
@@ -43,32 +47,27 @@ function splitBySlot(items) {
   return { hero, videos };
 }
 
-/** Seed bundled lookbook clips once so the homepage has real store video. */
-async function ensureDefaultVideos() {
-  const existing = await HomepageMedia.countDocuments({ slot: "video" });
-  if (existing > 0) return;
-  await HomepageMedia.insertMany(
-    LOCAL_VIDEOS.map((fileName, index) => ({
-      slot: "video",
-      mediaType: "video",
-      url: `/videos/${fileName}`,
-      fileId: "",
-      title: "",
-      enabled: true,
-      sortOrder: index,
-    }))
-  );
+function isRemoteUrl(url) {
+  return typeof url === "string" && /^https?:\/\//i.test(url);
+}
+
+/** Drop leftover local /videos and /home-hero records so the site is ImageKit-only. */
+async function removeBundledLocalMedia() {
+  await HomepageMedia.deleteMany({
+    $or: [{ url: /^\/videos\// }, { url: /^\/home-hero/ }, { url: /^\/images\/home/ }],
+  });
 }
 
 /**
  * GET /api/homepage
- * Public. Enabled hero slides and videos, sorted for display.
+ * Public. Enabled ImageKit hero photos and lookbook videos, sorted for display.
  */
 export async function getPublicHomepageMedia(req, res, next) {
   try {
-    await ensureDefaultVideos();
+    await removeBundledLocalMedia();
     const items = await HomepageMedia.find({ enabled: true }).sort({ sortOrder: 1, createdAt: 1 }).lean();
-    const { hero, videos } = splitBySlot(items.map(serialize));
+    const remote = items.map(serialize).filter((item) => isRemoteUrl(item.url));
+    const { hero, videos } = splitBySlot(remote);
     res.json({ success: true, hero, videos });
   } catch (err) {
     next(err);
@@ -77,13 +76,14 @@ export async function getPublicHomepageMedia(req, res, next) {
 
 /**
  * GET /api/homepage/admin
- * Admin. All homepage media, including disabled items.
+ * Admin. All ImageKit homepage media, including disabled items.
  */
 export async function getAdminHomepageMedia(req, res, next) {
   try {
-    await ensureDefaultVideos();
+    await removeBundledLocalMedia();
     const items = await HomepageMedia.find({}).sort({ slot: 1, sortOrder: 1, createdAt: 1 }).lean();
-    const { hero, videos } = splitBySlot(items.map(serialize));
+    const remote = items.map(serialize).filter((item) => isRemoteUrl(item.url));
+    const { hero, videos } = splitBySlot(remote);
     res.json({ success: true, hero, videos });
   } catch (err) {
     next(err);
@@ -92,7 +92,8 @@ export async function getAdminHomepageMedia(req, res, next) {
 
 /**
  * POST /api/homepage/upload
- * Admin. Upload one or more images/videos for hero or video slots.
+ * Admin. Hero → ImageKit homepage/photos (images only).
+ * Lookbook → ImageKit homepage/videos (videos only).
  * Body: slot=hero|video, files[] (multipart)
  */
 export async function uploadHomepageMedia(req, res, next) {
@@ -109,25 +110,49 @@ export async function uploadHomepageMedia(req, res, next) {
       return res.status(503).json({ success: false, message: "Image upload service not configured" });
     }
 
+    if (slot === "hero") {
+      const invalid = files.filter((file) => !isImageFile(file));
+      if (invalid.length) {
+        return res.status(400).json({
+          success: false,
+          message: "Hero only accepts photos (JPG, PNG, WEBP, GIF).",
+        });
+      }
+    } else {
+      const invalid = files.filter((file) => !isVideoFile(file));
+      if (invalid.length) {
+        return res.status(400).json({
+          success: false,
+          message: "Videos only accepts MP4, MOV, or WebM.",
+        });
+      }
+    }
+
     const imagekit = getImageKit();
+    const folder = slot === "hero" ? HERO_FOLDER : VIDEO_FOLDER;
     const last = await HomepageMedia.findOne({ slot }).sort({ sortOrder: -1 }).lean();
     let sortOrder = last?.sortOrder != null ? last.sortOrder + 1 : 0;
     const created = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const isVideo = VIDEO_MIMES.has(file.mimetype) || file.mimetype?.startsWith("video/");
-      const ext = (file.originalname && file.originalname.split(".").pop()) || (file.mimetype && file.mimetype.split("/")[1]) || (isVideo ? "mp4" : "jpg");
+      const video = isVideoFile(file);
+      const ext = String(
+        (file.originalname && file.originalname.split(".").pop()) ||
+          (file.mimetype && file.mimetype.split("/")[1]) ||
+          (video ? "mp4" : "jpg")
+      )
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "") || (video ? "mp4" : "jpg");
       const result = await imagekit.upload({
         file: file.buffer,
-        fileName: `home_${slot}_${Date.now()}_${i}.${ext}`,
-        folder: "homepage",
-        useUniqueFileName: true,
+        fileName: `${slot}_${Date.now()}_${i}.${ext}`,
+        folder,
       });
       if (!result?.url) continue;
       const doc = await HomepageMedia.create({
         slot,
-        mediaType: isVideo ? "video" : "image",
+        mediaType: video ? "video" : "image",
         url: result.url,
         fileId: result.fileId || "",
         title: "",
@@ -142,7 +167,7 @@ export async function uploadHomepageMedia(req, res, next) {
     }
     res.status(201).json({ success: true, message: "Media uploaded", items: created });
   } catch (err) {
-    next(err);
+    return sendMediaUploadError(res, err);
   }
 }
 
@@ -161,7 +186,6 @@ export async function updateHomepageMedia(req, res, next) {
     if (req.body.sortOrder != null && Number.isFinite(Number(req.body.sortOrder))) {
       item.sortOrder = Number(req.body.sortOrder);
     }
-    if (req.body.slot === "hero" || req.body.slot === "video") item.slot = req.body.slot;
     await item.save();
     res.json({ success: true, item: serialize(item) });
   } catch (err) {
@@ -171,7 +195,7 @@ export async function updateHomepageMedia(req, res, next) {
 
 /**
  * DELETE /api/homepage/:id
- * Admin. Remove a media item. ImageKit files are deleted when a fileId is stored.
+ * Admin. Remove a media item and delete it from ImageKit when a fileId is stored.
  */
 export async function deleteHomepageMedia(req, res, next) {
   try {
@@ -184,7 +208,7 @@ export async function deleteHomepageMedia(req, res, next) {
         const imagekit = getImageKit();
         await imagekit.deleteFile(item.fileId);
       } catch (_) {
-        /* local or already-removed files should still leave the database */
+        /* already-removed ImageKit files should still leave the database */
       }
     }
     await HomepageMedia.deleteOne({ _id: id });

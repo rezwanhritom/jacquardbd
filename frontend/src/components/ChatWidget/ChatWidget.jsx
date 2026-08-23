@@ -116,6 +116,7 @@ const ChatWidget = () => {
       <motion.button
         type="button"
         onClick={toggleChat}
+        data-chat-widget="fab"
         className={fabClass}
         style={{
           backgroundColor: "var(--color-primary)",
@@ -145,6 +146,7 @@ const ChatWidget = () => {
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/30 z-[101] lg:bg-transparent"
               onClick={closeChat}
+              data-chat-widget="overlay"
               aria-hidden="true"
             />
             <motion.div
@@ -152,6 +154,7 @@ const ChatWidget = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 320 }}
               transition={{ type: "tween", duration: 0.25 }}
+              data-chat-widget="panel"
               className="fixed z-[102] w-[calc(100vw-1.5rem)] max-w-md left-3 right-3 sm:left-auto sm:right-4 sm:w-full bottom-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:bottom-[max(1rem,env(safe-area-inset-bottom,0px))] top-auto max-h-[min(480px,calc(100dvh-5.5rem))] rounded-2xl shadow-2xl flex flex-col overflow-hidden"
               style={{
                 backgroundColor: "var(--bg-primary)",

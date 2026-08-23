@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
-const FALLBACK_HERO = "/home-hero.png";
-
 function MediaSlide({ item, active }) {
   if (!item) return null;
   const common = "absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-700";
@@ -29,8 +27,8 @@ function MediaSlide({ item, active }) {
 }
 
 /**
- * Full-bleed hero. Slides come from admin homepage media (images and/or videos).
- * Multiple enabled slides rotate; a single slide stays put. Falls back to the site hero photo.
+ * Full-bleed hero. Slides are ImageKit photos from admin (homepage/photos).
+ * Multiple enabled slides rotate; a single slide stays put.
  */
 const Hero = ({ slides = [] }) => {
   const media = (slides || []).filter((s) => s?.url);
@@ -48,21 +46,11 @@ const Hero = ({ slides = [] }) => {
     return () => clearInterval(timer);
   }, [media.length]);
 
-  const current = media[index];
-
   return (
     <section className="relative w-full overflow-hidden bg-neutral-800 jacquard-hero-home" aria-label="Featured collection">
-      {media.length > 0 ? (
-        media.map((item, i) => (
-          <MediaSlide key={item._id || item.url || i} item={item} active={i === index} />
-        ))
-      ) : (
-        <img
-          src={FALLBACK_HERO}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover object-center"
-        />
-      )}
+      {media.map((item, i) => (
+        <MediaSlide key={item._id || item.url || i} item={item} active={i === index} />
+      ))}
       <div
         className="absolute inset-0"
         style={{

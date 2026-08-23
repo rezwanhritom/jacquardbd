@@ -2,9 +2,16 @@
  * Centralized error handling middleware.
  * Use proper HTTP status codes and return validation/error messages.
  */
+import { mediaUploadError } from "../utils/mediaUploadError.js";
+
 export function errorHandler(err, req, res, next) {
-  const status = err.statusCode || err.status || 500;
-  const message = err.message || "Internal server error";
+  const looksLikeImageKit = Boolean(err?.help) || /cannot be authenticated|expired private api key/i.test(String(err?.message || ""));
+  const mapped = looksLikeImageKit ? mediaUploadError(err) : null;
+  const status = mapped?.status || err.statusCode || err.status || 500;
+  const message = mapped?.message || err.message || err.help || "Internal server error";
+  if (status >= 500) {
+    console.error("[error]", req.method, req.originalUrl, message);
+  }
   const isProduction = process.env.NODE_ENV === "production";
 
   if (err.name === "ValidationError") {

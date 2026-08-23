@@ -39,7 +39,7 @@ const MediaCard = ({ item, onToggle, onDelete, busyId }) => {
             disabled={busy}
             onChange={() => onToggle(item)}
           />
-          Show on site
+          Visible
         </label>
         <button
           type="button"
@@ -72,7 +72,7 @@ const UploadRow = ({ slot, label, uploading, onUpload }) => {
       <input
         ref={inputRef}
         type="file"
-        accept={slot === "hero" ? "image/*,video/mp4,video/quicktime,video/webm" : "video/*,image/*"}
+        accept={slot === "hero" ? "image/jpeg,image/png,image/webp,image/gif" : "video/mp4,video/quicktime,video/webm"}
         multiple
         className="hidden"
         onChange={(e) => {
@@ -115,7 +115,7 @@ const AdminHomepage = () => {
     const result = await uploadHomepageMedia(slot, files);
     setUploadingSlot(null);
     if (result.success) {
-      toast.success(slot === "hero" ? "Hero media uploaded." : "Videos uploaded.");
+      toast.success(slot === "hero" ? "Photos uploaded." : "Videos uploaded.");
       load();
     } else {
       toast.error(result.message || "Upload failed");
@@ -159,24 +159,22 @@ const AdminHomepage = () => {
 
   return (
     <motion.div variants={fadeInUp} className="space-y-10">
-      <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-        Upload photos or videos for the hero and lookbook. Check <strong>Show on site</strong> on one or many items — all checked items appear. Unchecked items stay in this list but are hidden on the storefront.
-      </p>
-
+      <header>
+        <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
+          Homepage
+        </h2>
+      </header>
       <section>
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-4">
           <FiImage size={20} style={{ color: "var(--color-primary)" }} />
           <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
             Hero
           </h2>
         </div>
-        <p className="text-sm mb-3" style={{ color: "var(--text-secondary)" }}>
-          Photos or videos at the top of the homepage. Several can show at once as a rotating slideshow.
-        </p>
-        <UploadRow slot="hero" label="Upload hero media" uploading={uploadingSlot === "hero"} onUpload={handleUpload} />
+        <UploadRow slot="hero" label="Upload photos" uploading={uploadingSlot === "hero"} onUpload={handleUpload} />
         {hero.length === 0 ? (
           <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
-            No hero uploads yet. The storefront will use the default hero photo until you add one.
+            No photos yet.
           </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -188,15 +186,12 @@ const AdminHomepage = () => {
       </section>
 
       <section>
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-4">
           <FiFilm size={20} style={{ color: "var(--color-primary)" }} />
           <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
             Videos
           </h2>
         </div>
-        <p className="text-sm mb-3" style={{ color: "var(--text-secondary)" }}>
-          Lookbook clips on the homepage. Bundled store videos are listed here so you can show or hide each one. Upload more anytime.
-        </p>
         <UploadRow slot="video" label="Upload videos" uploading={uploadingSlot === "video"} onUpload={handleUpload} />
         {videos.length === 0 ? (
           <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>

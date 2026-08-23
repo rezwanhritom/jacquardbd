@@ -92,6 +92,24 @@ export async function getHomeProducts() {
 }
 
 /**
+ * Mega menu photos for Men/Women (GET /api/products/nav).
+ */
+export async function getNavMenu() {
+  const baseUrl = getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/products/nav`);
+  const data = await response.json().catch(() => ({}));
+  const empty = { featured: [], sectionImages: {} };
+  if (!response.ok) {
+    return { success: false, men: empty, women: empty, message: data.message || "Failed to load" };
+  }
+  return {
+    success: true,
+    men: data.men || empty,
+    women: data.women || empty,
+  };
+}
+
+/**
  * Search products and categories (GET /api/products/search?q=...).
  * Returns { success, products, matchType: 'exact'|'fuzzy'|'none', suggestedQuery? }.
  */

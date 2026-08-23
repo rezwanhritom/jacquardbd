@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 
 /**
- * Admin-managed homepage media. Heroes and lookbook videos can be mixed
- * (images or videos). Multiple items can be enabled at once.
+ * Admin-managed homepage media from ImageKit.
+ * hero → homepage/photos (images). video → homepage/videos (lookbook clips).
  */
 const homepageMediaSchema = new mongoose.Schema(
   {
@@ -19,7 +19,7 @@ const homepageMediaSchema = new mongoose.Schema(
       required: true,
     },
     url: { type: String, required: true, trim: true },
-    /** ImageKit file id; empty for bundled local videos. */
+    /** ImageKit file id. */
     fileId: { type: String, default: "", trim: true },
     title: { type: String, default: "", trim: true },
     enabled: { type: Boolean, default: true, index: true },

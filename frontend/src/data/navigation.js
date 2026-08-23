@@ -1,32 +1,27 @@
 import { categoryTree } from "./categoryTree";
 
 /**
- * Flatten a category value into a list of item labels for the mega menu.
- * Object -> [keys, ...child array items]; Array -> items as-is.
+ * Keep category → subcategory → leaf hierarchy for the mega menu (no flattening).
  */
-function flattenCategoryItems(value) {
-  if (Array.isArray(value)) return value.filter(Boolean);
+function mapCategoryValue(value) {
+  if (Array.isArray(value)) {
+    return value.filter(Boolean).map((label) => ({ label, children: [] }));
+  }
   if (value && typeof value === "object") {
-    const keys = Object.keys(value);
-    const items = [...keys];
-    keys.forEach((k) => {
-      const v = value[k];
-      if (Array.isArray(v) && v.length) items.push(...v);
-    });
-    return items;
+    return Object.entries(value).map(([label, v]) => ({
+      label,
+      children: Array.isArray(v) ? v.filter(Boolean) : [],
+    }));
   }
   return [];
 }
 
-/**
- * Build mega menu sections from category tree (Male/Female) for nav (Men/Women).
- */
 function buildMegaMenuFromCategoryTree(tree) {
   if (!tree || typeof tree !== "object") return [];
   return Object.entries(tree).map(([title, value], id) => ({
     id: id + 1,
     title,
-    items: flattenCategoryItems(value),
+    items: mapCategoryValue(value),
   }));
 }
 
