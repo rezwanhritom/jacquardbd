@@ -34,6 +34,7 @@ import { useWishlist } from "../../context/WishlistContext";
 import { useCart } from "../../context/CartContext";
 import { useCookieConsent } from "../../context/CookieConsentContext";
 import { useChat } from "../../context/ChatContext";
+import logoSrc from "../../assets/logo.png";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -161,11 +162,14 @@ const Navbar = () => {
           <div className="flex w-full items-center h-14 sm:h-16 lg:h-[4.25rem] gap-2 sm:gap-3 lg:gap-4">
             {/* Logo */}
             <div className="flex shrink-0 items-center">
-              <Link to="/" className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+              <Link to="/" className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                 <img
-                  src="/images/logo.png"
-                  alt={navigationData.logo}
-                  className="h-7 sm:h-8 lg:h-9 w-auto object-contain shrink-0"
+                  src={logoSrc}
+                  alt=""
+                  className="h-8 sm:h-9 lg:h-10 w-auto object-contain shrink-0"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
                 />
                 <span
                   className="text-sm sm:text-base lg:text-base font-bold tracking-[0.16em] uppercase"
@@ -254,8 +258,9 @@ const Navbar = () => {
             )}
 
             {/* Right: desktop icons + mobile controls */}
-            <div className="ml-auto flex items-center justify-end gap-0.5 sm:gap-1 lg:gap-1.5 shrink-0">
-              <div className="hidden lg:flex items-center gap-0.5 xl:gap-1 shrink-0">
+            <div className="ml-auto flex items-center justify-end gap-2 sm:gap-2.5 lg:gap-3 shrink-0">
+              <div className="hidden lg:flex items-center shrink-0">
+              <div className="flex items-center gap-2.5 xl:gap-3.5">
               {!searchOpen && (
                 <button
                   type="button"
@@ -276,7 +281,15 @@ const Navbar = () => {
               >
                 {isDark ? <FiSun size={18} /> : <FiMoon size={18} />}
               </button>
+              </div>
 
+              <span
+                className="mx-3 xl:mx-4 h-4 w-px shrink-0"
+                style={{ backgroundColor: "var(--border-primary)" }}
+                aria-hidden="true"
+              />
+
+              <div className="flex items-center gap-2.5 xl:gap-3.5">
               {/* Wishlist */}
               <Link to="/wishlist" className="nav-icon-btn relative inline-flex" aria-label="Wishlist">
                 <FiHeart size={18} style={{ color: isActivePath("/wishlist") ? "var(--color-primary)" : "inherit" }} />
@@ -371,6 +384,18 @@ const Navbar = () => {
                               </Link>
                             );
                           })}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAccountMenuOpen(false);
+                              setLogoutModalOpen(true);
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-sm font-medium"
+                            style={{ color: "#dc2626", backgroundColor: "transparent" }}
+                          >
+                            <FiLogOut size={16} />
+                            Logout
+                          </button>
                         </nav>
                       </motion.div>
                     )}
@@ -387,23 +412,6 @@ const Navbar = () => {
                     }}
                   />
                 </Link>
-              )}
-
-              {isAuthenticated && (
-                <button
-                  type="button"
-                  onClick={() => setLogoutModalOpen(true)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 font-semibold text-[10px] xl:text-[11px] uppercase tracking-wide border"
-                  style={{
-                    borderColor: "var(--border-primary)",
-                    color: "var(--text-primary)",
-                    backgroundColor: "transparent",
-                  }}
-                  aria-label="Log out"
-                >
-                  <FiLogOut size={14} />
-                  <span className="hidden xl:inline">Logout</span>
-                </button>
               )}
 
               {!isAuthenticated && (
@@ -436,9 +444,10 @@ const Navbar = () => {
                 </>
               )}
               </div>
+              </div>
 
             {/* Mobile: search + dark mode + menu */}
-            <div className="flex lg:hidden items-center gap-0.5 shrink-0 justify-end">
+            <div className="flex lg:hidden items-center gap-2 shrink-0 justify-end">
               <AnimatePresence mode="wait">
                 {mobileSearchVisible ? (
                   <motion.form
@@ -579,9 +588,12 @@ const Navbar = () => {
                     className="flex items-center gap-2"
                   >
                     <img
-                      src="/images/logo.png"
-                      alt={navigationData.logo}
-                      className="h-6 w-auto object-contain"
+                      src={logoSrc}
+                      alt=""
+                      className="h-7 w-auto object-contain"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
                     />
                     <span
                       className="text-sm font-bold tracking-[0.16em]"

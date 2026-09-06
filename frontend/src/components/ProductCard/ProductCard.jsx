@@ -4,8 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   FiHeart,
   FiShoppingBag,
-  FiChevronUp,
-  FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
 } from "react-icons/fi";
@@ -21,50 +19,26 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", brickSlot = null }
   const inCart = isInCart(product);
   const outOfStock = (product?.stockQuantity ?? 1) <= 0;
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const touchStartYRef = useRef(null);
-  const touchEndYRef = useRef(null);
-  const touchStartXListRef = useRef(null);
-  const touchEndXListRef = useRef(null);
+  const touchStartXRef = useRef(null);
+  const touchEndXRef = useRef(null);
 
   const images = Array.isArray(product?.images) ? product.images : [];
   const imageCount = images.length;
 
   const MIN_SWIPE = 50;
+  /** Horizontal swipe — left = next, right = previous (wraps). */
   const onImageTouchStart = (e) => {
-    touchStartYRef.current = e.targetTouches[0].clientY;
-    touchEndYRef.current = e.targetTouches[0].clientY;
+    touchStartXRef.current = e.targetTouches[0].clientX;
+    touchEndXRef.current = e.targetTouches[0].clientX;
   };
   const onImageTouchMove = (e) => {
-    touchEndYRef.current = e.targetTouches[0].clientY;
+    touchEndXRef.current = e.targetTouches[0].clientX;
   };
   const onImageTouchEnd = () => {
-    const start = touchStartYRef.current;
-    const end = touchEndYRef.current;
-    if (start == null || end == null || imageCount <= 1) {
-      touchStartYRef.current = null;
-      touchEndYRef.current = null;
-      return;
-    }
-    const delta = start - end;
-    if (delta > MIN_SWIPE) setCurrentImageIndex((prev) => (prev + 1) % imageCount);
-    else if (delta < -MIN_SWIPE) setCurrentImageIndex((prev) => (prev - 1 + imageCount) % imageCount);
-    touchStartYRef.current = null;
-    touchEndYRef.current = null;
-  };
-
-  /** List view: horizontal swipe — left = next, right = previous (wraps). */
-  const onListImageTouchStart = (e) => {
-    touchStartXListRef.current = e.targetTouches[0].clientX;
-    touchEndXListRef.current = e.targetTouches[0].clientX;
-  };
-  const onListImageTouchMove = (e) => {
-    touchEndXListRef.current = e.targetTouches[0].clientX;
-  };
-  const onListImageTouchEnd = (e) => {
-    const start = touchStartXListRef.current;
-    const end = touchEndXListRef.current;
-    touchStartXListRef.current = null;
-    touchEndXListRef.current = null;
+    const start = touchStartXRef.current;
+    const end = touchEndXRef.current;
+    touchStartXRef.current = null;
+    touchEndXRef.current = null;
     if (start == null || end == null || imageCount <= 1) return;
     const delta = start - end;
     if (delta > MIN_SWIPE) setCurrentImageIndex((prev) => (prev + 1) % imageCount);
@@ -128,9 +102,9 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", brickSlot = null }
             <div
               className="relative overflow-hidden w-full max-w-[11rem] h-52 sm:max-w-none sm:w-48 sm:h-64 flex-shrink-0 rounded-lg touch-none select-none mx-auto sm:mx-0"
               style={{ backgroundColor: "var(--bg-tertiary)" }}
-              onTouchStart={onListImageTouchStart}
-              onTouchMove={onListImageTouchMove}
-              onTouchEnd={onListImageTouchEnd}
+              onTouchStart={onImageTouchStart}
+              onTouchMove={onImageTouchMove}
+              onTouchEnd={onImageTouchEnd}
               role="group"
               aria-label="Product photos, swipe left or right to browse"
             >
@@ -306,7 +280,7 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", brickSlot = null }
         aria-label={`View ${product.name} details`}
       >
         <div className={isBrickFull ? "space-y-3 sm:space-y-4" : "space-y-4"}>
-          {/* Image Container: vertical swipe (up/down) for image change */}
+          {/* Image Container: horizontal swipe (left/right) for image change */}
           <div
             className={`relative overflow-hidden touch-none ${
               isBrickFull
@@ -353,26 +327,26 @@ const ProductCard = ({ product, index = 0, viewMode = "grid", brickSlot = null }
               </motion.span>
             )}
 
-            {/* Image navigation: up/down arrows — visible on any image */}
+            {/* Image navigation: left/right arrows — visible on any image */}
             {imageCount > 1 && (
               <>
                 <button
                   type="button"
                   onClick={prevImage}
-                  className="absolute left-1/2 top-2 -translate-x-1/2 z-10 p-1 border-0 outline-none focus:outline-none focus:ring-0 bg-transparent opacity-80 hover:opacity-100 transition-opacity"
+                  className="absolute left-1 top-1/2 -translate-y-1/2 z-10 p-1 border-0 outline-none focus:outline-none focus:ring-0 bg-transparent opacity-80 hover:opacity-100 transition-opacity"
                   style={{ color: "#fff", filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.85))" }}
                   aria-label="Previous image"
                 >
-                  <FiChevronUp size={24} strokeWidth={2.5} />
+                  <FiChevronLeft size={24} strokeWidth={2.5} />
                 </button>
                 <button
                   type="button"
                   onClick={nextImage}
-                  className="absolute left-1/2 bottom-8 -translate-x-1/2 z-10 p-1 border-0 outline-none focus:outline-none focus:ring-0 bg-transparent opacity-80 hover:opacity-100 transition-opacity"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 z-10 p-1 border-0 outline-none focus:outline-none focus:ring-0 bg-transparent opacity-80 hover:opacity-100 transition-opacity"
                   style={{ color: "#fff", filter: "drop-shadow(0 1px 3px rgba(0,0,0,0.85))" }}
                   aria-label="Next image"
                 >
-                  <FiChevronDown size={24} strokeWidth={2.5} />
+                  <FiChevronRight size={24} strokeWidth={2.5} />
                 </button>
               </>
             )}

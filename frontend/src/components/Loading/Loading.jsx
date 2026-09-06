@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import logoSrc from "../../assets/logo.png";
 
 const Loading = () => {
   return (
@@ -14,9 +15,12 @@ const Loading = () => {
         className="flex flex-col items-center gap-4"
       >
         <img
-          src="/images/logo.png"
-          alt="JACQUARD"
+          src={logoSrc}
+          alt=""
           className="h-14 w-auto object-contain"
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+          }}
         />
         <span
           className="text-2xl font-bold tracking-wider"

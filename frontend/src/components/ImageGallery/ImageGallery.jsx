@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiChevronUp, FiChevronDown, FiChevronLeft, FiChevronRight, FiX } from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight, FiX } from "react-icons/fi";
 
 const MIN_SWIPE = 50;
 
@@ -26,6 +26,7 @@ function FullscreenImageViewer({
   const lastDist = useRef(0);
   const modeRef = useRef(null);
   const panOriginRef = useRef(null);
+  const swipeRef = useRef(null);
   const overlayRef = useRef(null);
   const scaleRef = useRef(1);
   const txRef = useRef(0);
@@ -72,6 +73,7 @@ function FullscreenImageViewer({
   const handleTouchStart = useCallback((e) => {
     if (e.touches.length === 2) {
       modeRef.current = "pinch";
+      swipeRef.current = null;
       lastDist.current = distance(e.touches);
     } else if (e.touches.length === 1) {
       if (scaleRef.current > 1.02) {
@@ -82,6 +84,9 @@ function FullscreenImageViewer({
           tx: txRef.current,
           ty: tyRef.current,
         };
+      } else {
+        modeRef.current = "swipe";
+        swipeRef.current = { x: e.touches[0].clientX, endX: e.touches[0].clientX };
       }
     }
   }, []);
@@ -108,13 +113,24 @@ function FullscreenImageViewer({
       tyRef.current = nty;
       setTx(ntx);
       setTy(nty);
+    } else if (modeRef.current === "swipe" && e.touches.length === 1 && swipeRef.current) {
+      swipeRef.current.endX = e.touches[0].clientX;
     }
   }, []);
 
   const handleTouchEnd = useCallback(() => {
+    if (modeRef.current === "swipe" && swipeRef.current && images.length > 1) {
+      const dx = swipeRef.current.x - swipeRef.current.endX;
+      if (dx > MIN_SWIPE) {
+        setSelectedIndex((i) => (i + 1) % images.length);
+      } else if (dx < -MIN_SWIPE) {
+        setSelectedIndex((i) => (i - 1 + images.length) % images.length);
+      }
+    }
     modeRef.current = null;
     lastDist.current = 0;
     panOriginRef.current = null;
+    swipeRef.current = null;
     setScale((s) => {
       if (s < 1.05) {
         scaleRef.current = 1;
@@ -127,7 +143,7 @@ function FullscreenImageViewer({
       scaleRef.current = s;
       return s;
     });
-  }, []);
+  }, [images.length, setSelectedIndex]);
 
   if (!open) return null;
 
@@ -225,8 +241,8 @@ const ImageGallery = ({ images, productName }) => {
     typeof window !== "undefined" ? window.matchMedia("(max-width: 1023px)").matches : false
   );
 
-  const touchStartYRef = useRef(null);
-  const touchEndYRef = useRef(null);
+  const touchStartXRef = useRef(null);
+  const touchEndXRef = useRef(null);
   const blockFullscreenTapRef = useRef(false);
 
   useEffect(() => {
@@ -245,17 +261,17 @@ const ImageGallery = ({ images, productName }) => {
   };
 
   const onTouchStart = (e) => {
-    touchStartYRef.current = e.targetTouches[0].clientY;
-    touchEndYRef.current = e.targetTouches[0].clientY;
+    touchStartXRef.current = e.targetTouches[0].clientX;
+    touchEndXRef.current = e.targetTouches[0].clientX;
   };
   const onTouchMove = (e) => {
-    touchEndYRef.current = e.targetTouches[0].clientY;
+    touchEndXRef.current = e.targetTouches[0].clientX;
   };
   const onTouchEnd = () => {
-    const start = touchStartYRef.current;
-    const end = touchEndYRef.current;
-    touchStartYRef.current = null;
-    touchEndYRef.current = null;
+    const start = touchStartXRef.current;
+    const end = touchEndXRef.current;
+    touchStartXRef.current = null;
+    touchEndXRef.current = null;
     if (start == null || end == null) return;
     const delta = start - end;
     if (safeImages.length > 1 && (delta > MIN_SWIPE || delta < -MIN_SWIPE)) {
@@ -350,11 +366,11 @@ const ImageGallery = ({ images, productName }) => {
                 e.stopPropagation();
                 prevImage();
               }}
-              className={`absolute left-1/2 top-3 -translate-x-1/2 ${arrowBtn}`}
+              className={`absolute left-1 top-1/2 -translate-y-1/2 ${arrowBtn}`}
               style={arrowIconStyle}
               aria-label="Previous image"
             >
-              <FiChevronUp size={26} strokeWidth={2.5} />
+              <FiChevronLeft size={26} strokeWidth={2.5} />
             </button>
             <button
               type="button"
@@ -362,11 +378,11 @@ const ImageGallery = ({ images, productName }) => {
                 e.stopPropagation();
                 nextImage();
               }}
-              className={`absolute left-1/2 bottom-3 -translate-x-1/2 ${arrowBtn}`}
+              className={`absolute right-1 top-1/2 -translate-y-1/2 ${arrowBtn}`}
               style={arrowIconStyle}
               aria-label="Next image"
             >
-              <FiChevronDown size={26} strokeWidth={2.5} />
+              <FiChevronRight size={26} strokeWidth={2.5} />
             </button>
           </>
         )}

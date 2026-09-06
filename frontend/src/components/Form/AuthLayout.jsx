@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router";
 import { pageTransitionVariants, pageTransitionConfig } from "../../utils/animations";
+import logoSrc from "../../assets/logo.png";
 
 const AuthLayout = ({ children, title, subtitle }) => {
   return (
@@ -24,9 +25,12 @@ const AuthLayout = ({ children, title, subtitle }) => {
           >
             <Link to="/" className="inline-flex items-center gap-3 group">
               <motion.img
-                src="/images/logo.png"
-                alt="Jacquard"
+                src={logoSrc}
+                alt=""
                 className="h-12 w-auto object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
                 whileHover={{ rotate: [0, -5, 5, -5, 0] }}
                 transition={{ duration: 0.5 }}
               />

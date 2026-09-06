@@ -5,6 +5,7 @@ import { footerData } from "../../data/footer";
 import { fadeInUp, staggerContainer } from "../../utils/animations";
 import { useChat } from "../../context/ChatContext";
 import { useCookieConsent } from "../../context/CookieConsentContext";
+import logoSrc from "../../assets/logo.png";
 
 const Footer = () => {
   const { openChat } = useChat();
@@ -40,10 +41,13 @@ const Footer = () => {
                 className="flex items-center gap-3 mb-2"
               >
                 <img
-                  src="/images/logo.png"
-                  alt={footerData.brand.name}
+                  src={logoSrc}
+                  alt=""
                   className="h-10 w-auto object-contain"
                   style={{ filter: "brightness(0) invert(1)" }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                  }}
                 />
                 <span className="font-display text-2xl font-semibold tracking-[0.18em] text-white">
                   {footerData.brand.name}
